@@ -248,6 +248,10 @@ describe("fetchDetail", () => {
         frontShiny: "https://img/pikachu-shiny.png",
         backDefault: "https://img/pikachu-back.png",
         backShiny: "https://img/pikachu-back-shiny.png",
+        officialArtwork: null,
+        officialArtworkShiny: null,
+        homeFront: null,
+        homeShiny: null,
       });
       expect(detail.cryLatestUrl).toBe("https://cries/pikachu.ogg");
       expect(detail.evolutionChain.map((n) => n.name)).toEqual([

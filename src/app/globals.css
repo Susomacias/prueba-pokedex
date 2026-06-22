@@ -257,3 +257,157 @@ body {
     animation: none !important;
   }
 }
+
+/* -------------------------------------------------------------------------- *
+ * Animaciones — Plan 04.2 (transición Inicio → Pokédex)
+ * -------------------------------------------------------------------------- *
+ * La coreografía se activa con un atributo `data-leaving="true"` en el
+ * contenedor raíz de la pantalla de inicio (gestionado por
+ * `HomeTransitionOut`). Cada elemento sale con su propia curva y
+ * duración para evitar que la pantalla se vea "cuadrada":
+ *
+ *   - Logo: 800ms ease-in-out (centro-sup → sup-derecha + scale)
+ *   - Ash: 600ms ease-in (sale por la izquierda)
+ *   - Slider pokemons: 600ms ease-in (sale por la derecha)
+ *   - Pokédex cerrada: 600ms ease-in (sale por abajo, queda fuera
+ *     de pantalla y el shell de la Pokédex ocupa su lugar)
+ *   - Botón PRESS START + botón sonido: 600ms ease-in (salen abajo)
+ *
+ * Música: el `useMusicFadeController` reduce el volumen en paralelo
+ * durante ~1000ms (no pausamos el audio del todo para permitir una
+ * reentrada suave cuando el usuario pulse "Volver" desde la Pokédex).
+ *
+ * `prefers-reduced-motion`: con `data-leaving="instant"` los elementos
+ * se ocultan inmediatamente sin animar y la música se silencia de
+ * golpe (sin fade). Esto cumple con el requisito de accesibilidad.
+ */
+
+@keyframes home-exit-logo {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(min(40vw, 280px), -min(35dvh, 220px)) scale(0.5);
+    opacity: 0;
+  }
+}
+
+@keyframes home-exit-ash {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-100vw);
+    opacity: 0;
+  }
+}
+
+@keyframes home-exit-slider {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100vw);
+    opacity: 0;
+  }
+}
+
+@keyframes home-exit-bottom {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh);
+    opacity: 0;
+  }
+}
+
+@layer utilities {
+  /* Estado de salida — todos los elementos animados se ocultan. */
+  .home-exit-logo {
+    animation: home-exit-logo 800ms ease-in-out forwards;
+  }
+  .home-exit-ash {
+    animation: home-exit-ash 600ms ease-in forwards;
+  }
+  .home-exit-slider {
+    animation: home-exit-slider 600ms ease-in forwards;
+  }
+  .home-exit-bottom {
+    animation: home-exit-bottom 600ms ease-in forwards;
+  }
+
+  /* Cuando `data-leaving="instant"` (reduced-motion) los elementos
+     desaparecen sin animar. Usamos `display: none` para garantizar
+     que NO queden residuos visuales durante la transición a /pokedex. */
+  [data-leaving="instant"] .home-exit-logo,
+  [data-leaving="instant"] .home-exit-ash,
+  [data-leaving="instant"] .home-exit-slider,
+  [data-leaving="instant"] .home-exit-bottom {
+    animation: none !important;
+    opacity: 0 !important;
+    transform: none !important;
+  }
+}
+
+/* Aseguramos que las animaciones de salida no se apliquen al estado
+   por defecto (sólo durante la salida). El atributo `data-leaving`
+   se aplica al contenedor raíz justo antes de iniciar la transición. */
+@layer utilities {
+  /* Si el contenedor tiene data-leaving="true", aplicamos las clases
+     de salida a los descendientes que las lleven. Usamos el selector
+     de atributo del contenedor como "interruptor" global. */
+  [data-leaving="true"] .home-exit-target-logo {
+    animation: home-exit-logo 800ms ease-in-out forwards;
+  }
+  [data-leaving="true"] .home-exit-target-ash {
+    animation: home-exit-ash 600ms ease-in forwards;
+  }
+  [data-leaving="true"] .home-exit-target-slider {
+    animation: home-exit-slider 600ms ease-in forwards;
+  }
+  [data-leaving="true"] .home-exit-target-bottom {
+    animation: home-exit-bottom 600ms ease-in forwards;
+  }
+}
+
+/* -------------------------------------------------------------------------- *
+ * Animaciones — Plan 04.3 (transición Pokédex → Inicio)
+ * -------------------------------------------------------------------------- *
+ * La carcasa de la Pokédex sale hacia abajo (translateY 0 → 100%) con
+ * fade out. Los slots se ocultan con ella. Duración ~600ms.
+ *
+ * Activación: `data-leaving="true"` en el contenedor de la Pokédex
+ * (`PokedexTransitionOut`). El contenedor tiene `class="contents"`
+ * (no afecta al layout), así que el atributo se propaga al host
+ * `data-pokedex-shell`.
+ *
+ * `prefers-reduced-motion`: con `data-leaving="instant"` la carcasa
+ * se desvanece sin animar.
+ */
+
+@keyframes pokedex-exit-shell {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+@layer utilities {
+  [data-leaving="true"] [data-pokedex-shell] {
+    animation: pokedex-exit-shell 600ms ease-in forwards;
+  }
+  [data-leaving="instant"] [data-pokedex-shell] {
+    animation: none !important;
+    opacity: 0 !important;
+    transform: none !important;
+  }
+}

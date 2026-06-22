@@ -7,7 +7,28 @@ import {
   usePokedexPage,
   type PokedexPageApi,
 } from "@/src/components/pokedex/PokedexPageProvider";
+import { FiltersProvider } from "@/src/components/filters/FiltersProvider";
 import { createEmptySlots } from "@/src/components/pokedex/carcases/slots";
+
+// Mock de `useNavigation` para evitar que `useRouter` (de next/navigation)
+// requiera un app router real. Provee un router stub y searchParams
+// vacíos. La Pokédex no se testea aquí a nivel de navegación real
+// (eso se cubre en los tests E2E); estos tests verifican la estructura
+// de slots y la propagación de estado.
+vi.mock("@/src/hooks/useNavigation", () => ({
+  useNavigation: () => ({
+    pathname: "/pokedex",
+    searchParams: new URLSearchParams(),
+    router: {
+      replace: () => undefined,
+      push: () => undefined,
+      back: () => undefined,
+      forward: () => undefined,
+      refresh: () => undefined,
+    },
+    subscribe: () => () => undefined,
+  }),
+}));
 
 /**
  * Plan 05.3 — TDD del ensamblador de slots.
@@ -85,10 +106,16 @@ function renderShell(
     }, []);
     return <PokedexShell />;
   }
+  // Envoltorio en `FiltersProvider` para que `CarouselSlot` →
+  // `PokemonList` pueda consumir `useFiltersContext` (Plan 06.1).
+  // En producción, `FiltersProvider` se monta en
+  // `src/app/pokedex/layout.tsx`.
   return render(
-    <PokedexPageProvider>
-      <Harness />
-    </PokedexPageProvider>,
+    <FiltersProvider>
+      <PokedexPageProvider>
+        <Harness />
+      </PokedexPageProvider>
+    </FiltersProvider>,
   );
 }
 
@@ -129,8 +156,11 @@ describe("PokedexShell (Plan 05.3)", () => {
 
   it("sin pokemon seleccionado: los slots de datos quedan SIN contenido (sin [data-stub] hijo)", () => {
     renderShell();
+    // El slot `CARRUSEL_IMAGENES_DESCRIPCION` ya NO está vacío sin
+    // pokemon: aloja la `PokemonList` (Plan 06.1). Se omite de esta
+    // aserción y se cubre por el test "renderiza la lista virtualizada
+    // cuando no hay pokemon seleccionado" más abajo.
     for (const slot of [
-      "CARRUSEL_IMAGENES_DESCRIPCION",
       "TIPO1_TIPO2_GENERACION",
       "PUNTOS_CARRUSEL",
       "BOTONES_CARRUSEL",
@@ -171,9 +201,15 @@ describe("PokedexShell (Plan 05.3)", () => {
     expect(stubOf(carousel)).toBe("carousel");
     expect(pokemonOf(carousel)).toBe("pikachu");
 
-    expect(stubOf(document.querySelector('[data-slot="PUNTOS_CARRUSEL"]'))).toBe(
-      "dots",
-    );
+    // `PUNTOS_CARRUSEL` (LEDs) depende del detalle del pokemon para
+    // saber cuántas slides renderizar — sin detalle cargado devuelve
+    // `null` y el slot queda oculto. `BOTONES_CARRUSEL` y
+    // `SONIDO_POKEMON` siempre exponen su `data-stub` cuando hay
+    // pokemon seleccionado (los botones pueden quedar disabled y el
+    // botón de sonido se renderiza vacío hasta que llegue el cry).
+    expect(
+      stubOf(document.querySelector('[data-slot="PUNTOS_CARRUSEL"]')),
+    ).toBeNull();
     expect(
       stubOf(document.querySelector('[data-slot="BOTONES_CARRUSEL"]')),
     ).toBe("buttons");
@@ -257,6 +293,24 @@ describe("PokedexShell (Plan 05.3)", () => {
       .querySelector('[data-slot="CONSOLA_FILTROS"]')
       ?.querySelector("[data-active]");
     expect(consoleEl?.getAttribute("data-active")).toBe("true");
+  });
+
+  it("sin pokemon seleccionado: el slot CARRUSEL_IMAGENES_DESCRIPCION aloja la PokemonList virtualizada (data-stub='list')", () => {
+    // Mockeamos el data layer para que la lista pueda cargar.
+    renderShell();
+    const group = document.querySelector(
+      '[data-slot="CARRUSEL_IMAGENES_DESCRIPCION"]',
+    );
+    expect(group).not.toBeNull();
+    // El stub cambia de "carousel" (con pokemon) a "list" (sin pokemon).
+    expect(group?.querySelector("[data-stub]")?.getAttribute("data-stub")).toBe(
+      "list",
+    );
+    // Y dentro debe haber un contenedor con data-testid='pokemon-list'.
+    // No esperamos cards concretas porque la carga depende de la API
+    // real (no mockeada aquí); basta con verificar que el contenedor
+    // existe — el contenido se cubre en los tests de PokemonList.
+    expect(group?.querySelector('[data-testid="pokemon-list"]')).not.toBeNull();
   });
 });
 

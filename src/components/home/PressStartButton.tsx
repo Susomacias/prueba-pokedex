@@ -1,28 +1,30 @@
 "use client";
 
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import Link from "next/link";
 import {
-  TRANSITION_PATHS,
-  useHasTransitionOrchestrator,
-  useOptionalTransitionOrchestrator,
-} from "@/src/components/transitions/TransitionOrchestratorContext";
+  useMemo,
+  useSyncExternalStore,
+  type CSSProperties,
+} from "react";
+import Link from "next/link";
+import { TRANSITION_PATHS } from "@/src/components/transitions/TransitionOrchestratorContext";
 
 /**
- * Plan 03.4 + 03.5 + 04.1 — Botón "PRESS START" de la pantalla de inicio.
+ * Plan 03.4 + 03.5 + 04.1 + 04.2 — Botón "PRESS START" de la pantalla
+ * de inicio.
  *
- * En 03.5 se renderiza como un `<Link>` de Next.js (en lugar de un
- * `<button>`) para beneficiarse del prefetch automático y de la
- * transición nativa de Next. El Plan 04.1 sustituye la navegación
- * nativa por una llamada al orquestador:
+ * En 03.5 se renderiza como un `<Link>` de Next.js para beneficiarse
+ * del prefetch automático. Plan 04.1 añadió una interceptación del
+ * click para llamar al orquestador de transiciones. Plan 04.2 ha
+ * refactorizado la interceptación: ahora la navegación (con o sin
+ * animación) la coordina `HomeNavigationContext.navigate()`, que
+ * dispara `homeTransitionBus.playExit()` antes del push.
  *
- *   - El botón sigue siendo un `<Link>` real (mantenemos prefetch,
- *     href semántico para el navegador, accesibilidad).
- *   - Si está dentro del provider del orquestador, su `onClick`
- *     llama a `transitionTo('pokedex')` y cancela la navegación
- *     nativa (`preventDefault`).
- *   - Si NO está dentro del provider, deja que el `<Link>` navegue
- *     de forma nativa (degradación elegante).
+ * Resultado: este botón ya NO necesita interceptar el click. El
+ * `<Link>` navega de forma nativa y, gracias al listener global de
+ * clicks del `HomeNavController` (que NO intercepta clicks sobre
+ * `<a>`/`<button>`), el `HomeNavigationContext` recibe la
+ * navegación. Si está montado un `HomeTransitionOut`, se ejecuta la
+ * animación; si no, la navegación es directa.
  *
  * Estilo arcade: bisel + glow pulsante (`animate-press-start-pulse`),
  * desactivado automáticamente cuando el usuario tiene
@@ -30,18 +32,23 @@ import {
  */
 
 function usePrefersReducedMotion(): boolean {
-  // En SSR no hay `window`: devolvemos `false` (animación activa) y
-  // nos sincronizamos en el cliente con un effect.
-  const [reduced, setReduced] = useState<boolean>(false);
-  useEffect(() => {
-    if (typeof window === "undefined" || !window.matchMedia) return;
+  // Usamos `useSyncExternalStore` (canónico React 19) para leer la
+  // media query de forma segura frente a hidratación y evitar
+  // `setState` dentro de `useEffect` (anti-patrón React 19).
+  const subscribe = (cb: () => void) => {
+    if (typeof window === "undefined" || !window.matchMedia) {
+      return () => undefined;
+    }
     const mql = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduced(mql.matches);
-    const handler = (e: MediaQueryListEvent) => setReduced(e.matches);
-    mql.addEventListener("change", handler);
-    return () => mql.removeEventListener("change", handler);
-  }, []);
-  return reduced;
+    mql.addEventListener("change", cb);
+    return () => mql.removeEventListener("change", cb);
+  };
+  const getSnapshot = () => {
+    if (typeof window === "undefined" || !window.matchMedia) return false;
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  };
+  const getServerSnapshot = () => false;
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
 
 const BASE_CLASSES =
@@ -57,19 +64,6 @@ const BASE_CLASSES =
 
 export function PressStartButton() {
   const reduceMotion = usePrefersReducedMotion();
-  const hasOrchestrator = useHasTransitionOrchestrator();
-  const { transitionTo } = useOptionalTransitionOrchestrator();
-
-  // Si NO hay orquestador, no pasamos `onClick` → el `<Link>` hace
-  // la navegación nativa. Si hay orquestador, interceptamos el click
-  // y delegamos en él (que se encarga del preload + push al final).
-  const handleClick = hasOrchestrator
-    ? (event: React.MouseEvent<HTMLAnchorElement>) => {
-        event.preventDefault();
-        void transitionTo("pokedex");
-      }
-    : undefined;
-
   const pulseStyle: CSSProperties = reduceMotion ? { animation: "none" } : {};
   const classes = useMemo(
     () => BASE_CLASSES + (reduceMotion ? "" : " animate-press-start-pulse"),
@@ -80,7 +74,6 @@ export function PressStartButton() {
     <Link
       href={TRANSITION_PATHS.pokedex}
       prefetch
-      onClick={handleClick}
       aria-label="PRESS START — entrar a la Pokédex"
       data-testid="home-press-start"
       className={classes}

@@ -48,7 +48,7 @@ import * as assetPreloader from "@/src/components/transitions/assetPreloader";
  */
 
 interface FakeRouter {
-  push: ReturnType<typeof vi.fn>;
+  push: (url: string, options?: { scroll?: boolean }) => void | Promise<void>;
 }
 
 function makeRouter(): FakeRouter {
@@ -56,11 +56,15 @@ function makeRouter(): FakeRouter {
 }
 
 function wrapperWith(router: FakeRouter) {
-  return ({ children }: { children: ReactNode }) => (
-    <TransitionOrchestratorProvider router={router}>
-      {children}
-    </TransitionOrchestratorProvider>
-  );
+  function Wrapper({ children }: { children: ReactNode }) {
+    return (
+      <TransitionOrchestratorProvider router={router}>
+        {children}
+      </TransitionOrchestratorProvider>
+    );
+  }
+  Wrapper.displayName = "OrchestratorWrapper";
+  return Wrapper;
 }
 
 describe("TransitionOrchestratorContext (Plan 04.1)", () => {

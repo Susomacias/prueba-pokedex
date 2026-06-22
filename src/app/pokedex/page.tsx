@@ -1,21 +1,21 @@
 import type { Metadata } from "next";
 import { PokedexPageProvider } from "@/src/components/pokedex/PokedexPageProvider";
 import { PokedexShell } from "@/src/components/pokedex/PokedexShell";
+import { PokedexShellClient } from "@/src/components/pokedex/PokedexShellClient";
 
 /**
- * Plan 05.3 + 05.4 — Página `/pokedex`.
+ * Plan 05.3 + 05.4 + 04.3 — Página `/pokedex`.
  *
- * Esta página es un Server Component que monta el `PokedexPageProvider`
- * y el `PokedexShell`. El provider es el único punto que conoce el
- * estado real de la Pokédex (pokemon seleccionado, modo 3D, filtros
- * activos, etc.) y lo expone al shell vía Context. De este modo, el
- * Server Component NO cruza la frontera con callbacks/funciones
- * (limitación de Next 16 / RSC).
+ * Esta página es un Server Component que monta el `PokedexPageProvider`,
+ * el `PokedexShell` y (Plan 04.3) el `PokedexShellClient` que
+ * envuelve todo con el `PokedexTransitionOut` y añade el botón
+ * "Volver al inicio".
  *
- * Por ahora (fase 05.3 + 05.4), el provider mantiene el estado mínimo
- * en `useState` con valores por defecto sensatos. En fases posteriores
- * (Plan 06–09) estos estados se derivarán de la URL (`searchParams`) y
- * de los datos cargados.
+ * El provider es el único punto que conoce el estado real de la
+ * Pokédex (pokemon seleccionado, modo 3D, filtros activos, etc.)
+ * y lo expone al shell vía Context. De este modo, el Server
+ * Component NO cruza la frontera con callbacks/funciones (limitación
+ * de Next 16 / RSC).
  *
  * El shell garantiza:
  *   - Render sin scroll (`100dvh × 100vw`, `overflow-hidden`).
@@ -46,7 +46,9 @@ export default function PokedexPage() {
     >
       <h1 className="sr-only">Pokédex</h1>
       <PokedexPageProvider>
-        <PokedexShell />
+        <PokedexShellClient>
+          <PokedexShell />
+        </PokedexShellClient>
       </PokedexPageProvider>
     </main>
   );

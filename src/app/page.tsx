@@ -56,7 +56,7 @@ export default function HomePage() {
           {/* Zona superior — logo */}
           <section
             data-testid="home-zone-top"
-            className="flex shrink-0 items-center justify-center"
+            className="home-exit-target-logo flex shrink-0 items-center justify-center"
             aria-label="Logo"
           >
             <Image
@@ -93,7 +93,7 @@ export default function HomePage() {
                 el test de layout. */}
             <div
               aria-label="Ash"
-              className="pointer-events-none absolute inset-0 z-20 flex items-end justify-center pb-[8%] sm:pb-0"
+              className="home-exit-target-ash pointer-events-none absolute inset-0 z-20 flex items-end justify-center pb-[8%] sm:pb-0"
             >
               <Image
                 src="/pagina_inicio/ash.svg"
@@ -111,7 +111,7 @@ export default function HomePage() {
                 fondo (z-10) por debajo de Ash/slider (z-20). */}
             <div
               aria-label="Pokédex cerrada"
-              className="relative z-10 aspect-square w-auto h-[min(72dvh,88vw)] max-h-full max-w-full sm:h-[min(66dvh,54vw)] lg:h-[min(70dvh,44vw)]"
+              className="home-exit-target-bottom relative z-10 aspect-square w-auto h-[min(72dvh,88vw)] max-h-full max-w-full sm:h-[min(66dvh,54vw)] lg:h-[min(70dvh,44vw)]"
             >
               <Image
                 src="/pagina_inicio/pokedex_cerrada.svg"
@@ -130,7 +130,7 @@ export default function HomePage() {
                 intermedio próximo a la Pokédex sin solaparla en
                 exceso. */}
             <div
-              className="pointer-events-none absolute inset-0 z-20 flex items-end justify-center pb-[8%] sm:pb-0"
+              className="home-exit-target-slider pointer-events-none absolute inset-0 z-20 flex items-end justify-center pb-[8%] sm:pb-0"
             >
               <div className="aspect-[3/4] h-[38%] w-auto translate-x-[clamp(52%,60%,68%)] sm:h-[52%] sm:translate-x-[clamp(52%,62%,74%)] lg:h-[60%] lg:translate-x-[clamp(62%,74%,88%)]">
                 <PokemonSlider />
@@ -146,7 +146,7 @@ export default function HomePage() {
               aparece el indicador de Next.js). */}
           <section
             data-testid="home-zone-bottom"
-            className="flex shrink-0 items-center justify-between gap-3 pb-8 sm:gap-4 sm:pb-10"
+            className="home-exit-target-bottom flex shrink-0 items-center justify-between gap-3 pb-8 sm:gap-4 sm:pb-10"
             aria-label="Controles"
           >
             <SoundToggle />

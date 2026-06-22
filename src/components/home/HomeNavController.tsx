@@ -91,6 +91,12 @@ export function HomeNavController({ children }: HomeNavControllerProps) {
     navigatingRef.current = isNavigating;
   }, [isNavigating]);
 
+  // Ref al sentinel DOM que usamos para indicar a los tests E2E
+  // que los listeners globales ya están activos (Plan 04.2).
+  // Mutamos el atributo directamente desde el `useEffect` para
+  // evitar `setState` dentro de un effect (anti-patrón React 19).
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
   // La función `navigate` es estable vía `useCallback` en el
   // provider, así que el effect solo se monta una vez por montaje
   // del controlador.
@@ -140,14 +146,35 @@ export function HomeNavController({ children }: HomeNavControllerProps) {
     // parental pueda cancelarlo, y nos permite inspeccionar
     // `composedPath()` con la información completa del target.
     document.addEventListener("click", handleClick, { capture: true });
+    // Marcamos el sentinel DOM como "ready" para que los tests E2E
+    // puedan esperar a este punto con
+    // `waitForFunction('[data-home-nav-ready="true"]')`.
+    const sentinel = sentinelRef.current;
+    if (sentinel) {
+      sentinel.setAttribute("data-home-nav-ready", "true");
+    }
     return () => {
       document.removeEventListener("keydown", handleKeyDown, { capture: true });
       document.removeEventListener("click", handleClick, { capture: true });
+      if (sentinel) {
+        sentinel.setAttribute("data-home-nav-ready", "false");
+      }
     };
   }, [navigate]);
 
   return (
     <>
+      {/* Sentinel DOM que indica a los tests E2E que los listeners
+          globales ya están registrados (Plan 04.2). El atributo
+          `data-home-nav-ready` lo muta el `useEffect` directamente
+          (no usamos `useState` para evitar el anti-patrón de
+          `setState` dentro de effect). */}
+      <div
+        ref={sentinelRef}
+        data-home-nav-ready="false"
+        hidden
+        aria-hidden="true"
+      />
       {children}
       <HomeLoadingOverlay isLoading={isLoading} />
     </>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback } from "react";
 import { useSoundMusic } from "@/src/components/home/SoundMusicContext";
 
 /**
@@ -39,9 +39,8 @@ import { useSoundMusic } from "@/src/components/home/SoundMusicContext";
 
 /** Subset de HTMLAudioElement que necesita el controlador. */
 export interface FadeableAudio {
-  readonly volume: number;
   volume: number;
-  readonly paused: boolean;
+  paused: boolean;
   pause(): void;
   play(): Promise<void> | void;
 }
@@ -61,52 +60,34 @@ export function _getCurrentAudioForTests(): FadeableAudio | null {
 /** Referencia al interval activo (para cancelar). */
 let activeFade: { cancel: () => void } | null = null;
 
-/** Tick de raf para fades suaves. */
-function rafStep(durationMs: number, onTick: (t: number) => void): Promise<void> {
+/**
+ * Paso animado que avanza de 0 → 1 a lo largo de `durationMs` con
+ * ticks discretos. Implementación con `setInterval` (no RAF) para
+ * que sea testeable en jsdom: vitest/jsdom gestiona correctamente
+ * los timers de setInterval/setTimeout dentro de `act`, mientras que
+ * los RAFs del polyfill de jsdom pueden no dispararse.
+ *
+ * En navegador el comportamiento es indistinguible: ~16ms por tick.
+ */
+function timedStep(
+  durationMs: number,
+  onTick: (t: number) => void,
+): Promise<void> {
+  const TICK_MS = 16;
   return new Promise((resolve) => {
-    // Si RAF no está disponible (SSR o entornos sin navegador) caemos
-    // a `setTimeout` con un solo tick al final. Esto evita bloquear
-    // la transición indefinidamente.
-    if (
-      typeof window === "undefined" ||
-      typeof window.requestAnimationFrame !== "function"
-    ) {
-      const timeout = setTimeout(() => {
-        onTick(1);
-        resolve();
-      }, durationMs);
-      activeFade = {
-        cancel: () => {
-          clearTimeout(timeout);
-          resolve();
-        },
-      };
-      return;
-    }
-
-    // Usamos `Date.now()` (en ms) en lugar de `performance.now()`
-    // porque jsdom no implementa `performance.now()` de forma fiable.
-    // Para el fade (resolución ~16ms) la precisión de `Date.now()`
-    // es más que suficiente.
     const start = Date.now();
-    let frame = 0;
-    let cancelled = false;
-    const tick = (now: number) => {
-      if (cancelled) return;
-      const elapsed = now - start;
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - start;
       const t = Math.min(1, Math.max(0, elapsed / durationMs));
       onTick(t);
       if (t >= 1) {
+        clearInterval(interval);
         resolve();
-        return;
       }
-      frame = requestAnimationFrame(tick);
-    };
-    frame = requestAnimationFrame(tick);
+    }, TICK_MS);
     activeFade = {
       cancel: () => {
-        cancelled = true;
-        cancelAnimationFrame(frame);
+        clearInterval(interval);
         resolve();
       },
     };
@@ -121,51 +102,51 @@ export interface MusicFadeController {
 /**
  * Hook que expone el controlador de fade. No tiene estado propio:
  * todas las operaciones se aplican al audio registrado vía
- * `attachAudioController`. Si no hay audio (o no está sonando),
- * las funciones son no-ops y resuelven inmediatamente.
+ * `attachAudioController`. Si no hay audio, las funciones son
+ * no-ops y resuelven inmediatamente.
  *
  * Implementación:
  *   - Usa `requestAnimationFrame` para suavidad y para cancelar
  *     limpiamente si entra otro fade antes de terminar.
  *   - Cada fade se asocia a un único `activeFade` global; uno nuevo
  *     cancela el anterior para evitar "saltos" de volumen.
+ *
+ * Política de respeto al usuario:
+ *   - `fadeOut` siempre se ejecuta (es la forma elegante de salir).
+ *   - `fadeIn` SOLO se ejecuta si el usuario tiene la música activa
+ *     (`useSoundMusic().isPlaying === true`). Esto evita imponer un
+ *     volumen al usuario que había elegido silenciar la música.
  */
 export function useMusicFadeController(): MusicFadeController {
   const { isPlaying } = useSoundMusic();
-  const isPlayingRef = useRef(isPlaying);
-  useEffect(() => {
-    isPlayingRef.current = isPlaying;
-  }, [isPlaying]);
 
   const fadeOut = useCallback(async (durationMs: number): Promise<void> => {
     if (activeFade) activeFade.cancel();
     const audio = currentAudio;
     if (!audio) return;
     const startVol = audio.volume;
-    await rafStep(durationMs, (t) => {
+    await timedStep(durationMs, (t) => {
       audio.volume = startVol * (1 - t);
     });
-    // Aseguramos el valor final exacto aunque el último frame RAF
-    // haya quedado en `t < 1` por precisión de timing.
+    // Aseguramos el valor final exacto aunque el último tick haya
+    // quedado en `t < 1` por precisión de timing.
     audio.volume = 0;
   }, []);
 
   const fadeIn = useCallback(
     async (targetVolume: number, durationMs: number): Promise<void> => {
+      if (!isPlaying) return;
       if (activeFade) activeFade.cancel();
       const audio = currentAudio;
       if (!audio) return;
-      // Si la música no estaba activa, no forzamos volumen (respeto
-      // al usuario: si tenía el sonido apagado, fade-in sería invasivo).
-      if (!isPlayingRef.current) return;
       const startVol = audio.volume;
       const delta = targetVolume - startVol;
-      await rafStep(durationMs, (t) => {
+      await timedStep(durationMs, (t) => {
         audio.volume = startVol + delta * t;
       });
       audio.volume = targetVolume;
     },
-    [],
+    [isPlaying],
   );
 
   return { fadeOut, fadeIn };

@@ -1,0 +1,429 @@
+/* Plan 06.3 / 06.4 / 06.5 / 06.6 — Estilos del carrusel y sus
+ * controles (LEDs, botones analógicos, botón de sonido).
+ *
+ * Las clases son globales (no módulos con hash) para que los tests
+ * E2E y unitarios puedan inspeccionarlas vía `querySelector`.
+ *
+ * Paleta arcade: granate, cyan, amarillo-naranja, verde brillante
+ * (ver `src/lib/constants/colors.ts`).
+ */
+
+/* -------------------------------------------------------------------------- *
+ * Carrusel
+ * -------------------------------------------------------------------------- */
+
+.pokemon-carousel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(35, 68, 118, 0.15) 0%,
+    rgba(12, 28, 62, 0.55) 100%
+  );
+  color: #ededed;
+  font-family: var(--font-press-start-2p), Arial, Helvetica, sans-serif;
+  overflow: hidden;
+}
+
+.pokemon-carousel__header {
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(
+    180deg,
+    rgba(35, 68, 118, 0.6) 0%,
+    rgba(12, 28, 62, 0.6) 100%
+  );
+  border-bottom: 2px solid rgba(255, 146, 3, 0.4);
+}
+
+.pokemon-carousel__name {
+  margin: 0;
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #ffe590;
+  text-shadow: 1px 1px 0 #910d03;
+}
+
+.pokemon-carousel__viewport {
+  flex: 1 1 auto;
+  position: relative;
+  overflow: hidden;
+}
+
+.pokemon-carousel__track {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  transition-property: transform;
+  transition-timing-function: cubic-bezier(0.4, 0.0, 0.2, 1);
+  transition-duration: 0ms;
+  will-change: transform;
+}
+
+.pokemon-carousel__viewport--animating .pokemon-carousel__track {
+  transition-duration: 400ms;
+}
+
+/* Slides — cada slide ocupa 100% del viewport. */
+.pokemon-carousel__slide {
+  flex: 0 0 100%;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.pokemon-carousel__slide--hero {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 146, 3, 0.08) 0%,
+    rgba(255, 99, 99, 0.12) 100%
+  );
+}
+
+.pokemon-carousel__slide-hero-image {
+  width: auto;
+  height: auto;
+  max-width: 80%;
+  max-height: 80%;
+  object-fit: contain;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
+}
+
+.pokemon-carousel__slide--flavor {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.pokemon-carousel__slide-flavor-grid {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  gap: 16px;
+  width: 100%;
+  height: 100%;
+  align-items: stretch;
+}
+
+.pokemon-carousel__slide-flavor-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 80%);
+  border-radius: 4px;
+}
+
+.pokemon-carousel__slide-flavor-text {
+  margin: 0;
+  font-size: 9px;
+  line-height: 1.6;
+  letter-spacing: 0.02em;
+  color: #ededed;
+  padding: 8px 12px;
+  background: rgba(12, 28, 62, 0.4);
+  border-radius: 4px;
+  border: 1px solid rgba(70, 162, 218, 0.4);
+  /* `overflow-y: auto` se aplica inline en JSX para mantener la
+     regla "scrollbarColor" via CSS sin override inline. */
+  scrollbar-width: thin;
+  scrollbar-color: #126ca3 transparent;
+}
+
+.pokemon-carousel__slide--gallery {
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.pokemon-carousel__slide-gallery-image {
+  max-width: 70%;
+  max-height: 75%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.pokemon-carousel__slide-label {
+  font-size: 8px;
+  color: #ffe590;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Estados de carga / error. */
+.pokemon-carousel--loading,
+.pokemon-carousel--error {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.pokemon-carousel__skeleton {
+  flex: 1;
+  margin: 16px;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  background-size: 200% 100%;
+  animation: pokemon-carousel-skeleton 1.4s ease-in-out infinite;
+}
+
+.pokemon-carousel--error {
+  color: #ff6363;
+  font-size: 10px;
+  padding: 16px;
+}
+
+@keyframes pokemon-carousel-skeleton {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pokemon-carousel__track {
+    transition: none !important;
+  }
+  .pokemon-carousel__skeleton {
+    animation: none !important;
+  }
+}
+
+/* -------------------------------------------------------------------------- *
+ * LEDs — Plan 06.4
+ * -------------------------------------------------------------------------- */
+
+.carousel-dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+}
+
+.carousel-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #3a3543;
+  border: 1px solid #1d1d1b;
+  box-shadow: none;
+  padding: 0;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease-out,
+    box-shadow 120ms ease-out;
+}
+
+.carousel-dot:hover {
+  background-color: #5a5366;
+}
+
+.carousel-dot[data-active="true"] {
+  background-color: #75d984;
+  border-color: #008c15;
+  box-shadow: 0 0 4px rgba(117, 217, 132, 0.65);
+}
+
+.carousel-dot:focus-visible {
+  outline: 2px solid #ff9203;
+  outline-offset: 2px;
+}
+
+/* -------------------------------------------------------------------------- *
+ * Botones analógicos — Plan 06.5
+ * -------------------------------------------------------------------------- */
+
+.carousel-buttons {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+}
+
+.carousel-button {
+  flex: 1 1 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 24px;
+  min-width: 24px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 2px solid #1d1d1b;
+  background: linear-gradient(180deg, #ffe590 0%, #ff9203 100%);
+  color: #1d1d1b;
+  font-family: var(--font-press-start-2p), Arial, Helvetica, sans-serif;
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  box-shadow:
+    0 3px 0 #1d1d1b,
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  transition:
+    transform 80ms ease-out,
+    box-shadow 80ms ease-out,
+    background 120ms ease-out;
+}
+
+.carousel-button:hover:not(:disabled) {
+  background: linear-gradient(180deg, #fff8e0 0%, #ffb84a 100%);
+}
+
+.carousel-button:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow:
+    0 1px 0 #1d1d1b,
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.carousel-button:focus-visible {
+  outline: 2px solid #ff9203;
+  outline-offset: 2px;
+}
+
+.carousel-button:disabled {
+  background: linear-gradient(180deg, #c0c0c0 0%, #9099a1 100%);
+  color: #61646a;
+  cursor: not-allowed;
+  box-shadow: 0 2px 0 #61646a;
+  opacity: 0.6;
+}
+
+.carousel-button__icon {
+  width: 14px;
+  height: 14px;
+  stroke-width: 3;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .carousel-button {
+    transition: none !important;
+  }
+}
+
+/* -------------------------------------------------------------------------- *
+ * Botón de sonido (cry) — Plan 06.6
+ * -------------------------------------------------------------------------- */
+
+.pokemon-sound-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 24px;
+  min-width: 24px;
+  padding: 4px;
+  border-radius: 50%;
+  border: 2px solid #1d1d1b;
+  background: radial-gradient(circle, #46a2da 0%, #126ca3 100%);
+  color: #fff;
+  cursor: pointer;
+  box-shadow:
+    0 2px 0 #1d1d1b,
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  transition:
+    transform 80ms ease-out,
+    box-shadow 80ms ease-out,
+    background 120ms ease-out;
+}
+
+.pokemon-sound-button:hover {
+  background: radial-gradient(circle, #75d984 0%, #008c15 100%);
+}
+
+.pokemon-sound-button:active {
+  transform: translateY(1px);
+  box-shadow:
+    0 1px 0 #1d1d1b,
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.pokemon-sound-button:focus-visible {
+  outline: 2px solid #ff9203;
+  outline-offset: 2px;
+}
+
+.pokemon-sound-button__icon {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2.5;
+}
+
+.pokemon-sound-button[data-playing="true"] {
+  background: radial-gradient(circle, #75d984 0%, #008c15 100%);
+  animation: pokemon-sound-pulse 0.8s ease-in-out infinite;
+}
+
+.pokemon-sound-button__waves {
+  position: absolute;
+  inset: -8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.pokemon-sound-button__wave {
+  position: absolute;
+  border: 2px solid rgba(117, 217, 132, 0.6);
+  border-radius: 50%;
+  width: 100%;
+  height: 100%;
+  animation: pokemon-sound-wave 1.2s ease-out infinite;
+}
+
+.pokemon-sound-button__wave:nth-child(2) {
+  animation-delay: 0.4s;
+}
+
+.pokemon-sound-button__wave:nth-child(3) {
+  animation-delay: 0.8s;
+}
+
+@keyframes pokemon-sound-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+@keyframes pokemon-sound-wave {
+  0% {
+    transform: scale(0.7);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pokemon-sound-button,
+  .pokemon-sound-button__wave {
+    animation: none !important;
+    transition: none !important;
+  }
+}

@@ -23,6 +23,7 @@ import {
   StatsSlot,
   ToggleStatsAbilitiesSlot,
 } from "@/src/components/pokedex/slots";
+import { CarouselProvider } from "@/src/components/pokedex/carousel/CarouselController";
 import { usePokedexPage } from "@/src/components/pokedex/PokedexPageProvider";
 
 /**
@@ -85,12 +86,15 @@ export function PokedexShell(): ReactElement {
     return map;
   }, [selectedName, mode3D, has3DModel, toggleStatsAbilities, filtersActive]);
 
-  const carcasa =
-    orientation === "vertical" ? (
-      <PokedexVerticalSvg slots={slots} />
-    ) : (
-      <PokedexHorizontalSvg slots={slots} />
-    );
+  const carcasa = (
+    <CarouselProvider pokemonName={selectedName}>
+      {orientation === "vertical" ? (
+        <PokedexVerticalSvg slots={slots} />
+      ) : (
+        <PokedexHorizontalSvg slots={slots} />
+      )}
+    </CarouselProvider>
+  );
 
   // Wrapper del SVG que respeta el aspect-ratio del viewBox para que
   // la Pokédex siempre se vea COMPLETA sin deformarse ni generar

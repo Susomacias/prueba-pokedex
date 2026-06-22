@@ -106,19 +106,21 @@ describe("useMusicFadeController + attachAudioController (Plan 04.1)", () => {
     const audio = makeFakeAudio(0.6);
     attachAudioController(audio);
 
-    act(() => {
-      result.current.music.setIsPlaying(true);
-    });
-
     let fadeDone = false;
-    act(() => {
-      void result.current.fade.fadeOut(20).then(() => {
+    let fadePromise!: Promise<void>;
+    await act(async () => {
+      result.current.music.setIsPlaying(true);
+      fadePromise = result.current.fade.fadeOut(20);
+      fadePromise.then(() => {
         fadeDone = true;
       });
+      // Esperamos dentro de `act` para que React no interfiera con
+      // el bucle RAF.
+      await new Promise((r) => setTimeout(r, 30));
     });
-
-    // Esperamos al menos un par de frames.
-    await new Promise((r) => setTimeout(r, 30));
+    await act(async () => {
+      await fadePromise;
+    });
     expect(audio.get()).toBeCloseTo(0, 1);
     expect(fadeDone).toBe(true);
     // El audio NO se pausa (sólo se baja el volumen).
@@ -140,18 +142,25 @@ describe("useMusicFadeController + attachAudioController (Plan 04.1)", () => {
     const audio = makeFakeAudio(0);
     attachAudioController(audio);
 
-    act(() => {
+    // Primero activamos isPlaying en su propio `act` para que el
+    // componente se re-renderice con `isPlaying=true` y el hook
+    // regenere el `fadeIn` con la nueva dep.
+    await act(async () => {
       result.current.music.setIsPlaying(true);
     });
 
     let fadeDone = false;
-    act(() => {
-      void result.current.fade.fadeIn(0.6, 30).then(() => {
+    let fadePromise!: Promise<void>;
+    await act(async () => {
+      fadePromise = result.current.fade.fadeIn(0.6, 30);
+      fadePromise.then(() => {
         fadeDone = true;
       });
+      await new Promise((r) => setTimeout(r, 45));
     });
-
-    await new Promise((r) => setTimeout(r, 45));
+    await act(async () => {
+      await fadePromise;
+    });
     expect(audio.get()).toBeCloseTo(0.6, 1);
     expect(fadeDone).toBe(true);
   });
@@ -171,25 +180,20 @@ describe("useMusicFadeController + attachAudioController (Plan 04.1)", () => {
     const audio = makeFakeAudio(0.6);
     attachAudioController(audio);
 
-    act(() => {
+    // Hacemos TODO dentro de un solo `act` para que vitest programe
+    // los frames RAF que nuestro fade necesita.
+    await act(async () => {
       result.current.music.setIsPlaying(true);
-    });
-
-    act(() => {
       void result.current.fade.fadeOut(80);
-    });
-    // Esperamos lo suficiente para que el primer fade haya avanzado
-    // un poco pero no haya terminado.
-    await new Promise((r) => setTimeout(r, 30));
-    expect(audio.get()).toBeLessThan(0.6);
-    expect(audio.get()).toBeGreaterThan(0);
+      await new Promise((r) => setTimeout(r, 30));
+      expect(audio.get()).toBeLessThan(0.6);
+      expect(audio.get()).toBeGreaterThan(0);
 
-    // Otro fadeOut desde el volumen actual hasta 0 en 30ms.
-    act(() => {
+      // Otro fadeOut desde el volumen actual hasta 0 en 30ms.
       void result.current.fade.fadeOut(30);
+      await new Promise((r) => setTimeout(r, 40));
+      expect(audio.get()).toBeCloseTo(0, 1);
     });
-    await new Promise((r) => setTimeout(r, 40));
-    expect(audio.get()).toBeCloseTo(0, 1);
   });
 
   it("attachAudioController acepta un solo audio; reemplaza al anterior", () => {

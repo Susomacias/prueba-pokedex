@@ -136,6 +136,14 @@ export interface PokemonSprites {
   frontShiny: string | null;
   backDefault: string | null;
   backShiny: string | null;
+  /** `other.official-artwork.front_default` (artwork oficial grande). */
+  officialArtwork: string | null;
+  /** `other.home.front_default` (sprite Home 3D). */
+  homeFront: string | null;
+  /** `other.home.front_shiny`. */
+  homeShiny: string | null;
+  /** `other.official-artwork.front_shiny`. */
+  officialArtworkShiny: string | null;
 }
 
 /** Nodo dentro de la cadena evolutiva. */

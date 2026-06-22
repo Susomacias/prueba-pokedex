@@ -10,9 +10,10 @@ import {
   type ReactNode,
 } from "react";
 import { useNavigation } from "@/src/hooks/useNavigation";
+import { homeTransitionBus } from "@/src/components/transitions/HomeTransitionOut";
 
 /**
- * Plan 03.5 — Contexto que centraliza la navegación de la pantalla
+ * Plan 03.5 + 04.2 — Contexto que centraliza la navegación de la pantalla
  * de inicio.
  *
  * La pantalla de inicio puede navegar a `/pokedex` desde varios
@@ -20,8 +21,8 @@ import { useNavigation } from "@/src/hooks/useNavigation";
  *
  *   - Pulsar Enter, Space o cualquier letra A–Z en el documento.
  *   - Click en una zona neutra del contenedor principal.
- *   - Click en el botón PRESS START (que en 03.5 se renderiza como
- *     `<Link>` de Next.js para beneficiarse de prefetch).
+ *   - Click en el botón PRESS START (que intercepta su click y usa
+ *     el orquestador de transiciones — Plan 04.1).
  *
  * Centralizamos la navegación en un único punto para:
  *
@@ -34,6 +35,14 @@ import { useNavigation } from "@/src/hooks/useNavigation";
  *      implementación de `navigate()` por una promesa que espera a
  *      los assets y resuelve al final del fade-out — sin tocar a
  *      los consumidores.
+ *
+ * Plan 04.2 — coordinación con la animación de salida:
+ *   - `navigate()` invoca `homeTransitionBus.playExit()` ANTES de
+ *     hacer el `router.push`. Si hay un `<HomeTransitionOut>`
+ *     montado (vía `HomeShell`), esto dispara la coreografía de
+ *     salida + fade de música. Si NO hay nadie registrado
+ *     (entornos sin `HomeShell`, tests sin provider), la promesa
+ *     resuelve inmediato y la navegación es nativa.
  *
  * Inyección del router:
  *   - En producción `HomeNavigationProvider` usa `useNavigation()`
@@ -103,33 +112,39 @@ function HomeNavigationShell({
     setIsNavigating(true);
     setIsLoading(true);
 
-    let result: void | Promise<void>;
-    try {
-      result = router.push(HOME_POKEDEX_PATH, { scroll: false });
-    } catch (err) {
-      // Si `push` lanza síncronamente (poco probable pero posible
-      // en tests con mocks parciales), reintentamos el flag para
-      // que la UI no quede "atascada" en loading.
-      navigatingRef.current = false;
-      setIsNavigating(false);
-      setIsLoading(false);
-      throw err;
+    // Plan 04.2: si la pantalla de inicio tiene montado el
+    // orquestador visual (`<HomeTransitionOut>`), esperamos a que la
+    // animación de salida termine antes de hacer el push.
+    //
+    // Si NO hay nadie registrado (entornos sin `HomeShell`, tests
+    // sin provider, SSR puro…), la navegación es SÍNCRONA como en
+    // el Plan 03.5: preserva el comportamiento existente y mantiene
+    // la firma `navigate(): void` que esperan los listeners.
+    if (!homeTransitionBus.hasSubscriber()) {
+      let result: void | Promise<void>;
+      try {
+        result = router.push(HOME_POKEDEX_PATH, { scroll: false });
+      } catch (err) {
+        navigatingRef.current = false;
+        setIsNavigating(false);
+        setIsLoading(false);
+        throw err;
+      }
+      Promise.resolve(result).finally(() => {
+        setIsLoading(false);
+      });
+      return;
     }
 
-    Promise.resolve(result).finally(() => {
-      // Una vez completada la navegación:
-      //   - El componente entero se habrá desmontado (la ruta
-      //     `/pokedex` ocupa la pantalla), por lo que el estado
-      //     interno deja de importar.
-      //   - Sin embargo, si la navegación fallase o el componente
-      //     no se desmontase (p. ej. error de red), sí queremos
-      //     ocultar el overlay para que el usuario pueda reintentar.
-      //     Para soportar este caso y mantener el flag
-      //     `isNavigating` activo durante toda la vida del
-      //     componente (evitando dobles navegaciones), reseteamos
-      //     `isLoading` pero NO `isNavigating`.
-      setIsLoading(false);
-    });
+    // Camino con animación: la promesa interna maneja el push.
+    void homeTransitionBus
+      .playExit()
+      .then(() => router.push(HOME_POKEDEX_PATH, { scroll: false }))
+      .catch(() => {
+        navigatingRef.current = false;
+        setIsNavigating(false);
+        setIsLoading(false);
+      });
   }, [router]);
 
   const value = useMemo<HomeNavigationContextValue>(

@@ -91,12 +91,30 @@ describe("HomePage layout base (Plan 03.2)", () => {
 
   it("el contenedor raíz ocupa exactamente la pantalla y no permite scroll", () => {
     const { container } = render(<HomePage />);
-    const root = container.firstChild as HTMLElement;
+    // Plan 04.2: el árbol de providers de HomeShell ahora tiene
+    // más wrappers (`AppTransitionShell` → `HomeNavController` →
+    // `HomeTransitionOut`). Buscamos el div con `h-dvh w-screen
+    // overflow-hidden` recorriendo los hijos en lugar de asumir
+    // que es el primer hijo.
+    const target = container.querySelector(
+      '.h-dvh.w-screen.overflow-hidden',
+    ) as HTMLElement | null;
+    expect(target).not.toBeNull();
     // Ocupa el viewport completo
-    expect(root).toHaveClass("h-dvh");
-    expect(root).toHaveClass("w-screen");
+    expect(target).toHaveClass("h-dvh");
+    expect(target).toHaveClass("w-screen");
     // No genera scroll ni vertical ni horizontal
-    expect(root).toHaveClass("overflow-hidden");
+    expect(target).toHaveClass("overflow-hidden");
+  });
+
+  it("Plan 04.2: el shell cliente de inicio envuelve la página con un HomeTransitionOut identificable", () => {
+    const { container } = render(<HomePage />);
+    // El HomeTransitionOut expone `data-testid="home-shell"` (Plan 04.2).
+    const shell = container.querySelector('[data-testid="home-shell"]');
+    expect(shell).not.toBeNull();
+    // El atributo `data-leaving` debe estar presente (en "false" por
+    // defecto) para que el CSS pueda activarlo al transicionar.
+    expect(shell?.getAttribute("data-leaving")).toBe("false");
   });
 
   it("incluye el AnimatedBackground como capa fija tras el contenido principal", () => {

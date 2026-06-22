@@ -49,13 +49,21 @@ test("la navegación cliente con <Link> no recarga la página", async ({
   page,
 }) => {
   await page.goto("/");
+  // Plan 04.2: esperamos a que el listener global esté listo
+  // (con la nueva estructura de providers el primer render del
+  // Link no garantiza que `HomeNavController` haya registrado
+  // sus listeners).
+  await page.waitForFunction(
+    () =>
+      document.querySelector('[data-home-nav-ready="true"]') !== null,
+  );
   // El botón PRESS START tiene una animación pulsante continua; usamos
   // `force: true` para evitar el check de estabilidad que bloquea
   // Playwright con `transform: scale` animado.
   await page
     .getByRole("link", { name: /entrar a la pokédex/i })
     .click({ force: true });
-  await expect(page).toHaveURL(/\/pokedex$/);
+  await expect(page).toHaveURL(/\/pokedex$/, { timeout: 10000 });
   await expect(page.getByRole("main")).toContainText(/Pokédex/);
 
   await page.evaluate(() => {
@@ -72,33 +80,35 @@ test("la navegación cliente con <Link> no recarga la página", async ({
 });
 
 // ---------------------------------------------------------------------------
-// Plan 03.5 — listeners globales de teclado/click
+// Plan 03.5 + 04.2 — listeners globales de teclado/click
 // ---------------------------------------------------------------------------
 
 test("pulsa Enter desde la home y termina en /pokedex", async ({ page }) => {
   await page.goto("/");
-  // Esperamos a que el listener global esté registrado (el provider
-  // y el controlador se montan tras la hidratación del cliente).
+  // Plan 04.2: esperamos a que los listeners globales estén
+  // efectivamente registrados (no sólo a que el Link exista).
   await page.waitForFunction(
-    () => document.querySelector('[data-testid="home-press-start"]') !== null,
+    () =>
+      document.querySelector('[data-home-nav-ready="true"]') !== null,
+    { timeout: 15000 },
   );
 
   await page.keyboard.press("Enter");
 
-  await expect(page).toHaveURL(/\/pokedex$/);
+  await expect(page).toHaveURL(/\/pokedex$/, { timeout: 10000 });
 });
 
 test("pulsa Space desde la home y termina en /pokedex", async ({ page }) => {
   await page.goto("/");
-  // Esperamos a que el listener global esté registrado (el provider
-  // y el controlador se montan tras la hidratación del cliente).
   await page.waitForFunction(
-    () => document.querySelector('[data-testid="home-press-start"]') !== null,
+    () =>
+      document.querySelector('[data-home-nav-ready="true"]') !== null,
+    { timeout: 15000 },
   );
 
   await page.keyboard.press("Space");
 
-  await expect(page).toHaveURL(/\/pokedex$/);
+  await expect(page).toHaveURL(/\/pokedex$/, { timeout: 10000 });
 });
 
 test("pulsa una letra (a) desde la home y termina en /pokedex", async ({
@@ -106,18 +116,22 @@ test("pulsa una letra (a) desde la home y termina en /pokedex", async ({
 }) => {
   await page.goto("/");
   await page.waitForFunction(
-    () => document.querySelector('[data-testid="home-press-start"]') !== null,
+    () =>
+      document.querySelector('[data-home-nav-ready="true"]') !== null,
+    { timeout: 15000 },
   );
 
   await page.keyboard.press("a");
 
-  await expect(page).toHaveURL(/\/pokedex$/);
+  await expect(page).toHaveURL(/\/pokedex$/, { timeout: 10000 });
 });
 
 test("pulsa una tecla no imprimible (Tab) y NO navega", async ({ page }) => {
   await page.goto("/");
   await page.waitForFunction(
-    () => document.querySelector('[data-testid="home-press-start"]') !== null,
+    () =>
+      document.querySelector('[data-home-nav-ready="true"]') !== null,
+    { timeout: 15000 },
   );
 
   await page.keyboard.press("Tab");
@@ -132,14 +146,16 @@ test("click en una zona neutra de la home navega a /pokedex", async ({
 }) => {
   await page.goto("/");
   await page.waitForFunction(
-    () => document.querySelector('[data-testid="home-press-start"]') !== null,
+    () =>
+      document.querySelector('[data-home-nav-ready="true"]') !== null,
+    { timeout: 15000 },
   );
 
   // Click sobre el contenedor principal, en una zona que no sea un botón
   // ni un enlace (la zona del logo está cubierta por la imagen).
   await page.locator("main").click({ position: { x: 5, y: 5 } });
 
-  await expect(page).toHaveURL(/\/pokedex$/);
+  await expect(page).toHaveURL(/\/pokedex$/, { timeout: 10000 });
 });
 
 test("click sobre el botón de sonido NO navega a /pokedex", async ({
@@ -147,7 +163,9 @@ test("click sobre el botón de sonido NO navega a /pokedex", async ({
 }) => {
   await page.goto("/");
   await page.waitForFunction(
-    () => document.querySelector('[data-testid="home-press-start"]') !== null,
+    () =>
+      document.querySelector('[data-home-nav-ready="true"]') !== null,
+    { timeout: 15000 },
   );
 
   await page.getByRole("button", { name: /sonido/i }).click();

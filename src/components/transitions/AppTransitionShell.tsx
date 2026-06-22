@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { useNavigation } from "@/src/hooks/useNavigation";
 import {
   TransitionOrchestratorProvider,
@@ -18,7 +18,7 @@ import {
  *
  * `<Suspense>` es obligatorio: `useNavigation()` consume
  * `useSearchParams()` internamente, y Next 16 exige una frontera
- * Suspense para prerenderizar el segmento.
+ * Suspense para prerenderizar el segmento estático.
  *
  * Uso:
  *   <AppTransitionShell>
@@ -30,14 +30,21 @@ export interface AppTransitionShellProps {
 }
 
 export function AppTransitionShell({ children }: AppTransitionShellProps) {
+  return (
+    <Suspense fallback={children}>
+      <AppTransitionShellInner>{children}</AppTransitionShellInner>
+    </Suspense>
+  );
+}
+
+function AppTransitionShellInner({ children }: { children: ReactNode }) {
   const { router } = useNavigation();
-  // `useNavigation` ya devuelve un `router` con la firma que
-  // necesitamos (incluye `push(url, { scroll: false })`), así que lo
-  // pasamos tal cual sin adaptarlo. Mantenemos el `OrchestratorRouterLike`
-  // como contrato interno para que el provider siga siendo testeable
-  // con un mock plano.
+  // `useNavigation` ya devuelve un `router` con `push(url)` que
+  // respeta `scroll: false` (lo configuramos en el adaptador). Lo
+  // envolvemos en el tipo del orquestador para que el provider no
+  // dependa de `next/navigation`.
   const routerLike: OrchestratorRouterLike = {
-    push: (url, options) => router.push(url, options),
+    push: (url) => router.push(url),
   };
   return (
     <TransitionOrchestratorProvider router={routerLike}>

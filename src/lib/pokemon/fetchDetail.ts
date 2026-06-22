@@ -90,14 +90,30 @@ function mapSprites(raw: unknown): PokemonSprites {
       frontShiny: null,
       backDefault: null,
       backShiny: null,
+      officialArtwork: null,
+      homeFront: null,
+      homeShiny: null,
+      officialArtworkShiny: null,
     };
   }
   const s = raw as PokemonSpritesJson;
+  const other = (s.other ?? {}) as Record<string, unknown>;
+  const officialArtwork = (other["official-artwork"] ?? {}) as Record<
+    string,
+    unknown
+  >;
+  const home = (other.home ?? {}) as Record<string, unknown>;
+  const str = (v: unknown): string | null =>
+    typeof v === "string" ? v : null;
   return {
-    frontDefault: typeof s.front_default === "string" ? s.front_default : null,
-    frontShiny: typeof s.front_shiny === "string" ? s.front_shiny : null,
-    backDefault: typeof s.back_default === "string" ? s.back_default : null,
-    backShiny: typeof s.back_shiny === "string" ? s.back_shiny : null,
+    frontDefault: str(s.front_default),
+    frontShiny: str(s.front_shiny),
+    backDefault: str(s.back_default),
+    backShiny: str(s.back_shiny),
+    officialArtwork: str(officialArtwork.front_default),
+    officialArtworkShiny: str(officialArtwork.front_shiny),
+    homeFront: str(home.front_default),
+    homeShiny: str(home.front_shiny),
   };
 }
 

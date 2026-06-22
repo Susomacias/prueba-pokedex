@@ -1,0 +1,197 @@
+/* Plan 06.1 / 06.2 — Estilos de la lista virtualizada y sus cards.
+ *
+ * Usa clases globales (no módulos con hash) para que los tests E2E
+ * y unitarios puedan hacer `document.querySelector('.pokemon-list-card')`
+ * de forma estable.
+ *
+ * La paleta arcade (granate, cyan, amarillo-naranja) viene del
+ * `BASE_COLORS` y los chips usan los mapas `POKEMON_TYPE_COLORS` /
+ * `POKEMON_GENERATION_COLORS` (ver `src/lib/constants/`).
+ */
+
+.pokemon-list-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  grid-template-areas:
+    "name  sprite"
+    "types sprite"
+    "meta  sprite";
+  align-items: stretch;
+  gap: 6px 12px;
+  padding: 8px 10px;
+  width: 100%;
+  min-height: 64px;
+  border: 2px solid #1d1d1b;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #fff8e0 0%, #f4e6b0 100%);
+  color: #1d1d1b;
+  font-family: var(--font-press-start-2p), Arial, Helvetica, sans-serif;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 2px 0 #1d1d1b;
+  transition:
+    transform 120ms ease-out,
+    box-shadow 120ms ease-out,
+    background 120ms ease-out;
+  animation: pokemon-list-card-enter 280ms ease-out both;
+}
+
+.pokemon-list-card:hover {
+  background: linear-gradient(180deg, #ffe590 0%, #ffcd5e 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 0 #1d1d1b;
+}
+
+.pokemon-list-card:focus-visible {
+  outline: 3px solid #ff9203;
+  outline-offset: 2px;
+}
+
+.pokemon-list-card:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 0 #1d1d1b;
+}
+
+.pokemon-list-card[data-selected="true"] {
+  background: linear-gradient(180deg, #75d984 0%, #4cb064 100%);
+  color: #1d1d1b;
+  border-color: #008c15;
+  box-shadow: 0 0 0 2px #ffe590, 0 2px 0 #008c15;
+}
+
+.pokemon-list-card__name {
+  grid-area: name;
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #910d03;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pokemon-list-card__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.pokemon-list-card__chips--types {
+  grid-area: types;
+}
+
+.pokemon-list-card__chips--meta {
+  grid-area: meta;
+  justify-self: start;
+  flex-wrap: wrap;
+}
+
+.pokemon-list-card__chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  font-size: 7px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-radius: 2px;
+  border-width: 1px;
+  border-style: solid;
+  line-height: 1.3;
+  white-space: nowrap;
+  /* Los colores concretos vienen de los mapas
+     POKEMON_TYPE_COLORS / POKEMON_GENERATION_COLORS vía inline
+     style — son la única fuente de verdad (ver AGENTS.md). */
+}
+
+.pokemon-list-card__sprite {
+  grid-area: sprite;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  background: radial-gradient(circle, #fff 0%, #f4e6b0 80%);
+  border: 1px solid #1d1d1b;
+  border-radius: 4px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.pokemon-list-card__sprite--fallback {
+  background: repeating-linear-gradient(
+    45deg,
+    #db0a2f,
+    #db0a2f 4px,
+    #fff 4px,
+    #fff 8px
+  );
+  opacity: 0.4;
+}
+
+/* Fade out/in al cambiar el contenido (ej: aplicar filtros). El
+   padre `data-fading="true"` lo activa opcionalmente desde la lista. */
+.pokemon-list[data-fading="true"] .pokemon-list-card {
+  animation: pokemon-list-card-fade 400ms ease-out both;
+}
+
+@keyframes pokemon-list-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pokemon-list-card-fade {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pokemon-list-card,
+  .pokemon-list[data-fading="true"] .pokemon-list-card {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Wrapper del slot — asegura que la lista ocupe todo el alto y ancho
+   del <foreignObject> del slot CARRUSEL_IMAGENES_DESCRIPCION. */
+.pokedex-carousel-slot {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Spinner sutil del borde inferior (Plan 06.1: "loading discreto en
+   el punto de carga, spinner pequeño estilo arcade"). */
+@keyframes pokedex-list-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @keyframes pokedex-list-spin {
+    from,
+    to {
+      transform: rotate(0deg);
+    }
+  }
+}
