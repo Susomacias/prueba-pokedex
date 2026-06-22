@@ -2,10 +2,12 @@
  * Builder tipado del argumento `where` de las queries de la PokeAPI
  * (Plan 01.5).
  *
- * La PokeAPI expone un input `pokemon_v2_pokemon_bool_exp` con
- * operadores booleanos (`_and`, `_or`, `_not`) y por campo (`_eq`,
- * `_neq`, `_ilike`, `_in`, `_gte`, `_lte`, etc.). El builder se limita
- * al subconjunto que el plan necesita para los filtros del borrador.
+ * La PokeAPI expone un input `pokemon_bool_exp` con operadores
+ * booleanos (`_and`, `_or`, `_not`) y por campo (`_eq`, `_neq`,
+ * `_ilike`, `_in`, `_gte`, `_lte`, etc.). El builder se limita al
+ * subconjunto que el plan necesita para los filtros del borrador.
+ *
+ * Endpoint v1beta2 (Plan 06.2): naming sin prefijo `pokemon_v2_`.
  */
 
 import type {
@@ -48,7 +50,7 @@ interface WhereEq {
   _is_null?: boolean;
 }
 
-/** Forma simplificada de un nodo `where` para `pokemon_v2_pokemon`. */
+/** Forma simplificada de un nodo `where` para `pokemon`. */
 export interface PokemonWhere {
   _and?: ReadonlyArray<PokemonWhere>;
   _or?: ReadonlyArray<PokemonWhere>;
@@ -58,20 +60,20 @@ export interface PokemonWhere {
   name?: WhereEq;
   height?: WhereEq;
   weight?: WhereEq;
-  pokemon_v2_pokemontypes?: {
-    pokemon_v2_type?: { name?: WhereEq };
+  pokemontypes?: {
+    type?: { name?: WhereEq };
     slot?: WhereEq;
   };
-  pokemon_v2_pokemonabilities?: {
-    pokemon_v2_ability?: { name?: WhereEq };
+  pokemonabilities?: {
+    ability?: { name?: WhereEq };
   };
-  pokemon_v2_pokemonspecies?: {
-    pokemon_v2_pokemonhabitat?: { name?: WhereEq };
-    pokemon_v2_generation?: { name?: WhereEq };
-    pokemon_v2_pokemoncolor?: { name?: WhereEq };
-    pokemon_v2_pokemonspeciesflavortexts?: {
+  pokemonspecy?: {
+    pokemonhabitat?: { name?: WhereEq };
+    generation?: { name?: WhereEq };
+    pokemoncolor?: { name?: WhereEq };
+    pokemonspeciesflavortexts?: {
       flavor_text?: WhereEq;
-      pokemon_v2_language?: { name?: WhereEq };
+      language?: { name?: WhereEq };
     };
   };
 }
@@ -96,8 +98,8 @@ export function buildPokemonWhere(
   if (filters.type1) {
     const t: PokemonType = filters.type1;
     clauses.push({
-      pokemon_v2_pokemontypes: {
-        pokemon_v2_type: { name: { _eq: t } },
+      pokemontypes: {
+        type: { name: { _eq: t } },
       },
     });
   }
@@ -105,9 +107,9 @@ export function buildPokemonWhere(
   if (filters.type2) {
     const t: PokemonType = filters.type2;
     clauses.push({
-      pokemon_v2_pokemontypes: {
+      pokemontypes: {
         slot: { _eq: 2 },
-        pokemon_v2_type: { name: { _eq: t } },
+        type: { name: { _eq: t } },
       },
     });
   }
@@ -115,24 +117,24 @@ export function buildPokemonWhere(
   if (filters.generation) {
     const g: Generation = filters.generation;
     clauses.push({
-      pokemon_v2_pokemonspecies: {
-        pokemon_v2_generation: { name: { _eq: g } },
+      pokemonspecy: {
+        generation: { name: { _eq: g } },
       },
     });
   }
 
   if (filters.color) {
     clauses.push({
-      pokemon_v2_pokemonspecies: {
-        pokemon_v2_pokemoncolor: { name: { _eq: filters.color } },
+      pokemonspecy: {
+        pokemoncolor: { name: { _eq: filters.color } },
       },
     });
   }
 
   if (filters.habitat) {
     clauses.push({
-      pokemon_v2_pokemonspecies: {
-        pokemon_v2_pokemonhabitat: {
+      pokemonspecy: {
+        pokemonhabitat: {
           name: { _eq: HABITAT_REVERSE_ALIAS[filters.habitat] },
         },
       },
@@ -141,8 +143,8 @@ export function buildPokemonWhere(
 
   if (filters.ability) {
     clauses.push({
-      pokemon_v2_pokemonabilities: {
-        pokemon_v2_ability: { name: { _eq: filters.ability } },
+      pokemonabilities: {
+        ability: { name: { _eq: filters.ability } },
       },
     });
   }
@@ -188,32 +190,34 @@ export function buildNameSearchWhere(term: string): PokemonWhere {
  * Construye el `where` "ampliado" cuando la búsqueda por nombre no
  * devuelve resultados y el término tiene 3+ letras: combina por OR
  * flavor_text, tipos, habitat y generación.
+ *
+ * Endpoint v1beta2 (Plan 06.2): naming sin prefijo `pokemon_v2_`.
  */
 export function buildExpandedSearchWhere(term: string): PokemonWhere {
   return {
     _or: [
       {
-        pokemon_v2_pokemonspecies: {
-          pokemon_v2_pokemonspeciesflavortexts: {
+        pokemonspecy: {
+          pokemonspeciesflavortexts: {
             flavor_text: { _ilike: `%${term}%` },
           },
         },
       },
       {
-        pokemon_v2_pokemontypes: {
-          pokemon_v2_type: { name: { _ilike: `%${term}%` } },
+        pokemontypes: {
+          type: { name: { _ilike: `%${term}%` } },
         },
       },
       {
-        pokemon_v2_pokemonspecies: {
-          pokemon_v2_pokemonhabitat: { name: { _ilike: `%${term}%` } },
+        pokemonspecy: {
+          pokemonhabitat: { name: { _ilike: `%${term}%` } },
         },
       },
-{
-    pokemon_v2_pokemonspecies: {
-      pokemon_v2_generation: { name: { _ilike: `%${term}%` } },
-    },
-  },
-  ],
+      {
+        pokemonspecy: {
+          generation: { name: { _ilike: `%${term}%` } },
+        },
+      },
+    ],
   };
 }

@@ -13,16 +13,16 @@ function graphqlResponse(body: unknown): Response {
 
 interface RawType {
   slot: number;
-  pokemon_v2_type: { name: string };
+  type: { name: string };
 }
 
 interface RawSpecies {
-  pokemon_v2_pokemonhabitat: { name: string } | null;
-  pokemon_v2_generation: { name: string } | null;
-  pokemon_v2_pokemoncolor: { name: string } | null;
-  pokemon_v2_pokemonspeciesflavortexts: Array<{
+  pokemonhabitat: { name: string } | null;
+  generation: { name: string } | null;
+  pokemoncolor: { name: string } | null;
+  pokemonspeciesflavortexts: Array<{
     flavor_text: string;
-    pokemon_v2_language: { name: string };
+    language: { name: string };
   }>;
 }
 
@@ -31,9 +31,9 @@ interface RawPokemon {
   name: string;
   height: number | null;
   weight: number | null;
-  pokemon_v2_pokemonsprites: Array<{ sprites: unknown }>;
-  pokemon_v2_pokemontypes: RawType[];
-  pokemon_v2_pokemonspecies: RawSpecies | null;
+  pokemonsprites: Array<{ sprites: unknown }>;
+  pokemontypes: RawType[];
+  pokemonspecy: RawSpecies | null;
 }
 
 function captureFetch(): { mock: ReturnType<typeof vi.fn> } {
@@ -66,10 +66,10 @@ function fire(
   aggregate: { count: number } | null = null,
 ): Response {
   const data: Record<string, unknown> = {
-    pokemon_v2_pokemon: raw,
+    pokemon: raw,
   };
   if (aggregate !== null) {
-    data.pokemon_v2_pokemon_aggregate = { aggregate };
+    data.pokemon_aggregate = { aggregate };
   }
   return graphqlResponse({ data });
 }
@@ -86,15 +86,15 @@ function buildRaw(
       name: `poke-${id}`,
       height: id * 2,
       weight: id * 5,
-      pokemon_v2_pokemonsprites: [
+      pokemonsprites: [
         { sprites: { front_default: `https://img/${id}.png` } },
       ],
-      pokemon_v2_pokemontypes: [{ slot: 1, pokemon_v2_type: { name: "grass" } }],
-      pokemon_v2_pokemonspecies: {
-        pokemon_v2_pokemonhabitat: { name: "forest" },
-        pokemon_v2_generation: { name: "generation-i" },
-        pokemon_v2_pokemoncolor: { name: "green" },
-        pokemon_v2_pokemonspeciesflavortexts: [],
+      pokemontypes: [{ slot: 1, type: { name: "grass" } }],
+      pokemonspecy: {
+        pokemonhabitat: { name: "forest" },
+        generation: { name: "generation-i" },
+        pokemoncolor: { name: "green" },
+        pokemonspeciesflavortexts: [],
       },
       ...overrides,
     };
@@ -124,17 +124,17 @@ describe("filtros combinables", () => {
             name: "charmander",
             height: 6,
             weight: 85,
-            pokemon_v2_pokemonsprites: [
+            pokemonsprites: [
               { sprites: { front_default: "x" } },
             ],
-            pokemon_v2_pokemontypes: [
-              { slot: 1, pokemon_v2_type: { name: "fire" } },
+            pokemontypes: [
+              { slot: 1, type: { name: "fire" } },
             ],
-            pokemon_v2_pokemonspecies: {
-              pokemon_v2_pokemonhabitat: { name: "mountain" },
-              pokemon_v2_generation: { name: "generation-i" },
-              pokemon_v2_pokemoncolor: { name: "red" },
-              pokemon_v2_pokemonspeciesflavortexts: [],
+            pokemonspecy: {
+              pokemonhabitat: { name: "mountain" },
+              generation: { name: "generation-i" },
+              pokemoncolor: { name: "red" },
+              pokemonspeciesflavortexts: [],
             },
           },
         ]),
@@ -157,17 +157,17 @@ it("combina tipo + generación con AND", async () => {
             name: "charmander",
             height: 6,
             weight: 85,
-            pokemon_v2_pokemonsprites: [
+            pokemonsprites: [
               { sprites: { front_default: "x" } },
             ],
-            pokemon_v2_pokemontypes: [
-              { slot: 1, pokemon_v2_type: { name: "fire" } },
+            pokemontypes: [
+              { slot: 1, type: { name: "fire" } },
             ],
-            pokemon_v2_pokemonspecies: {
-              pokemon_v2_pokemonhabitat: { name: "mountain" },
-              pokemon_v2_generation: { name: "generation-i" },
-              pokemon_v2_pokemoncolor: { name: "red" },
-              pokemon_v2_pokemonspeciesflavortexts: [],
+            pokemonspecy: {
+              pokemonhabitat: { name: "mountain" },
+              generation: { name: "generation-i" },
+              pokemoncolor: { name: "red" },
+              pokemonspeciesflavortexts: [],
             },
           },
         ]),
@@ -197,17 +197,17 @@ it("combina tipo + generación con AND", async () => {
             name: "pikachu",
             height: 4,
             weight: 60,
-            pokemon_v2_pokemonsprites: [
+            pokemonsprites: [
               { sprites: { front_default: "x" } },
             ],
-            pokemon_v2_pokemontypes: [
-              { slot: 1, pokemon_v2_type: { name: "electric" } },
+            pokemontypes: [
+              { slot: 1, type: { name: "electric" } },
             ],
-            pokemon_v2_pokemonspecies: {
-              pokemon_v2_pokemonhabitat: { name: "forest" },
-              pokemon_v2_generation: { name: "generation-i" },
-              pokemon_v2_pokemoncolor: { name: "yellow" },
-              pokemon_v2_pokemonspeciesflavortexts: [],
+            pokemonspecy: {
+              pokemonhabitat: { name: "forest" },
+              generation: { name: "generation-i" },
+              pokemoncolor: { name: "yellow" },
+              pokemonspeciesflavortexts: [],
             },
           },
         ]),
@@ -234,7 +234,7 @@ it("combina tipo + generación con AND", async () => {
         _and: Array<Record<string, unknown>>;
       };
       const dump = JSON.stringify(where);
-      expect(dump).toContain("pokemon_v2_pokemonabilities");
+      expect(dump).toContain("pokemonabilities");
       expect(dump).toContain("static");
     });
 
@@ -299,17 +299,17 @@ it("búsqueda por nombre parcial devuelve coincidencias", async () => {
             name: "pikachu",
             height: 4,
             weight: 60,
-            pokemon_v2_pokemonsprites: [
+            pokemonsprites: [
               { sprites: { front_default: "x" } },
             ],
-            pokemon_v2_pokemontypes: [
-              { slot: 1, pokemon_v2_type: { name: "electric" } },
+            pokemontypes: [
+              { slot: 1, type: { name: "electric" } },
             ],
-            pokemon_v2_pokemonspecies: {
-              pokemon_v2_pokemonhabitat: { name: "forest" },
-              pokemon_v2_generation: { name: "generation-i" },
-              pokemon_v2_pokemoncolor: { name: "yellow" },
-              pokemon_v2_pokemonspeciesflavortexts: [],
+            pokemonspecy: {
+              pokemonhabitat: { name: "forest" },
+              generation: { name: "generation-i" },
+              pokemoncolor: { name: "yellow" },
+              pokemonspeciesflavortexts: [],
             },
           },
         ]),
@@ -337,20 +337,20 @@ it("búsqueda por nombre parcial devuelve coincidencias", async () => {
             name: "pikachu",
             height: 4,
             weight: 60,
-            pokemon_v2_pokemonsprites: [
+            pokemonsprites: [
               { sprites: { front_default: "x" } },
             ],
-            pokemon_v2_pokemontypes: [
-              { slot: 1, pokemon_v2_type: { name: "electric" } },
+            pokemontypes: [
+              { slot: 1, type: { name: "electric" } },
             ],
-            pokemon_v2_pokemonspecies: {
-              pokemon_v2_pokemonhabitat: { name: "forest" },
-              pokemon_v2_generation: { name: "generation-i" },
-              pokemon_v2_pokemoncolor: { name: "yellow" },
-              pokemon_v2_pokemonspeciesflavortexts: [
+            pokemonspecy: {
+              pokemonhabitat: { name: "forest" },
+              generation: { name: "generation-i" },
+              pokemoncolor: { name: "yellow" },
+              pokemonspeciesflavortexts: [
                 {
                   flavor_text: "Electric mouse.",
-                  pokemon_v2_language: { name: "en" },
+                  language: { name: "en" },
                 },
               ],
             },
@@ -370,10 +370,10 @@ const whereExpanded = callsOf(mock)[1]!.where as Record<
         unknown
       >;
       const dump = JSON.stringify(whereExpanded);
-      expect(dump).toContain("pokemon_v2_pokemonspeciesflavortexts");
-      expect(dump).toContain("pokemon_v2_pokemonhabitat");
-      expect(dump).toContain("pokemon_v2_generation");
-      expect(dump).toContain("pokemon_v2_type");
+      expect(dump).toContain("pokemonspeciesflavortexts");
+      expect(dump).toContain("pokemonhabitat");
+      expect(dump).toContain("generation");
+      expect(dump).toContain("type");
     });
 
     it("búsqueda con <3 letras NO amplía a flavor text", async () => {
@@ -395,17 +395,17 @@ const whereExpanded = callsOf(mock)[1]!.where as Record<
             name: "pikachu",
             height: 4,
             weight: 60,
-            pokemon_v2_pokemonsprites: [
+            pokemonsprites: [
               { sprites: { front_default: "x" } },
             ],
-            pokemon_v2_pokemontypes: [
-              { slot: 1, pokemon_v2_type: { name: "electric" } },
+            pokemontypes: [
+              { slot: 1, type: { name: "electric" } },
             ],
-            pokemon_v2_pokemonspecies: {
-              pokemon_v2_pokemonhabitat: { name: "forest" },
-              pokemon_v2_generation: { name: "generation-i" },
-              pokemon_v2_pokemoncolor: { name: "yellow" },
-              pokemon_v2_pokemonspeciesflavortexts: [],
+            pokemonspecy: {
+              pokemonhabitat: { name: "forest" },
+              generation: { name: "generation-i" },
+              pokemoncolor: { name: "yellow" },
+              pokemonspeciesflavortexts: [],
             },
           },
         ]),
@@ -427,17 +427,17 @@ const whereExpanded = callsOf(mock)[1]!.where as Record<
             name: "pikachu",
             height: 4,
             weight: 60,
-            pokemon_v2_pokemonsprites: [
+            pokemonsprites: [
               { sprites: { front_default: "x" } },
             ],
-            pokemon_v2_pokemontypes: [
-              { slot: 1, pokemon_v2_type: { name: "electric" } },
+            pokemontypes: [
+              { slot: 1, type: { name: "electric" } },
             ],
-            pokemon_v2_pokemonspecies: {
-              pokemon_v2_pokemonhabitat: { name: "forest" },
-              pokemon_v2_generation: { name: "generation-i" },
-              pokemon_v2_pokemoncolor: { name: "yellow" },
-              pokemon_v2_pokemonspeciesflavortexts: [],
+            pokemonspecy: {
+              pokemonhabitat: { name: "forest" },
+              generation: { name: "generation-i" },
+              pokemoncolor: { name: "yellow" },
+              pokemonspeciesflavortexts: [],
             },
           },
         ]),
@@ -458,17 +458,17 @@ const whereExpanded = callsOf(mock)[1]!.where as Record<
             name: "pikachu",
             height: 4,
             weight: 60,
-            pokemon_v2_pokemonsprites: [
+            pokemonsprites: [
               { sprites: { front_default: "x" } },
             ],
-            pokemon_v2_pokemontypes: [
-              { slot: 1, pokemon_v2_type: { name: "electric" } },
+            pokemontypes: [
+              { slot: 1, type: { name: "electric" } },
             ],
-            pokemon_v2_pokemonspecies: {
-              pokemon_v2_pokemonhabitat: { name: "forest" },
-              pokemon_v2_generation: { name: "generation-i" },
-              pokemon_v2_pokemoncolor: { name: "yellow" },
-              pokemon_v2_pokemonspeciesflavortexts: [],
+            pokemonspecy: {
+              pokemonhabitat: { name: "forest" },
+              generation: { name: "generation-i" },
+              pokemoncolor: { name: "yellow" },
+              pokemonspeciesflavortexts: [],
             },
           },
         ]),
@@ -486,8 +486,8 @@ const whereExpanded = callsOf(mock)[1]!.where as Record<
       mock.mockResolvedValueOnce(
         graphqlResponse({
           data: {
-            pokemon_v2_pokemon: buildRaw(1, 30),
-            pokemon_v2_pokemon_aggregate: { aggregate: { count: 1025 } },
+            pokemon: buildRaw(1, 30),
+            pokemon_aggregate: { aggregate: { count: 1025 } },
           },
         }),
       );
@@ -543,18 +543,18 @@ describe("query", () => {
       };
       // La query filtrable extiende la base añadiendo campos
       // (color, flavor_text, abilities) y `_aggregate`.
-      expect(body.query).toContain("pokemon_v2_pokemoncolor");
-      expect(body.query).toContain("pokemon_v2_pokemonspeciesflavortexts");
-      expect(body.query).toContain("pokemon_v2_pokemon_aggregate");
+      expect(body.query).toContain("pokemoncolor");
+      expect(body.query).toContain("pokemonspeciesflavortexts");
+      expect(body.query).toContain("pokemon_aggregate");
     });
 
-    it("incluye pokemon_v2_pokemon_aggregate en la query cuando se pide total", async () => {
+    it("incluye pokemon_aggregate en la query cuando se pide total", async () => {
       const { mock } = captureFetch();
       mock.mockResolvedValueOnce(
         graphqlResponse({
           data: {
-            pokemon_v2_pokemon: buildRaw(1, 1),
-            pokemon_v2_pokemon_aggregate: { aggregate: { count: 1 } },
+            pokemon: buildRaw(1, 1),
+            pokemon_aggregate: { aggregate: { count: 1 } },
           },
         }),
       );
@@ -565,7 +565,7 @@ describe("query", () => {
       const body = JSON.parse(firstCall[1].body as string) as {
         query: string;
       };
-      expect(body.query).toContain("pokemon_v2_pokemon_aggregate");
+      expect(body.query).toContain("pokemon_aggregate");
     });
   });
 });

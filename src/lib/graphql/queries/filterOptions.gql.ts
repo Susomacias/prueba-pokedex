@@ -18,30 +18,32 @@
  * Los buckets de altura y peso se derivan localmente en el cliente a
  * partir del `min`/`max` agregados, para poder reaccionar si la API
  * añade pokemons fuera de los rangos predefinidos.
+ *
+ * Endpoint v1beta2 (Plan 06.2): naming sin prefijo `pokemon_v2_`.
  */
 export const FILTER_OPTIONS_QUERY = /* GraphQL */ `
   query FilterOptions {
-    pokemon_v2_type(order_by: { id: ASC }) {
+    type(order_by: { id: ASC }) {
       id
       name
     }
-    pokemon_v2_generation(order_by: { id: ASC }) {
+    generation(order_by: { id: ASC }) {
       id
       name
     }
-    pokemon_v2_pokemoncolor(order_by: { id: ASC }) {
+    pokemoncolor(order_by: { id: ASC }) {
       id
       name
     }
-    pokemon_v2_pokemonhabitat(order_by: { id: ASC }) {
+    pokemonhabitat(order_by: { id: ASC }) {
       id
       name
     }
-    pokemon_v2_ability(order_by: { id: ASC }) {
+    ability(order_by: { id: ASC }) {
       id
       name
     }
-    pokemon_v2_pokemon_aggregate(where: { is_default: { _eq: true } }) {
+    pokemon_aggregate(where: { is_default: { _eq: true } }) {
       aggregate {
         min {
           height
@@ -58,7 +60,7 @@ export const FILTER_OPTIONS_QUERY = /* GraphQL */ `
 
 export const TYPES_QUERY = /* GraphQL */ `
   query Types {
-    pokemon_v2_type(order_by: { id: ASC }) {
+    type(order_by: { id: ASC }) {
       id
       name
     }
@@ -67,7 +69,7 @@ export const TYPES_QUERY = /* GraphQL */ `
 
 export const GENERATIONS_QUERY = /* GraphQL */ `
   query Generations {
-    pokemon_v2_generation(order_by: { id: ASC }) {
+    generation(order_by: { id: ASC }) {
       id
       name
     }
@@ -76,7 +78,7 @@ export const GENERATIONS_QUERY = /* GraphQL */ `
 
 export const COLORS_QUERY = /* GraphQL */ `
   query Colors {
-    pokemon_v2_pokemoncolor(order_by: { id: ASC }) {
+    pokemoncolor(order_by: { id: ASC }) {
       id
       name
     }
@@ -85,7 +87,7 @@ export const COLORS_QUERY = /* GraphQL */ `
 
 export const HABITATS_QUERY = /* GraphQL */ `
   query Habitats {
-    pokemon_v2_pokemonhabitat(order_by: { id: ASC }) {
+    pokemonhabitat(order_by: { id: ASC }) {
       id
       name
     }
@@ -94,7 +96,7 @@ export const HABITATS_QUERY = /* GraphQL */ `
 
 export const ABILITIES_QUERY = /* GraphQL */ `
   query Abilities {
-    pokemon_v2_ability(order_by: { id: ASC }) {
+    ability(order_by: { id: ASC }) {
       id
       name
     }
@@ -103,7 +105,7 @@ export const ABILITIES_QUERY = /* GraphQL */ `
 
 export const HEIGHT_WEIGHT_AGGREGATE_QUERY = /* GraphQL */ `
   query HeightWeightAggregate {
-    pokemon_v2_pokemon_aggregate(where: { is_default: { _eq: true } }) {
+    pokemon_aggregate(where: { is_default: { _eq: true } }) {
       aggregate {
         min {
           height

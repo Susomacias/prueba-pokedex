@@ -5,24 +5,27 @@
  * soportar todos los filtros del plan y la búsqueda con fallback a
  * flavor text:
  *
- *  - `pokemon_v2_pokemoncolor` (filtro de color)
- *  - `pokemon_v2_pokemonspeciesflavortexts` (búsqueda por descripción)
- *  - `pokemon_v2_pokemonabilities` (filtro de habilidad)
- *  - `pokemon_v2_pokemon_aggregate { aggregate { count } }` (total)
+ *  - `pokemoncolor` (filtro de color)
+ *  - `pokemonspeciesflavortexts` (búsqueda por descripción)
+ *  - `pokemonabilities` (filtro de habilidad)
+ *  - `pokemon_aggregate { aggregate { count } }` (total)
  *
- * La query se define como alias de la query raíz para que el cliente
- * GraphQL no se queje de documentos duplicados cuando se envíen en
- * la misma operación.
+ * Endpoint v1beta2 (Plan 06.2): naming sin prefijo `pokemon_v2_`.
+ *
+ * Nota sobre el `where`: GraphQL NO soporta spread (`...$where`).
+ * Combinamos `is_default: { _eq: true }` con la variable `$where`
+ * usando un array `_and`. La variable es `pokemon_bool_exp! = {}`
+ * para que el array nunca contenga `null`.
  */
 export const POKEMON_LIST_FILTERED_QUERY = /* GraphQL */ `
   query PokemonListFiltered(
     $limit: Int! = 30
     $offset: Int! = 0
-    $where: pokemon_v2_pokemon_bool_exp
-    $orderBy: [pokemon_v2_pokemon_order_by!] = { id: asc }
+    $where: pokemon_bool_exp! = {}
+    $orderBy: [pokemon_order_by!] = { id: asc }
   ) {
-    pokemon_v2_pokemon(
-      where: { is_default: { _eq: true }, ...$where }
+    pokemon(
+      where: { _and: [{ is_default: { _eq: true } }, $where] }
       limit: $limit
       offset: $offset
       order_by: $orderBy
@@ -31,41 +34,41 @@ export const POKEMON_LIST_FILTERED_QUERY = /* GraphQL */ `
       name
       height
       weight
-      pokemon_v2_pokemonsprites {
+      pokemonsprites {
         sprites
       }
-      pokemon_v2_pokemontypes {
+      pokemontypes {
         slot
-        pokemon_v2_type {
+        type {
           name
         }
       }
-      pokemon_v2_pokemonabilities {
+      pokemonabilities {
         slot
         is_hidden
-        pokemon_v2_ability {
+        ability {
           name
         }
       }
-      pokemon_v2_pokemonspecies {
-        pokemon_v2_pokemonhabitat {
+      pokemonspecy {
+        pokemonhabitat {
           name
         }
-        pokemon_v2_generation {
+        generation {
           name
         }
-        pokemon_v2_pokemoncolor {
+        pokemoncolor {
           name
         }
-        pokemon_v2_pokemonspeciesflavortexts(
-          where: { pokemon_v2_language: { name: { _eq: "en" } } }
+        pokemonspeciesflavortexts(
+          where: { language: { name: { _eq: "en" } } }
           limit: 5
         ) {
           flavor_text
         }
       }
     }
-    pokemon_v2_pokemon_aggregate(where: { is_default: { _eq: true }, ...$where }) {
+    pokemon_aggregate(where: { _and: [{ is_default: { _eq: true } }, $where] }) {
       aggregate {
         count
       }

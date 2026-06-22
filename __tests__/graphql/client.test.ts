@@ -34,10 +34,10 @@ describe("graphql client", () => {
       expect(getPokeApiEndpoint()).toBe("https://custom.example.com/graphql");
     });
 
-    it("hace fallback al endpoint beta oficial si no hay variable", () => {
+    it("hace fallback al endpoint v1beta2 oficial si no hay variable", () => {
       vi.stubEnv("NEXT_PUBLIC_POKEAPI_GRAPHQL_URL", "");
       expect(getPokeApiEndpoint()).toBe(
-        "https://beta.pokeapi.co/graphql/v1beta",
+        "https://graphql.pokeapi.co/v1beta2",
       );
     });
   });
@@ -58,7 +58,7 @@ describe("graphql client", () => {
       expect(data).toEqual({ pokemon: [{ id: 1, name: "bulbasaur" }] });
 
       const [url, init] = fetchMock.mock.calls[0]!;
-      expect(String(url)).toBe("https://beta.pokeapi.co/graphql/v1beta");
+      expect(String(url)).toBe("https://graphql.pokeapi.co/v1beta2");
       const payload = JSON.parse((init as RequestInit).body as string);
       expect(payload).toEqual({
         query: "query Test { pokemon { id name } }",

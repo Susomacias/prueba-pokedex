@@ -14,12 +14,12 @@ const ORIGINAL_FETCH = globalThis.fetch;
 
 interface RawType {
   slot: number;
-  pokemon_v2_type: { name: string };
+  type: { name: string };
 }
 
 interface RawSpecies {
-  pokemon_v2_pokemonhabitat: { name: string } | null;
-  pokemon_v2_generation: { name: string } | null;
+  pokemonhabitat: { name: string } | null;
+  generation: { name: string } | null;
 }
 
 interface RawPokemon {
@@ -27,9 +27,9 @@ interface RawPokemon {
   name: string;
   height: number | null;
   weight: number | null;
-  pokemon_v2_pokemonsprites: Array<{ sprites: unknown }>;
-  pokemon_v2_pokemontypes: RawType[];
-  pokemon_v2_pokemonspecies: RawSpecies | null;
+  pokemonsprites: Array<{ sprites: unknown }>;
+  pokemontypes: RawType[];
+  pokemonspecy: RawSpecies | null;
 }
 
 function buildRaw(
@@ -44,13 +44,13 @@ function buildRaw(
       name: `poke-${id}`,
       height: id * 2,
       weight: id * 5,
-      pokemon_v2_pokemonsprites: [
+      pokemonsprites: [
         { sprites: { front_default: `https://img/${id}.png` } },
       ],
-      pokemon_v2_pokemontypes: [{ slot: 1, pokemon_v2_type: { name: "grass" } }],
-      pokemon_v2_pokemonspecies: {
-        pokemon_v2_pokemonhabitat: { name: "forest" },
-        pokemon_v2_generation: { name: "generation-i" },
+      pokemontypes: [{ slot: 1, type: { name: "grass" } }],
+      pokemonspecy: {
+        pokemonhabitat: { name: "forest" },
+        generation: { name: "generation-i" },
       },
       ...overrides,
     };
@@ -85,16 +85,19 @@ describe("fetchList", () => {
 
   describe("query", () => {
     it("pide exactamente los campos definidos en el plan", () => {
-      expect(POKEMON_LIST_QUERY).toContain("pokemon_v2_pokemonsprites");
-      expect(POKEMON_LIST_QUERY).toContain("pokemon_v2_pokemontypes");
-      expect(POKEMON_LIST_QUERY).toContain("pokemon_v2_pokemonspecies");
-      expect(POKEMON_LIST_QUERY).toContain("pokemon_v2_pokemonhabitat");
-      expect(POKEMON_LIST_QUERY).toContain("pokemon_v2_generation");
+      expect(POKEMON_LIST_QUERY).toContain("pokemonsprites");
+      expect(POKEMON_LIST_QUERY).toContain("pokemontypes");
+      expect(POKEMON_LIST_QUERY).toContain("pokemonspecy");
+      expect(POKEMON_LIST_QUERY).toContain("pokemonhabitat");
+      expect(POKEMON_LIST_QUERY).toContain("generation");
       expect(POKEMON_LIST_QUERY).toContain("is_default");
-      expect(POKEMON_LIST_QUERY).not.toContain("pokemon_v2_pokemonstats");
-      expect(POKEMON_LIST_QUERY).not.toContain("pokemon_v2_pokemonabilities");
-      expect(POKEMON_LIST_QUERY).not.toContain("pokemon_v2_pokemonspeciesflavortexts");
-      expect(POKEMON_LIST_QUERY).not.toContain("pokemon_v2_pokemoncries");
+      expect(POKEMON_LIST_QUERY).not.toContain("pokemonstats");
+      expect(POKEMON_LIST_QUERY).not.toContain("pokemonabilities");
+      expect(POKEMON_LIST_QUERY).not.toContain("pokemonspeciesflavortexts");
+      // La relación object de pokemon → species en v1beta2 es "pokemonspecy"
+      // (singular). El plural "pokemonspecies" solo se usa como query root
+      // o como relación array (p.ej. dentro de evolutionchain).
+      expect(POKEMON_LIST_QUERY).not.toContain("pokemoncries");
     });
   });
 
@@ -105,7 +108,7 @@ describe("fetchList", () => {
       fetchMock.mockResolvedValueOnce(
         graphqlResponse({
           data: {
-            pokemon_v2_pokemon: buildRaw(1, 30),
+            pokemon: buildRaw(1, 30),
           },
         }),
       );
@@ -131,7 +134,7 @@ describe("fetchList", () => {
       expectValidPokemonTypes(first.types);
 
       const [url, init] = fetchMock.mock.calls[0]!;
-      expect(String(url)).toBe("https://beta.pokeapi.co/graphql/v1beta");
+      expect(String(url)).toBe("https://graphql.pokeapi.co/v1beta2");
       const payload = JSON.parse((init as RequestInit).body as string);
       expect(payload.variables).toEqual({
         limit: POKEMON_LIST_PAGE_SIZE,
@@ -146,7 +149,7 @@ describe("fetchList", () => {
       const fetchMock = vi.fn();
       globalThis.fetch = fetchMock as unknown as typeof fetch;
       fetchMock.mockResolvedValueOnce(
-        graphqlResponse({ data: { pokemon_v2_pokemon: buildRaw(31, 30) } }),
+        graphqlResponse({ data: { pokemon: buildRaw(31, 30) } }),
       );
 
       const result = await fetchPokemonList({ offset: 30 });
@@ -168,10 +171,10 @@ describe("fetchList", () => {
 
       fetchMock
         .mockResolvedValueOnce(
-          graphqlResponse({ data: { pokemon_v2_pokemon: buildRaw(1, 30) } }),
+          graphqlResponse({ data: { pokemon: buildRaw(1, 30) } }),
         )
         .mockResolvedValueOnce(
-          graphqlResponse({ data: { pokemon_v2_pokemon: buildRaw(31, 30) } }),
+          graphqlResponse({ data: { pokemon: buildRaw(31, 30) } }),
         );
 
       const first = await fetchPokemonList({ offset: 0 });
@@ -190,7 +193,7 @@ describe("fetchList", () => {
       const fetchMock = vi.fn();
       globalThis.fetch = fetchMock as unknown as typeof fetch;
       fetchMock.mockResolvedValueOnce(
-        graphqlResponse({ data: { pokemon_v2_pokemon: buildRaw(1, 5) } }),
+        graphqlResponse({ data: { pokemon: buildRaw(1, 5) } }),
       );
 
       const result = await fetchPokemonList({ offset: 0, limit: 30 });
@@ -205,20 +208,20 @@ describe("fetchList", () => {
       fetchMock.mockResolvedValueOnce(
         graphqlResponse({
           data: {
-            pokemon_v2_pokemon: [
+            pokemon: [
               {
                 id: 1,
                 name: "bulbasaur",
                 height: 7,
                 weight: 69,
-                pokemon_v2_pokemonsprites: [{ sprites: { front_default: "x" } }],
-                pokemon_v2_pokemontypes: [
-                  { slot: 1, pokemon_v2_type: { name: "grass" } },
-                  { slot: 2, pokemon_v2_type: { name: "poison" } },
+                pokemonsprites: [{ sprites: { front_default: "x" } }],
+                pokemontypes: [
+                  { slot: 1, type: { name: "grass" } },
+                  { slot: 2, type: { name: "poison" } },
                 ],
-                pokemon_v2_pokemonspecies: {
-                  pokemon_v2_pokemonhabitat: { name: "grassland" },
-                  pokemon_v2_generation: { name: "generation-i" },
+                pokemonspecy: {
+                  pokemonhabitat: { name: "grassland" },
+                  generation: { name: "generation-i" },
                 },
               },
               {
@@ -226,13 +229,13 @@ describe("fetchList", () => {
                 name: "ivysaur",
                 height: 10,
                 weight: 130,
-                pokemon_v2_pokemonsprites: [{ sprites: null }],
-                pokemon_v2_pokemontypes: [
-                  { slot: 1, pokemon_v2_type: { name: "poison" } },
+                pokemonsprites: [{ sprites: null }],
+                pokemontypes: [
+                  { slot: 1, type: { name: "poison" } },
                 ],
-                pokemon_v2_pokemonspecies: {
-                  pokemon_v2_pokemonhabitat: null,
-                  pokemon_v2_generation: null,
+                pokemonspecy: {
+                  pokemonhabitat: null,
+                  generation: null,
                 },
               },
             ],
@@ -260,13 +263,13 @@ describe("fetchList", () => {
 
       fetchMock
         .mockResolvedValueOnce(
-          graphqlResponse({ data: { pokemon_v2_pokemon: buildRaw(1, 30) } }),
+          graphqlResponse({ data: { pokemon: buildRaw(1, 30) } }),
         )
         .mockResolvedValueOnce(
-          graphqlResponse({ data: { pokemon_v2_pokemon: buildRaw(31, 30) } }),
+          graphqlResponse({ data: { pokemon: buildRaw(31, 30) } }),
         )
         .mockResolvedValueOnce(
-          graphqlResponse({ data: { pokemon_v2_pokemon: buildRaw(61, 10) } }),
+          graphqlResponse({ data: { pokemon: buildRaw(61, 10) } }),
         );
 
       const pager = createPokemonListPager({ pageSize: 30 });

@@ -133,43 +133,43 @@ function extractCryLatest(cries: unknown): string | null {
 }
 
 export interface RawPokemonDetailResponse {
-  pokemon_v2_pokemonspecies: Array<{
+  pokemonspecies: Array<{
     id: number;
     name: string;
     is_legendary: boolean;
     is_mythical: boolean;
     capture_rate: number | null;
     base_happiness: number | null;
-    pokemon_v2_generation: { name: string } | null;
-    pokemon_v2_pokemonhabitat: { name: string } | null;
-    pokemon_v2_pokemonspeciesflavortexts: Array<{
+    generation: { name: string } | null;
+    pokemonhabitat: { name: string } | null;
+    pokemonspeciesflavortexts: Array<{
       flavor_text: string;
-      pokemon_v2_version: { name: string } | null;
+      version: { name: string } | null;
     }>;
-    pokemon_v2_pokemons: Array<{
+    pokemons: Array<{
       id: number;
       name: string;
       height: number | null;
       weight: number | null;
       base_experience: number | null;
-      pokemon_v2_pokemonstats: Array<{
+      pokemonstats: Array<{
         base_stat: number;
-        pokemon_v2_stat: { name: string };
+        stat: { name: string };
       }>;
-      pokemon_v2_pokemonabilities: Array<{
+      pokemonabilities: Array<{
         is_hidden: boolean;
         slot: number;
-        pokemon_v2_ability: { name: string };
+        ability: { name: string };
       }>;
-      pokemon_v2_pokemontypes: Array<{
+      pokemontypes: Array<{
         slot: number;
-        pokemon_v2_type: { name: string };
+        type: { name: string };
       }>;
-      pokemon_v2_pokemonsprites: Array<{ sprites: unknown }>;
-      pokemon_v2_pokemoncries: Array<{ cries: unknown }>;
+      pokemonsprites: Array<{ sprites: unknown }>;
+      pokemoncries: Array<{ cries: unknown }>;
     }>;
-    pokemon_v2_evolutionchain: {
-      pokemon_v2_pokemonspecies: Array<{
+    evolutionchain: {
+      pokemonspecies: Array<{
         id: number;
         name: string;
         evolves_from_species_id: number | null;
@@ -269,42 +269,42 @@ export async function fetchPokemonDetail(name: string): Promise<PokemonDetail> {
     { next: detailCache(name) },
   );
 
-  const species = data.pokemon_v2_pokemonspecies[0];
+  const species = data.pokemonspecies[0];
   if (!species) throw new Error(`Pokemon not found: ${name}`);
 
-  const pokemon = species.pokemon_v2_pokemons[0];
+  const pokemon = species.pokemons[0];
   if (!pokemon) throw new Error(`Pokemon default form not found: ${name}`);
 
   const types: PokemonTypeRef[] = [];
-  for (const t of pokemon.pokemon_v2_pokemontypes) {
-    const typeName = asType(t.pokemon_v2_type.name);
+  for (const t of pokemon.pokemontypes) {
+    const typeName = asType(t.type.name);
     if (typeName) types.push({ slot: t.slot, name: typeName });
   }
   types.sort((a, b) => a.slot - b.slot);
 
-  const stats: PokemonStat[] = pokemon.pokemon_v2_pokemonstats.map((s) => ({
-    name: s.pokemon_v2_stat.name,
+  const stats: PokemonStat[] = pokemon.pokemonstats.map((s) => ({
+    name: s.stat.name,
     baseStat: s.base_stat,
   }));
 
-  const abilities: PokemonAbility[] = pokemon.pokemon_v2_pokemonabilities
+  const abilities: PokemonAbility[] = pokemon.pokemonabilities
     .map((a) => ({
-      name: a.pokemon_v2_ability.name,
+      name: a.ability.name,
       isHidden: a.is_hidden,
       slot: a.slot,
     }))
     .sort((a, b) => a.slot - b.slot);
 
-  const sprites = mapSprites(pokemon.pokemon_v2_pokemonsprites[0]?.sprites);
+  const sprites = mapSprites(pokemon.pokemonsprites[0]?.sprites);
   const cryLatestUrl = extractCryLatest(
-    pokemon.pokemon_v2_pokemoncries[0]?.cries,
+    pokemon.pokemoncries[0]?.cries,
   );
 
   // Flavor text: prioridad al primer elemento (ordenado por version_id DESC).
-  const firstFlavor = species.pokemon_v2_pokemonspeciesflavortexts[0];
+  const firstFlavor = species.pokemonspeciesflavortexts[0];
 
   const evolutionChain = buildEvolutionChain(
-    species.pokemon_v2_evolutionchain?.pokemon_v2_pokemonspecies ?? [],
+    species.evolutionchain?.pokemonspecies ?? [],
   );
 
   return {
@@ -317,15 +317,15 @@ export async function fetchPokemonDetail(name: string): Promise<PokemonDetail> {
     isMythical: species.is_mythical,
     captureRate: species.capture_rate,
     baseHappiness: species.base_happiness,
-    generation: asGeneration(species.pokemon_v2_generation?.name),
-    habitat: asHabitat(species.pokemon_v2_pokemonhabitat?.name),
+    generation: asGeneration(species.generation?.name),
+    habitat: asHabitat(species.pokemonhabitat?.name),
     types,
     stats,
     abilities,
     sprites,
     cryLatestUrl,
     flavorText: firstFlavor?.flavor_text ?? null,
-    flavorTextVersion: firstFlavor?.pokemon_v2_version?.name ?? null,
+    flavorTextVersion: firstFlavor?.version?.name ?? null,
     evolutionChain,
   };
 }

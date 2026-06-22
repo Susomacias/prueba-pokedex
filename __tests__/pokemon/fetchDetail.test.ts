@@ -10,17 +10,17 @@ const ORIGINAL_FETCH = globalThis.fetch;
 interface RawAbility {
   is_hidden: boolean;
   slot: number;
-  pokemon_v2_ability: { name: string };
+  ability: { name: string };
 }
 
 interface RawStat {
   base_stat: number;
-  pokemon_v2_stat: { name: string };
+  stat: { name: string };
 }
 
 interface RawType {
   slot: number;
-  pokemon_v2_type: { name: string };
+  type: { name: string };
 }
 
 interface RawPokemon {
@@ -29,11 +29,11 @@ interface RawPokemon {
   height: number | null;
   weight: number | null;
   base_experience: number | null;
-  pokemon_v2_pokemonstats: RawStat[];
-  pokemon_v2_pokemonabilities: RawAbility[];
-  pokemon_v2_pokemontypes: RawType[];
-  pokemon_v2_pokemonsprites: Array<{ sprites: unknown }>;
-  pokemon_v2_pokemoncries: Array<{ cries: unknown }>;
+  pokemonstats: RawStat[];
+  pokemonabilities: RawAbility[];
+  pokemontypes: RawType[];
+  pokemonsprites: Array<{ sprites: unknown }>;
+  pokemoncries: Array<{ cries: unknown }>;
 }
 
 interface RawSpecies {
@@ -43,15 +43,15 @@ interface RawSpecies {
   is_mythical: boolean;
   capture_rate: number | null;
   base_happiness: number | null;
-  pokemon_v2_generation: { name: string } | null;
-  pokemon_v2_pokemonhabitat: { name: string } | null;
-  pokemon_v2_pokemonspeciesflavortexts: Array<{
+  generation: { name: string } | null;
+  pokemonhabitat: { name: string } | null;
+  pokemonspeciesflavortexts: Array<{
     flavor_text: string;
-    pokemon_v2_version: { name: string } | null;
+    version: { name: string } | null;
   }>;
-  pokemon_v2_pokemons: RawPokemon[];
-  pokemon_v2_evolutionchain: {
-    pokemon_v2_pokemonspecies: Array<{
+  pokemons: RawPokemon[];
+  evolutionchain: {
+    pokemonspecies: Array<{
       id: number;
       name: string;
       evolves_from_species_id: number | null;
@@ -59,7 +59,7 @@ interface RawSpecies {
   } | null;
 }
 
-function pikachuResponse(overrides: Partial<RawSpecies> = {}): { data: { pokemon_v2_pokemonspecies: RawSpecies[] } } {
+function pikachuResponse(overrides: Partial<RawSpecies> = {}): { data: { pokemonspecies: RawSpecies[] } } {
   const species: RawSpecies = {
     id: 25,
     name: "pikachu",
@@ -67,41 +67,41 @@ function pikachuResponse(overrides: Partial<RawSpecies> = {}): { data: { pokemon
     is_mythical: false,
     capture_rate: 190,
     base_happiness: 70,
-    pokemon_v2_generation: { name: "generation-i" },
-    pokemon_v2_pokemonhabitat: { name: "forest" },
-    pokemon_v2_pokemonspeciesflavortexts: [
+    generation: { name: "generation-i" },
+    pokemonhabitat: { name: "forest" },
+    pokemonspeciesflavortexts: [
       {
         flavor_text: "Cuando se enfada, descarga la energía almacenada en sus mejillas.",
-        pokemon_v2_version: { name: "lets-go-pikachu" },
+        version: { name: "lets-go-pikachu" },
       },
       {
         flavor_text: "Las mejillas cargadas de electricidad.",
-        pokemon_v2_version: { name: "red" },
+        version: { name: "red" },
       },
     ],
-    pokemon_v2_pokemons: [
+    pokemons: [
       {
         id: 25,
         name: "pikachu",
         height: 4,
         weight: 60,
         base_experience: 112,
-        pokemon_v2_pokemonstats: [
-          { base_stat: 35, pokemon_v2_stat: { name: "hp" } },
-          { base_stat: 55, pokemon_v2_stat: { name: "attack" } },
-          { base_stat: 40, pokemon_v2_stat: { name: "defense" } },
-          { base_stat: 50, pokemon_v2_stat: { name: "special-attack" } },
-          { base_stat: 50, pokemon_v2_stat: { name: "special-defense" } },
-          { base_stat: 90, pokemon_v2_stat: { name: "speed" } },
+        pokemonstats: [
+          { base_stat: 35, stat: { name: "hp" } },
+          { base_stat: 55, stat: { name: "attack" } },
+          { base_stat: 40, stat: { name: "defense" } },
+          { base_stat: 50, stat: { name: "special-attack" } },
+          { base_stat: 50, stat: { name: "special-defense" } },
+          { base_stat: 90, stat: { name: "speed" } },
         ],
-        pokemon_v2_pokemonabilities: [
-          { is_hidden: false, slot: 1, pokemon_v2_ability: { name: "static" } },
-          { is_hidden: true, slot: 3, pokemon_v2_ability: { name: "lightning-rod" } },
+        pokemonabilities: [
+          { is_hidden: false, slot: 1, ability: { name: "static" } },
+          { is_hidden: true, slot: 3, ability: { name: "lightning-rod" } },
         ],
-        pokemon_v2_pokemontypes: [
-          { slot: 1, pokemon_v2_type: { name: "electric" } },
+        pokemontypes: [
+          { slot: 1, type: { name: "electric" } },
         ],
-        pokemon_v2_pokemonsprites: [
+        pokemonsprites: [
           {
             sprites: {
               front_default: "https://img/pikachu.png",
@@ -111,13 +111,13 @@ function pikachuResponse(overrides: Partial<RawSpecies> = {}): { data: { pokemon
             },
           },
         ],
-        pokemon_v2_pokemoncries: [
+        pokemoncries: [
           { cries: { latest: "https://cries/pikachu.ogg", legacy: "https://cries/pikachu-old.ogg" } },
         ],
       },
     ],
-    pokemon_v2_evolutionchain: {
-      pokemon_v2_pokemonspecies: [
+    evolutionchain: {
+      pokemonspecies: [
         { id: 172, name: "pichu", evolves_from_species_id: null },
         { id: 25, name: "pikachu", evolves_from_species_id: 172 },
         { id: 26, name: "raichu", evolves_from_species_id: 25 },
@@ -125,7 +125,7 @@ function pikachuResponse(overrides: Partial<RawSpecies> = {}): { data: { pokemon
     },
     ...overrides,
   };
-  return { data: { pokemon_v2_pokemonspecies: [species] } };
+  return { data: { pokemonspecies: [species] } };
 }
 
 function graphqlResponse(body: unknown): Response {
@@ -148,20 +148,20 @@ describe("fetchDetail", () => {
 
   describe("query", () => {
     it("pide exactamente los campos definidos en el plan", () => {
-      expect(POKEMON_DETAIL_QUERY).toContain("pokemon_v2_pokemonspecies");
-      expect(POKEMON_DETAIL_QUERY).toContain("pokemon_v2_pokemonstats");
-      expect(POKEMON_DETAIL_QUERY).toContain("pokemon_v2_pokemonabilities");
-      expect(POKEMON_DETAIL_QUERY).toContain("pokemon_v2_pokemontypes");
-      expect(POKEMON_DETAIL_QUERY).toContain("pokemon_v2_pokemonsprites");
-      expect(POKEMON_DETAIL_QUERY).toContain("pokemon_v2_pokemoncries");
-      expect(POKEMON_DETAIL_QUERY).toContain("pokemon_v2_generation");
-      expect(POKEMON_DETAIL_QUERY).toContain("pokemon_v2_pokemonhabitat");
-      expect(POKEMON_DETAIL_QUERY).toContain("pokemon_v2_pokemonspeciesflavortexts");
-      expect(POKEMON_DETAIL_QUERY).toContain("pokemon_v2_evolutionchain");
+      expect(POKEMON_DETAIL_QUERY).toContain("pokemonspecies");
+      expect(POKEMON_DETAIL_QUERY).toContain("pokemonstats");
+      expect(POKEMON_DETAIL_QUERY).toContain("pokemonabilities");
+      expect(POKEMON_DETAIL_QUERY).toContain("pokemontypes");
+      expect(POKEMON_DETAIL_QUERY).toContain("pokemonsprites");
+      expect(POKEMON_DETAIL_QUERY).toContain("pokemoncries");
+      expect(POKEMON_DETAIL_QUERY).toContain("generation");
+      expect(POKEMON_DETAIL_QUERY).toContain("pokemonhabitat");
+      expect(POKEMON_DETAIL_QUERY).toContain("pokemonspeciesflavortexts");
+      expect(POKEMON_DETAIL_QUERY).toContain("evolutionchain");
       expect(POKEMON_DETAIL_QUERY).toContain('_eq: "es"');
-      expect(POKEMON_DETAIL_QUERY).not.toContain("pokemon_v2_pokemonmoves");
-      expect(POKEMON_DETAIL_QUERY).not.toContain("pokemon_v2_encounters");
-      expect(POKEMON_DETAIL_QUERY).not.toContain("pokemon_v2_pokemonitems");
+      expect(POKEMON_DETAIL_QUERY).not.toContain("pokemonmoves");
+      expect(POKEMON_DETAIL_QUERY).not.toContain("encounters");
+      expect(POKEMON_DETAIL_QUERY).not.toContain("pokemonitems");
     });
   });
 
@@ -261,7 +261,7 @@ describe("fetchDetail", () => {
       ]);
 
       const [url, init] = fetchMock.mock.calls[0]!;
-      expect(String(url)).toBe("https://beta.pokeapi.co/graphql/v1beta");
+      expect(String(url)).toBe("https://graphql.pokeapi.co/v1beta2");
       const payload = JSON.parse((init as RequestInit).body as string);
       expect(payload.variables).toEqual({ name: "pikachu" });
       expect(payload.query).toContain("PokemonDetail");
@@ -286,7 +286,7 @@ describe("fetchDetail", () => {
       fetchMock.mockResolvedValueOnce(
         graphqlResponse(
           pikachuResponse({
-            pokemon_v2_pokemonspeciesflavortexts: [],
+            pokemonspeciesflavortexts: [],
           }),
         ),
       );
@@ -301,7 +301,7 @@ describe("fetchDetail", () => {
       const fetchMock = vi.fn();
       globalThis.fetch = fetchMock as unknown as typeof fetch;
       fetchMock.mockResolvedValueOnce(
-        graphqlResponse({ data: { pokemon_v2_pokemonspecies: [] } }),
+        graphqlResponse({ data: { pokemonspecies: [] } }),
       );
 
       await expect(fetchPokemonDetail("missingno")).rejects.toThrow(
@@ -315,11 +315,11 @@ describe("fetchDetail", () => {
       fetchMock.mockResolvedValueOnce(
         graphqlResponse(
           pikachuResponse({
-            pokemon_v2_pokemons: [
+            pokemons: [
               {
-                ...pikachuResponse().data.pokemon_v2_pokemonspecies[0]!
-                  .pokemon_v2_pokemons[0]!,
-                pokemon_v2_pokemoncries: [],
+                ...pikachuResponse().data.pokemonspecies[0]!
+                  .pokemons[0]!,
+                pokemoncries: [],
               },
             ],
           }),

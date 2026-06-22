@@ -66,7 +66,7 @@ describe("fetchFilterOptions", () => {
       mock.mockResolvedValueOnce(
         graphqlResponse({
           data: {
-            pokemon_v2_type: [
+            type: [
               { id: 1, name: "normal" },
               { id: 2, name: "fire" },
               { id: 3, name: "unknown" },
@@ -91,8 +91,8 @@ describe("fetchFilterOptions", () => {
       expect(names).not.toContain("unknown");
       expect(names).not.toContain("shadow");
       expect(calls).toHaveLength(1);
-      expect(calls[0]!.query).toContain("pokemon_v2_type");
-      expect(calls[0]!.query).not.toContain("pokemon_v2_pokemon");
+      expect(calls[0]!.query).toContain("type");
+      expect(calls[0]!.query).not.toContain("pokemon");
     });
 
     it("cada opción incluye value y label en español", async () => {
@@ -100,7 +100,7 @@ describe("fetchFilterOptions", () => {
       mock.mockResolvedValueOnce(
         graphqlResponse({
           data: {
-            pokemon_v2_type: [
+            type: [
               { id: 10, name: "fire" },
               { id: 11, name: "water" },
             ],
@@ -124,7 +124,7 @@ describe("fetchFilterOptions", () => {
       mock.mockResolvedValueOnce(
         graphqlResponse({
           data: {
-            pokemon_v2_generation: [
+            generation: [
               { id: 1, name: "generation-i" },
               { id: 2, name: "generation-ii" },
               { id: 3, name: "generation-iii" },
@@ -163,7 +163,7 @@ describe("fetchFilterOptions", () => {
       mock.mockResolvedValueOnce(
         graphqlResponse({
           data: {
-            pokemon_v2_pokemoncolor: [
+            pokemoncolor: [
               { id: 1, name: "red" },
               { id: 2, name: "blue" },
               { id: 3, name: "green" },
@@ -187,7 +187,7 @@ describe("fetchFilterOptions", () => {
       mock.mockResolvedValueOnce(
         graphqlResponse({
           data: {
-            pokemon_v2_pokemonhabitat: [
+            pokemonhabitat: [
               { id: 1, name: "cave" },
               { id: 2, name: "forest" },
               { id: 3, name: "grassland" },
@@ -225,7 +225,7 @@ describe("fetchFilterOptions", () => {
       mock.mockResolvedValueOnce(
         graphqlResponse({
           data: {
-            pokemon_v2_pokemonhabitat: [{ id: 1, name: "forest" }],
+            pokemonhabitat: [{ id: 1, name: "forest" }],
           },
         }),
       );
@@ -245,7 +245,7 @@ describe("fetchFilterOptions", () => {
       mock.mockResolvedValueOnce(
         graphqlResponse({
           data: {
-            pokemon_v2_ability: [
+            ability: [
               { id: 1, name: "stench" },
               { id: 2, name: "drizzle" },
               { id: 65, name: "overgrow" },
@@ -298,12 +298,12 @@ describe("fetchFilterOptions", () => {
       mock.mockResolvedValueOnce(
         graphqlResponse({
           data: {
-            pokemon_v2_type: [{ id: 1, name: "fire" }],
-            pokemon_v2_generation: [{ id: 1, name: "generation-i" }],
-            pokemon_v2_pokemoncolor: [{ id: 1, name: "red" }],
-            pokemon_v2_pokemonhabitat: [{ id: 1, name: "forest" }],
-            pokemon_v2_ability: [{ id: 1, name: "blaze" }],
-            pokemon_v2_pokemon_aggregate: {
+            type: [{ id: 1, name: "fire" }],
+            generation: [{ id: 1, name: "generation-i" }],
+            pokemoncolor: [{ id: 1, name: "red" }],
+            pokemonhabitat: [{ id: 1, name: "forest" }],
+            ability: [{ id: 1, name: "blaze" }],
+            pokemon_aggregate: {
               aggregate: {
                 min: { height: 1, weight: 10 },
                 max: { height: 200, weight: 10000 },
@@ -335,12 +335,12 @@ describe("fetchFilterOptions", () => {
       mock.mockResolvedValueOnce(
         graphqlResponse({
           data: {
-            pokemon_v2_type: [{ id: 1, name: "fire" }],
-            pokemon_v2_generation: [{ id: 1, name: "generation-i" }],
-            pokemon_v2_pokemoncolor: [{ id: 1, name: "red" }],
-            pokemon_v2_pokemonhabitat: [{ id: 1, name: "forest" }],
-            pokemon_v2_ability: [{ id: 1, name: "blaze" }],
-            pokemon_v2_pokemon_aggregate: {
+            type: [{ id: 1, name: "fire" }],
+            generation: [{ id: 1, name: "generation-i" }],
+            pokemoncolor: [{ id: 1, name: "red" }],
+            pokemonhabitat: [{ id: 1, name: "forest" }],
+            ability: [{ id: 1, name: "blaze" }],
+            pokemon_aggregate: {
               aggregate: {
                 min: { height: 1, weight: 10 },
                 max: { height: 200, weight: 10000 },
@@ -382,7 +382,7 @@ describe("fetchFilterOptions", () => {
       const { mock } = captureFetch();
       mock.mockResolvedValueOnce(
         graphqlResponse({
-          data: { pokemon_v2_type: [{ id: 1, name: "fire" }] },
+          data: { type: [{ id: 1, name: "fire" }] },
         }),
       );
 
@@ -391,12 +391,12 @@ describe("fetchFilterOptions", () => {
       const calls = callsOf(mock);
       const callsArr = mock.mock.calls as Array<[RequestInfo | URL, RequestInit]>;
       const [url, init] = callsArr[0]!;
-      expect(String(url)).toBe("https://beta.pokeapi.co/graphql/v1beta");
+      expect(String(url)).toBe("https://graphql.pokeapi.co/v1beta2");
       expect(init.method).toBe("POST");
       expect(
         (init.headers as Record<string, string>)["Content-Type"],
       ).toBe("application/json");
-      expect(calls[0]!.query).toContain("pokemon_v2_type");
+      expect(calls[0]!.query).toContain("type");
     });
   });
 });

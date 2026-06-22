@@ -5,17 +5,21 @@ import type {
 } from "./types";
 
 /**
- * Endpoint por defecto de la beta GraphQL de PokeAPI.
+ * Endpoint por defecto de la GraphQL de PokeAPI (v1beta2).
+ *
+ * v1beta2 es la versión pública recomendada (`https://graphql.pokeapi.co/v1beta2`)
+ * y expone los tipos sin el prefijo `pokemon_v2_` (ver
+ * `doc/pokeapi/graphql/v1beta2/metadata/databases/default/tables/`).
+ *
  * Se puede sobrescribir con `NEXT_PUBLIC_POKEAPI_GRAPHQL_URL`.
  */
-export const DEFAULT_POKEAPI_GRAPHQL_URL =
-  "https://beta.pokeapi.co/graphql/v1beta";
+export const DEFAULT_POKEAPI_GRAPHQL_URL = "https://graphql.pokeapi.co/v1beta2";
 
 /**
  * Devuelve la URL configurada para el endpoint GraphQL de PokeAPI.
  *
  * Lee `NEXT_PUBLIC_POKEAPI_GRAPHQL_URL` (público, accesible desde cliente)
- * y cae en el endpoint beta oficial si no está definida.
+ * y cae en el endpoint v1beta2 oficial si no está definida.
  */
 export function getPokeApiEndpoint(): string {
   const fromEnv = process.env.NEXT_PUBLIC_POKEAPI_GRAPHQL_URL;

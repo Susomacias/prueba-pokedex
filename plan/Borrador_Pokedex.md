@@ -299,3 +299,24 @@ La imágen del habitat debe tener un pequeño degradado de transición en la par
 \* Si se hace click en el botón de ver 3D con el objeto mostrandose se hace la transición a la inversa  
 \* Si se aplica un filtro o se llama a un nuevo pokemon se destruye el elemento se hace la transición a la inversa y se destruye el elemento 3D
 
+---------------------
+Correcciones:
+Hay que corregir algunas cosas en la página de inicio:
+- Ash y la animación de los pokemon están muy lejos de la pokedex cerrada, deberían estar más cerca
+- El diseño debería ser responsivo pero en la vista de móvil ash y la animación de los pokemon queda fuera de la pantalla, no pasa nada si esos dos elementos se hacen más pequeños y se superponen un poco a la pokedex cerrada.
+- El logo, la pokedex cerrada y el botón de press start están muy pegados verticalmente, habría que dejar algo de espacio entrellos aunque haya que hacerlos más pequeños
+- El botón de press start está muy pegado a la parte inferior de la pantalla, debería tener algo de separación.
+- Al añadir espacios verticales recuerda que la pantalla de inicio no debe hacer scroll vertical ni los elementos deben sobresalir.
+-------------
+Los cambios no han ido bien:
+En la vista de pc Ash y la anmiación de los pokemon deberían estar cerca de la pokedex cerrada pero están muy lejos
+En la vista de smartphone la pokedex se ve muy pequeña y delante de Ahs y la animación de pokemon, la pokedex debería estar grande y detrás y ser Ahs y la animación de pokemon los que estén delante y más pequeños.
+-----------
+Hay errores importantes:
+- El diseño de la transición entre página de inicio y la página de pokedex no está realizado según el borrador del plan, hay que revisarlo, estos son algunos problemas pero podría haber más.
+* El logo de la página de inicio debería transitar del centro a la parte izquierda de la pantalla y funcionar como un botón para volvera a la página de inicio.
+* Hay un loading no solicitado en el borrador, todos los elementos deberían estar ya cargados al inicar la página de inicio listos para transicionar a la página de pokedex
+* La pokedex aparece de repente en lugar de transicionar desde abajo de la pantalla hacia el medio
+- La pokedex abierta en la vista de pc es demasiado grande está muy pegada a la parte superior e inferio de la pantalla, debería haber un poco de espacio pero sin overflow
+- La parte de la pokedex donde iría la lista y el carrusel marca este error:Error cargando la lista: not a valid graphql query, lo que indica que no solo está mal la query si no que también está mal los test.
+Estamos en el punto del plan de desarrollo 06.2, analiza si estos problemas están previstos y se van a arreglar posteriormente y si no estaban previstos hay que dejarlos arreglados.

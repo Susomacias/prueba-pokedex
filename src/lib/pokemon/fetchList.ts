@@ -8,7 +8,7 @@ import { mapRawListPokemon } from "@/src/lib/pokemon/mapRawList";
 import { LIST_CACHE } from "@/src/lib/pokemon/cacheStrategy";
 
 export interface RawPokemonListResponse {
-  pokemon_v2_pokemon: Parameters<typeof mapRawListPokemon>[0][];
+  pokemon: Parameters<typeof mapRawListPokemon>[0][];
 }
 
 /** Argumentos de `fetchPokemonList`. */
@@ -45,7 +45,7 @@ export async function fetchPokemonList(
     { next: LIST_CACHE },
   );
 
-  const items = data.pokemon_v2_pokemon.map(mapRawListPokemon);
+  const items = data.pokemon.map(mapRawListPokemon);
   const nextOffset = items.length === limit ? offset + limit : null;
 
   return { items, nextOffset, total: null };
