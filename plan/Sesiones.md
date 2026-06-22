@@ -105,7 +105,7 @@ Lee plan/04_Transiciones_Inicio_Pokedex.md y ejecuta las fases 04.1, 04.2 y 04.3
 
 ## Plan 06 — Lista y Carrusel
 
-### Sesión 12 — Lista virtualizada y card
+### Sesión 12 — Lista con scroll infinito acumulativo y card
 
 ```
 Lee plan/06_Lista_y_Carrusel.md y ejecuta las fases 06.1 y 06.2, siguiendo para cada una sus tareas, skills recomendadas, tests (TDD), criterios de aceptación y notas de documentación.

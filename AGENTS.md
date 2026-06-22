@@ -74,6 +74,69 @@ Reglas:
   slot está activo y con qué pokemon. Esto lo aplica
   `buildSlotAttrs()` en `src/components/pokedex/slots/types.ts`.
 
+## Lista de pokemons — patrón de scroll infinito (Plan 06.1, revisado)
+
+`PokemonList` (`src/components/pokedex/list/PokemonList.tsx`) usa el
+**patrón estándar y probado de scroll infinito acumulativo**. NO hay
+virtualización, NO hay ventana deslizante, NO hay librerías externas
+de windowing.
+
+**Componentes:**
+
+- `useFilteredPokemonList` (`src/components/filters/useFilteredPokemonList.ts`):
+  hook que encapsula la paginación acumulativa. Mantiene `items[]`
+  acumulado, expone `nextOffset`, `loadMore()`, `single`, `error`,
+  `status` (`"loading" | "loadingMore" | "ready" | "error"`). Re-fetch
+  automático cuando cambian los filtros (vía `filterKey` estable).
+- `PokemonList`: contenedor con scroll interno (`overflowY: auto`)
+  que renderiza los items en flujo normal del DOM y dispara
+  `loadMore()` cuando el usuario se acerca al final.
+
+**Disparo de carga adicional — evento `scroll` nativo con throttle:**
+
+El componente escucha el evento `scroll` del propio contenedor (no
+`IntersectionObserver`) porque `IntersectionObserver` con `root`
+apuntando a un elemento dentro de un `<foreignObject>` SVG da
+resultados inconsistentes en Chromium. El evento `scroll` nativo es
+100% fiable y permite un control fino del umbral.
+
+El cálculo es:
+
+```ts
+const distanceToBottom = scrollHeight - scrollTop - clientHeight;
+if (distanceToBottom <= LOOKAHEAD_PX /* 400 */) triggerLoadMore();
+```
+
+- `LOOKAHEAD_PX = 400` ≈ 1.7 pantallas antes del final real. Así la
+  siguiente tanda llega a tiempo y el scroll nunca se interrumpe.
+- Throttle por `requestAnimationFrame` para no saturar al hacer
+  scroll rápido.
+- Re-evaluación adicional en un `useEffect` que depende de `items`:
+  si el contenedor crece y el usuario ya estaba cerca del final,
+  se dispara la siguiente carga sin esperar al próximo evento
+  `scroll`.
+
+**Anti-patrones prohibidos (prohibido reintroducir):**
+
+- Virtualización con `@tanstack/react-virtual` o similar. Provoca:
+  re-mediciones constantes, `position: absolute` con `transform`
+  compitiendo con animaciones CSS, scroll saltando, pop-in.
+- Ventana deslizante que descarta páginas al alejarse. Provoca
+  re-renders visibles al volver atrás.
+- Animación CSS de entrada por card (`pokemon-list-card-enter`).
+  Aplicada con `animation-fill-mode: both` mantiene la card en su
+  estado inicial durante 280 ms, lo que reduce la altura efectiva
+  visible y rompe el `min-height: 64px`.
+
+**Reglas para listas filtradas en el futuro:**
+
+Cualquier nueva lista que muestre pokemons con filtros (búsqueda por
+nombre, favoritos, equipo, etc.) DEBE usar el mismo patrón:
+`useFilteredPokemonList` + `loadMore()` disparado por el evento
+`scroll` con `LOOKAHEAD_PX`. NO reinventar la rueda con
+virtualización, ni con `IntersectionObserver` dentro de un
+`<foreignObject>`.
+
 ## Estrategia de caché de la capa de datos (Plan 01.6)
 
 Toda la PokeAPI se consulta desde `src/lib/pokemon/`. La estrategia

@@ -22,6 +22,7 @@
   padding: 8px 10px;
   width: 100%;
   min-height: 64px;
+  flex-shrink: 0;
   border: 2px solid #1d1d1b;
   border-radius: 4px;
   background: linear-gradient(180deg, #fff8e0 0%, #f4e6b0 100%);
@@ -34,7 +35,6 @@
     transform 120ms ease-out,
     box-shadow 120ms ease-out,
     background 120ms ease-out;
-  animation: pokemon-list-card-enter 280ms ease-out both;
 }
 
 .pokemon-list-card:hover {
@@ -131,42 +131,6 @@
   opacity: 0.4;
 }
 
-/* Fade out/in al cambiar el contenido (ej: aplicar filtros). El
-   padre `data-fading="true"` lo activa opcionalmente desde la lista. */
-.pokemon-list[data-fading="true"] .pokemon-list-card {
-  animation: pokemon-list-card-fade 400ms ease-out both;
-}
-
-@keyframes pokemon-list-card-enter {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes pokemon-list-card-fade {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .pokemon-list-card,
-  .pokemon-list[data-fading="true"] .pokemon-list-card {
-    animation: none !important;
-    transition: none !important;
-  }
-}
-
 /* Wrapper del slot — asegura que la lista ocupe todo el alto y ancho
    del <foreignObject> del slot CARRUSEL_IMAGENES_DESCRIPCION. */
 .pokedex-carousel-slot {
@@ -188,6 +152,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .pokemon-list-card,
+  .pokemon-list-card:hover,
+  .pokemon-list-card:active {
+    transition: none !important;
+  }
   @keyframes pokedex-list-spin {
     from,
     to {

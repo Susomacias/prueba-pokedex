@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Implementar el contenido del slot `CARRUSEL_IMAGENES_DESCRIPCION` y sus slot adyacentes: lista virtualizada de pokemons, card de lista, carrusel de imágenes+info al seleccionar, puntos LED, botones analógicos y botón de sonido (cry). Loading pikachu discreto.
+Implementar el contenido del slot `CARRUSEL_IMAGENES_DESCRIPCION` y sus slot adyacentes: lista con scroll infinito acumulativo, card de lista, carrusel de imágenes+info al seleccionar, puntos LED, botones analógicos y botón de sonido (cry). Loading pikachu discreto.
 
 ## Comportamientos del borrador
 
@@ -10,7 +10,7 @@ Implementar el contenido del slot `CARRUSEL_IMAGENES_DESCRIPCION` y sus slot ady
 
 - Muestra los **30 primeros** pokemons con filtros actuales.
 - Card: miniatura a la derecha ocupando todo el alto, nombre grande a la izquierda, chips tipo1/tipo2 debajo del nombre, chips habitat+generación a la derecha.
-- Scroll infinito: al bajar, carga los **30 siguientes**. Al visualizar el 60, destruir los primeros 30 (memoria). Inverso al subir.
+- Scroll infinito: al bajar, carga los **30 siguientes**. **Carga acumulativa**: todas las páginas cargadas se mantienen en memoria (no hay destrucción al subir). El navegador maneja miles de nodos sin problema y la UX resultante es predecible y sin "saltos".
 - Loading discreto si el usuario navega muy rápido.
 
 ### Carrusel (con pokemon seleccionado)
@@ -31,39 +31,44 @@ Implementar el contenido del slot `CARRUSEL_IMAGENES_DESCRIPCION` y sus slot ady
 
 ---
 
-### Fase 06.1 — Lista virtualizada con destrucción de items
+### Fase 06.1 — Lista con scroll infinito acumulativo
 
-**Objetivo:** scroll infinito eficiente que mantenga como máximo ~60 cards en memoria.
+**Objetivo:** scroll infinito eficiente que cargue páginas a medida
+que el usuario se acerca al final, **sin destruir las páginas ya
+cargadas** y sin virtualización.
 
 **Tareas:**
 - Componente `PokemonList` (client) que usa `useFilteredPokemonList()` (Plan 02.3).
-- Estrategia: ventana deslizante. Mantener cargados los items `[currentPage, currentPage+1]` (30+30=60). Al entrar en la página `currentPage+1`, destruir `currentPage-1`.
-- Detección de scroll: `IntersectionObserver` sobre un sentinel inferior. Al intersectar, cargar siguientes 30.
+- Estrategia: **carga acumulativa simple**. `items[]` crece con cada `loadMore()`. No hay ventana deslizante, no hay `@tanstack/react-virtual`, no hay `position: absolute` con transformaciones.
+- Disparo de carga: evento `scroll` nativo del contenedor con throttle por `requestAnimationFrame`. Cuando `scrollHeight - scrollTop - clientHeight <= LOOKAHEAD_PX` (400 px ≈ 1.7 pantallas), se llama `loadMore()`. Esto es 100% fiable dentro de un `<foreignObject>` SVG (donde `IntersectionObserver` con `root: scrollEl` da resultados inconsistentes en Chromium).
+- Re-evaluación adicional en un `useEffect` que depende de `items`: si el contenedor crece y el usuario ya estaba cerca del final, se dispara la siguiente carga sin esperar al próximo evento `scroll`.
 - Loading discreto en el punto de carga (spinner pequeño estilo arcade, no el pikachu gif que es para cargas globales).
-- Si el usuario sube rápido, recargar la página anterior.
 - Cada card es un botón (accesible) que al pulsar selecciona el pokemon (cambia URL a `/pokemon/[name]` manteniendo filtros).
+- **NO** aplicar animación CSS de entrada a cada card (`pokemon-list-card-enter` u otras) — interfiere con la altura efectiva de la card y con el scroll.
 
 **Skills recomendadas:**
 - `vercel-react-best-practices` (Activity API, deferred reads, memoization).
 - `next-best-practices` (suspense boundaries para la carga).
-- `accessibility` (lista como `role="listbox"`, cards como `role="option"` o botones con `aria-label`).
+- `accessibility` (lista como `role="listbox"`, cards como botones con `aria-label`).
 
 **Tests a diseñar (antes):**
 - Test: renderiza 30 cards iniciales.
-- Test: al hacer scroll al final, carga 30 más.
-- Test: al visualizar el item 60, los items 1–30 se desmontan (contar nodos).
+- Test: al hacer scroll al ~75% del scrollHeight, carga 30 más.
 - Test: pulsar una card dispara `router.push` a `/pokemon/[name]?<filtros>`.
 - Test: con 1 solo resultado, no muestra lista (la UI carga la ficha directamente — ver Plan 02.3).
+- Test: la altura de cada card respeta `min-height: 64px` (no se comprime por la animación de entrada).
 
 **Tests a ejecutar (después):**
 - `npm run test:run`
 - `npm run lint`
 
 **Criterios de aceptación:**
-- Máximo 60 nodos en DOM durante scroll normal.
-- Carga suave sin saltos.
+- Carga suave sin saltos ni pop-in.
+- El scroll nunca se interrumpe (la siguiente tanda llega antes del final).
+- Las cards mantienen su altura completa.
 
-**Documentación:** No.
+**Documentación:**
+- Actualizar `AGENTS.md` con la sección "Lista de pokemons — patrón de scroll infinito" si cambia el patrón.
 
 **Revisión humana:** Sí.
 
@@ -286,6 +291,7 @@ Implementar el contenido del slot `CARRUSEL_IMAGENES_DESCRIPCION` y sus slot ady
 
 ## Riesgos
 
-- **Memoria en lista larga**: la destrucción de items debe ser agresiva pero sin perder la posición de scroll. Usar `IntersectionObserver` + ventana fija.
+- **Memoria en lista larga**: la carga acumulativa mantiene todos los items en memoria. Con 1300+ pokemons y ~64 px por card el navegador maneja el DOM sin problema; si en el futuro se llega a un volumen mucho mayor (filtros que devuelvan miles de resultados), considerar `content-visibility: auto` o `contain-intrinsic-size` en `.pokemon-list-card` para que el navegador recorte los nodos fuera de viewport sin destruir el estado.
+- **Scroll en `<foreignObject>`**: `IntersectionObserver` con `root` apuntando al contenedor de scroll da resultados inconsistentes en Chromium. Usar SIEMPRE el evento `scroll` nativo del contenedor para detectar "casi al final". Documentado en `AGENTS.md`.
 - **Carrusel con pocos sprites**: algunos pokemons tienen solo 1–2 sprites; el carrusel debe adaptarse (mínimo 2 diapositivas: imagen + descripción).
 - **Sonido bloqueado sin interacción**: el botón está detrás de un click del usuario, así que no hay restricción de autoplay.
