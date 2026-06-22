@@ -60,18 +60,21 @@ npm run test:e2e:ui    # inspector interactivo
 
 ```text
 .
-├── app/              # App Router de Next.js (se moverá a src/app en el plan 02)
-│   ├── globals.css
-│   ├── layout.tsx
-│   └── page.tsx
-├── public/           # Assets estáticos (favicon, fuentes, hábitats, imágenes)
 ├── src/
+│   ├── app/              # App Router de Next.js
+│   │   ├── layout.tsx
+│   │   ├── page.tsx
+│   │   ├── globals.css
+│   │   ├── not-found.tsx
+│   │   ├── pokedex/page.tsx
+│   │   └── pokemon/[name]/page.tsx
 │   ├── components/   # Componentes React reutilizables
 │   ├── hooks/        # Hooks personalizados
 │   ├── lib/          # Lógica, constantes y tipos
 │   │   ├── constants/
 │   │   └── types/
 │   └── styles/       # Estilos adicionales
+├── public/           # Assets estáticos (favicon, fuentes, hábitats, imágenes)
 ├── __tests__/        # Tests unitarios (Vitest)
 ├── e2e/              # Tests end-to-end (Playwright)
 ├── doc/              # Documentación de referencia (PokeAPI). No se commitea.
@@ -79,3 +82,12 @@ npm run test:e2e:ui    # inspector interactivo
 ```
 
 > `src/lib/constants/` es la **única fuente de verdad** para colores por tipo/generación y constantes compartidas.
+
+## Rutas
+
+| Ruta | Descripción |
+| ---- | ----------- |
+| `/` | Página de inicio. |
+| `/pokedex` | Pokédex con lista y filtros (filtros vía `searchParams`). |
+| `/pokemon/[name]` | Ficha de un pokemon (nombre amigable, no id). |
+| `*` | Página 404 personalizada. |

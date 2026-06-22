@@ -23,3 +23,52 @@ Antes de empezar una fase con código, escribir sus tests. Al terminar, ejecutar
 ## Fuente de verdad de constantes
 
 `src/lib/constants/` es la **única** ubicación autorizada para colores por tipo/generación de Pokémon, hábitats y la paleta base del proyecto. Cualquier nuevo color o constante compartida debe añadirse ahí.
+
+## Estado de filtros — único punto de mutación
+
+El estado de filtros SIEMPRE se maneja con `useFilters()` (`src/hooks/useFilters.ts`).
+NO duplicar en `useState` locales. La consola, los dropdowns y el buscador
+deben consumir el hook (o sus derivados en `src/components/filters/` una vez
+montado el `FiltersProvider` del Plan 02.3). La sincronización con la URL es
+**bidireccional**: mutar actualiza la URL vía `router.replace({ scroll: false })`
+(sin recarga); cambiar la URL por back/forward o link compartido actualiza el
+estado.
+
+Serialización URL: `filtersToSearchParams` / `searchParamsToFilters` /
+`applyFilterChange` en `src/lib/filters/serialization.ts`. El mapa de
+filtros vive en `src/lib/filters/types.ts` (`FILTERS`).
+
+## Estrategia de caché de la capa de datos (Plan 01.6)
+
+Toda la PokeAPI se consulta desde `src/lib/pokemon/`. La estrategia
+de caché está centralizada en `src/lib/pokemon/cacheStrategy.ts`
+y aplicada por las funciones crudas (`fetchList.ts`,
+`fetchDetail.ts`, `fetchFilterOptions.ts`) más la capa cacheada
+`src/lib/pokemon/cachedPokemonApi.ts` (que añade `React.cache`
+para dedupe intra-render y `preload*` para precarga en background).
+
+| Recurso | `revalidate` | Tags | Notas |
+| --- | --- | --- | --- |
+| Lista paginada (sin filtros) | 3600 s (1 h) | `pokemon-data` | Aplica también a la variante filtrable |
+| Detalle de un pokemon | 86400 s (24 h) | `pokemon-data`, `pokemon:<name>` | Permite invalidar un pokemon concreto con `revalidateTag('pokemon:<name>')` |
+| Opciones de filtros | 604800 s (7 d) | `pokemon-data`, `filter-options` | Datos esencialmente estáticos |
+
+**Dedupe intra-render:** las funciones de `cachedPokemonApi.ts`
+están envueltas con `React.cache`. Dentro de un mismo Server
+Component / render, dos llamadas idénticas (mismo `name` o misma
+página) solo hacen UN fetch real. En jsdom (tests) `React.cache`
+no memoiza, pero la API pública se mantiene estable.
+
+**Precarga:** `preloadPokemonDetails(names, max=3)` y
+`preloadPokemonList(args)` se usan en Server Components antes de
+`await`ar el fetch principal del usuario para iniciar la carga en
+background. La cota de 3 evita saturar la PokeAPI.
+
+**Modelo de caché activo:** el proyecto NO usa `cacheComponents`
+(`next.config.ts` no activa la flag). Por tanto se usa el modelo
+"anterior" de Next.js 16 con `next: { revalidate, tags }` en el
+`fetch` subyacente, vía `request()` en `src/lib/graphql/client.ts`.
+Si en el futuro se activa `cacheComponents: true`, las constantes
+de `cacheStrategy.ts` se pueden migrar a directivas `'use cache'`
+con `cacheLife(...)` y `cacheTag(...)` manteniendo los mismos
+valores nominales (ver `node_modules/next/dist/docs/01-app/03-api-reference/01-directives/use-cache.md`).

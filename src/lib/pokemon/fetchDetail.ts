@@ -12,6 +12,7 @@ import {
   type PokemonType,
   type PokemonTypeRef,
 } from "@/src/lib/types/pokemon";
+import { detailCache } from "@/src/lib/pokemon/cacheStrategy";
 
 /**
  * Mapeo de habitats inglés→español. Replicado del módulo de lista para
@@ -249,6 +250,7 @@ export async function fetchPokemonDetail(name: string): Promise<PokemonDetail> {
     POKEMON_DETAIL_QUERY,
     { name },
     "PokemonDetail",
+    { next: detailCache(name) },
   );
 
   const species = data.pokemon_v2_pokemonspecies[0];

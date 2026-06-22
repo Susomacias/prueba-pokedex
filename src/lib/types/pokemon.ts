@@ -169,3 +169,56 @@ export interface PokemonDetail {
   /** Cadena evolutiva como árbol plano ordenado por nivel. */
   evolutionChain: ReadonlyArray<EvolutionNode>;
 }
+
+/* ----------------------------------------------------------------------------
+ * Filtros — Plan 01.4 / 01.5
+ * --------------------------------------------------------------------------*/
+
+/** Opción simple para selects/chips de filtro. */
+export interface FilterOption {
+  /** Identificador estable (clave canónica, ej. `fire`, `caverna`). */
+  readonly value: string;
+  /** Etiqueta legible para mostrar en la UI (en español cuando aplica). */
+  readonly label: string;
+  /** Imagen opcional (`.webp` en `/public/habitats` para hábitats). */
+  readonly image?: string;
+}
+
+/** Bucket de un rango numérico (altura/peso). */
+export interface FilterBucket {
+  readonly value: string;
+  readonly label: string;
+  readonly min: number;
+  readonly max: number;
+}
+
+/**
+ * Conjunto de los 7 filtros que el plan 01 expone en el panel de
+ * filtros (Tipo 1/Tipo 2 comparten la lista de tipos; Altura y Peso
+ * son buckets numéricos).
+ */
+export interface FilterOptionMap {
+  readonly type1: ReadonlyArray<FilterOption>;
+  readonly type2: ReadonlyArray<FilterOption>;
+  readonly generation: ReadonlyArray<FilterOption>;
+  readonly color: ReadonlyArray<FilterOption>;
+  readonly habitat: ReadonlyArray<FilterOption>;
+  readonly ability: ReadonlyArray<FilterOption>;
+  readonly height: ReadonlyArray<FilterBucket>;
+  readonly weight: ReadonlyArray<FilterBucket>;
+}
+
+/**
+ * Filtros activos que puede aplicar la UI sobre la lista de pokemons.
+ * Cada campo es opcional; los filtros se combinan con AND.
+ */
+export interface PokemonFilters {
+  readonly type1?: PokemonType;
+  readonly type2?: PokemonType;
+  readonly generation?: Generation;
+  readonly color?: string;
+  readonly habitat?: Habitat;
+  readonly ability?: string;
+  readonly height?: FilterBucket;
+  readonly weight?: FilterBucket;
+}
