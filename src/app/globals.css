@@ -32,3 +32,84 @@ body {
     transition-duration: 0ms;
   }
 }
+
+/* -------------------------------------------------------------------------- *
+ * Animaciones — Plan 02.4 (404)
+ * -------------------------------------------------------------------------- *
+ * Mantenemos las animaciones como utilidades puras para que el 404
+ * (y futuras pantallas de error / loading) puedan reutilizarlas.
+ * Todas se desactivan automáticamente con `prefers-reduced-motion`.
+ */
+
+@keyframes pokeball-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pokeball-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes pokeball-wobble {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-6deg);
+  }
+  75% {
+    transform: rotate(6deg);
+  }
+}
+
+@layer utilities {
+  .animate-pokeball-rotate {
+    animation: pokeball-rotate 6s linear infinite;
+    transform-origin: 50% 50%;
+  }
+
+  .animate-pokeball-bob {
+    animation: pokeball-bob 3s ease-in-out infinite;
+  }
+
+  .animate-pokeball-wobble {
+    animation: pokeball-wobble 2.4s ease-in-out infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-pokeball-rotate,
+  .animate-pokeball-bob,
+  .animate-pokeball-wobble {
+    animation: none;
+  }
+}
+
+/* -------------------------------------------------------------------------- *
+ * Animaciones — Plan 03.1 (fondo mosaico diagonal de la pantalla de inicio)
+ * -------------------------------------------------------------------------- *
+ * El `transform: translate(-Xpx, -Xpx)` se anima con la misma magnitud en
+ * ambos ejes para conseguir el desplazamiento a 45°. La capa está
+ * sobredimensionada (`-inset-[200%]`) y la duración de 18s con
+ * `linear infinite` da un movimiento lento y continuo.
+ */
+
+@keyframes home-tile-drift {
+  from {
+    transform: translate(0, 0);
+  }
+  to {
+    transform: translate(-128px, -128px);
+  }
+}
