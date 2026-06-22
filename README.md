@@ -1,36 +1,70 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Pokédex
 
-## Getting Started
+Aplicación web construida con **Next.js 16**, **React 19**, **Tailwind CSS 4** y **TypeScript** para explorar el mundo de los Pokémon: tipos, generaciones, hábitats y más.
 
-First, run the development server:
+## Requisitos previos
+
+- [Node.js](https://nodejs.org/) >= 18.18
+- npm (incluido con Node.js)
+
+## Primeros pasos
+
+Instala las dependencias y arranca el servidor de desarrollo:
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abre [http://localhost:3000](http://localhost:3000) en el navegador para ver la aplicación.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts disponibles
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Script                | Descripción                                                  |
+| --------------------- | ------------------------------------------------------------ |
+| `npm run dev`         | Inicia el servidor de desarrollo                             |
+| `npm run build`       | Genera la build de producción                                |
+| `npm run start`       | Sirve la build de producción                                 |
+| `npm run lint`        | Ejecuta ESLint                                               |
+| `npx tsc --noEmit`    | Comprueba los tipos con TypeScript                           |
 
-## Learn More
+## Testing
 
-To learn more about Next.js, take a look at the following resources:
+El proyecto usa **Vitest** para tests unitarios y **Playwright** para tests end-to-end.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+# Tests unitarios (jsdom + Testing Library)
+npm run test           # modo watch
+npm run test:run       # una sola ejecución
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# Tests end-to-end (Playwright levanta el servidor dev automáticamente)
+npm run test:e2e
+npm run test:e2e:ui    # inspector interactivo
+```
 
-## Deploy on Vercel
+- Tests unitarios en `__tests__/`.
+- Tests e2e en `e2e/`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Estructura del proyecto
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```text
+.
+├── app/              # App Router de Next.js (se moverá a src/app en el plan 02)
+│   ├── globals.css
+│   ├── layout.tsx
+│   └── page.tsx
+├── public/           # Assets estáticos (favicon, fuentes, hábitats, imágenes)
+├── src/
+│   ├── components/   # Componentes React reutilizables
+│   ├── hooks/        # Hooks personalizados
+│   ├── lib/          # Lógica, constantes y tipos
+│   │   ├── constants/
+│   │   └── types/
+│   └── styles/       # Estilos adicionales
+├── __tests__/        # Tests unitarios (Vitest)
+├── e2e/              # Tests end-to-end (Playwright)
+├── doc/              # Documentación de referencia (PokeAPI). No se commitea.
+└── plan/             # Planes de desarrollo por fases
+```
+
+> `src/lib/constants/` es la **única fuente de verdad** para colores por tipo/generación y constantes compartidas.

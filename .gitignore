@@ -12,6 +12,9 @@
 
 # testing
 /coverage
+/playwright-report
+/test-results
+/e2e/.cache
 
 # next.js
 /.next/
@@ -23,6 +26,9 @@
 # misc
 .DS_Store
 *.pem
+
+# project reference docs (not committed)
+/doc
 
 # debug
 npm-debug.log*
