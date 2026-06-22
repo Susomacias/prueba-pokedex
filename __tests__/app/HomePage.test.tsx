@@ -1,6 +1,21 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import HomePage from "@/src/app/page";
+
+vi.mock("@/src/hooks/useNavigation", () => ({
+  useNavigation: () => ({
+    pathname: "/",
+    searchParams: new URLSearchParams(),
+    router: {
+      push: vi.fn(),
+      replace: vi.fn(),
+      back: vi.fn(),
+      forward: vi.fn(),
+      refresh: vi.fn(),
+    },
+    subscribe: () => () => undefined,
+  }),
+}));
 
 describe("HomePage layout base (Plan 03.2)", () => {
   it("renderiza las tres zonas en orden: superior (logo), media, inferior (controles)", () => {
@@ -49,17 +64,20 @@ describe("HomePage layout base (Plan 03.2)", () => {
     expect(order2).toBeTruthy();
   });
 
-  it("la zona inferior contiene el botón de sonido y el botón PRESS START", () => {
+  it("la zona inferior contiene el botón de sonido y el botón PRESS START (como <a> navegable)", () => {
     render(<HomePage />);
     const bottom = screen.getByTestId("home-zone-bottom");
 
     const sound = within(bottom).getByRole("button", { name: /sonido/i });
-    const pressStart = within(bottom).getByRole("button", {
+    // En 03.5 PRESS START es un <Link> de Next.js para tener prefetch
+    // y la transición nativa.
+    const pressStart = within(bottom).getByRole("link", {
       name: /press start/i,
     });
 
     expect(sound).toBeInTheDocument();
     expect(pressStart).toBeInTheDocument();
+    expect(pressStart).toHaveAttribute("href", "/pokedex");
   });
 
   it("el contenedor raíz ocupa exactamente la pantalla y no permite scroll", () => {

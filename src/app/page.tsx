@@ -2,11 +2,11 @@ import Image from "next/image";
 import { AnimatedBackground } from "@/src/components/home/AnimatedBackground";
 import { PokemonSlider } from "@/src/components/home/PokemonSlider";
 import { SoundToggle } from "@/src/components/home/SoundToggle";
-import { SoundMusicProvider } from "@/src/components/home/SoundMusicContext";
 import { PressStartButton } from "@/src/components/home/PressStartButton";
+import { HomeShell } from "@/src/components/home/HomeShell";
 
 /**
- * Plan 03.2 + 03.3 + 03.4 — Pantalla de inicio completa.
+ * Plan 03.2 + 03.3 + 03.4 + 03.5 — Pantalla de inicio completa.
  *
  * Estructura de tres zonas en `flex-col` que ocupa exactamente el
  * viewport (`h-dvh`, `w-screen`) sin generar scroll:
@@ -14,15 +14,16 @@ import { PressStartButton } from "@/src/components/home/PressStartButton";
  *   - Media: ash (izq., respiración sutil) + pokedex cerrada (centro,
  *     glow pulsante) + slider pokemons (der., ciclo de 10 pokemons).
  *   - Inferior: botón de sonido (izq.) + botón PRESS START (centro,
- *     arcade pulsante).
+ *     arcade pulsante, ahora un `<Link>` a `/pokedex`).
  *
- * `SoundMusicProvider` expone el estado "música activa" para que el
- * Plan 04 (transiciones a `/pokedex`) pueda hacer fade-out antes de
- * cambiar de página.
+ * La parte interactiva (listener global de teclado/click + overlay
+ * de carga + estado de música) vive en `HomeShell`, un Client
+ * Component, para que esta página pueda seguir siendo un Server
+ * Component que solo arma el layout.
  */
 export default function HomePage() {
   return (
-    <SoundMusicProvider>
+    <HomeShell>
       <div className="relative h-dvh w-screen overflow-hidden">
         <AnimatedBackground />
 
@@ -30,6 +31,10 @@ export default function HomePage() {
           className="relative z-10 flex h-full w-full flex-col"
           aria-label="Pantalla de inicio de la Pokédex"
         >
+          {/* Encabezado accesible (no visible): aporta el nombre
+              semántico de la página a lectores de pantalla y a
+              selectores que buscan el texto "Pokédex" en el main. */}
+          <h1 className="sr-only">Pokédex</h1>
           {/* Zona superior — logo */}
           <section
             data-testid="home-zone-top"
@@ -104,6 +109,6 @@ export default function HomePage() {
           </section>
         </main>
       </div>
-    </SoundMusicProvider>
+    </HomeShell>
   );
 }

@@ -2,7 +2,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
-import { HomeNavigationProvider, useHomeNavigation } from "@/src/components/home/HomeNavigationContext";
+import {
+  HomeNavigationProvider,
+  useHomeNavigation,
+  type HomeRouterLike,
+} from "@/src/components/home/HomeNavigationContext";
 
 /**
  * Plan 03.5 — TDD del contexto que centraliza la navegación de la
@@ -23,13 +27,9 @@ import { HomeNavigationProvider, useHomeNavigation } from "@/src/components/home
  *     consumidores.
  */
 
-function makeRouterMock() {
+function makeRouterMock(): HomeRouterLike {
   return {
     push: vi.fn(),
-    replace: vi.fn(),
-    back: vi.fn(),
-    forward: vi.fn(),
-    refresh: vi.fn(),
   };
 }
 
@@ -125,8 +125,7 @@ describe("HomeNavigationContext (Plan 03.5)", () => {
   it("muestra isLoading=true mientras navigate() no haya completado y lo desactiva al completar", async () => {
     vi.useRealTimers();
     let resolvePush: (() => void) | null = null;
-    const router = {
-      ...makeRouterMock(),
+    const router: HomeRouterLike = {
       push: vi.fn(
         () =>
           new Promise<void>((resolve) => {

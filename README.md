@@ -91,3 +91,30 @@ npm run test:e2e:ui    # inspector interactivo
 | `/pokedex` | Pokédex con lista y filtros (filtros vía `searchParams`). |
 | `/pokemon/[name]` | Ficha de un pokemon (nombre amigable, no id). |
 | `*` | Página 404 personalizada. |
+
+## Pantalla de inicio — controles
+
+La pantalla de inicio (`/`) navega a `/pokedex` desde varios puntos
+de entrada, todos centralizados en
+`src/components/home/HomeNavigationContext.tsx` para evitar dobles
+navegaciones y mostrar el overlay de carga si la transición tarda.
+
+| Acción | Resultado |
+| ------ | --------- |
+| **Enter** o **Space** | Navega a `/pokedex`. |
+| Cualquier **letra A–Z** | Navega a `/pokedex` (estilo arcade del borrador). |
+| **Click** en una zona neutra del fondo (logo, ash, slider, pokedex cerrada) | Navega a `/pokedex`. |
+| **Click** en el botón **PRESS START** | Navega a `/pokedex` (es un `<Link>` de Next.js con prefetch). |
+| **Click** en el botón de sonido | Solo activa/desactiva la música; **no** navega. |
+| Teclas `Tab`, `Shift`, `Ctrl`, `F1`, números… | **No** navegan. |
+
+Notas:
+
+- El estado "música activa" lo expone `SoundMusicProvider`
+  (`src/components/home/SoundMusicContext.tsx`) para que el Plan 04
+  (transiciones a `/pokedex`) pueda hacer fade-out antes de cambiar
+  de página.
+- Mientras la navegación no haya completado y tarde más de lo
+  habitual, se muestra el gif `public/loading-pikachu.gif` con el
+  texto "CARGANDO…" en `Press Start 2P` (gestionado por
+  `src/components/home/HomeLoadingOverlay.tsx`).
