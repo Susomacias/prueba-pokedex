@@ -55,13 +55,22 @@ describe("HomePage layout base (Plan 03.2)", () => {
     expect(pokedex).toBeInTheDocument();
     expect(slider).toBeInTheDocument();
 
-    // Orden visual: ash → pokedex → slider
+    // Orden DOM: ash → pokedex → slider.
     const order =
       ash.compareDocumentPosition(pokedex) & Node.DOCUMENT_POSITION_FOLLOWING;
     expect(order).toBeTruthy();
     const order2 =
       pokedex.compareDocumentPosition(slider) & Node.DOCUMENT_POSITION_FOLLOWING;
     expect(order2).toBeTruthy();
+
+    // La Pokédex cerrada queda visualmente AL FONDO (z-10), por
+    // debajo de Ash y slider (z-20) que se pintan por delante.
+    const pokedexWrapper = pokedex.closest('[aria-label="Pokédex cerrada"]');
+    const ashWrapper = ash.closest('[aria-label="Ash"]');
+    const sliderWrapper = slider.parentElement?.parentElement;
+    expect(pokedexWrapper?.className).toMatch(/z-10/);
+    expect(ashWrapper?.className).toMatch(/z-20/);
+    expect(sliderWrapper?.className).toMatch(/z-20/);
   });
 
   it("la zona inferior contiene el botón de sonido y el botón PRESS START (como <a> navegable)", () => {
@@ -96,5 +105,45 @@ describe("HomePage layout base (Plan 03.2)", () => {
       '[data-testid="animated-background"]',
     );
     expect(bg).not.toBeNull();
+  });
+
+  it("ash y slider se muestran también en móvil (no dependen solo de `sm:`)", () => {
+    const { container } = render(<HomePage />);
+    // Las clases Tailwind v4 se aplican literalmente. Comprobamos que
+    // el contenedor de Ash y el wrapper del slider no llevan
+    // `hidden` (que era el comportamiento anterior: `hidden ... sm:block`).
+    const ashContainer = container.querySelector('[aria-label="Ash"]');
+    const slider = container.querySelector('[data-testid="home-pokemon-slider"]');
+    expect(ashContainer).not.toBeNull();
+    expect(slider).not.toBeNull();
+    expect(ashContainer!.className).not.toMatch(/\bhidden\b/);
+    // El slider va dentro de un wrapper absoluto que NO debe estar
+    // oculto en móvil (la nueva regla permite que aparezca reducido).
+    const sliderWrapper = slider!.parentElement;
+    expect(sliderWrapper?.className).not.toMatch(/\bhidden\b/);
+  });
+
+  it("usa tamaños relativos al viewport (`dvh`/`vw`/`clamp`) para que ash/slider/pokédex escalen sin desbordar", () => {
+    const { container } = render(<HomePage />);
+    const ashImage = container
+      .querySelector('[aria-label="Ash"]')
+      ?.querySelector("img");
+    const pokedexContainer = container.querySelector('[aria-label="Pokédex cerrada"]');
+    // Ash y slider usan `clamp` para escalar entre breakpoints.
+    expect(ashImage?.className).toMatch(/clamp\(/);
+    // La Pokédex usa `min(dvh, vw)` para limitarse al menor de los
+    // dos ejes y nunca desbordar el viewport.
+    expect(pokedexContainer?.className).toMatch(/min\(.*dvh/);
+  });
+
+  it("la fila inferior está separada del borde inferior (no `items-end` con `pb-0`)", () => {
+    const { container } = render(<HomePage />);
+    const bottom = container.querySelector(
+      '[data-testid="home-zone-bottom"]',
+    );
+    expect(bottom).not.toBeNull();
+    expect(bottom!.className).toMatch(/items-center/);
+    // Asegura que hay `pb-*` para no pegar el botón al borde inferior.
+    expect(bottom!.className).toMatch(/\bpb-\d/);
   });
 });

@@ -49,9 +49,31 @@ function shouldHandleKey(key: string): boolean {
   return LETTER_KEYS.test(key);
 }
 
-function isInteractiveTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
-  return target.closest("a,button") !== null;
+/**
+ * Determina si el evento ocurrió sobre (o dentro de) un `<a>` o
+ * `<button>`. Recorre el `composedPath()` en lugar de usar
+ * `event.target.closest("a,button")` porque algunos elementos
+ * (notablemente SVGs renderizados dentro del Shadow DOM del
+ * dev overlay de Next.js o de iconos) cortan la cadena de
+ * ancestros: `closest()` no cruza Shadow DOM y devuelve `null`
+ * aunque haya un `<button>` real varios niveles arriba en el
+ * Light DOM, lo que hacía que el listener global de clicks
+ * navegase al pulsar el botón de sonido.
+ *
+ * Devuelve `true` tan pronto encuentra un `<a>` o `<button>`
+ * Light DOM en el camino del evento.
+ */
+function isInteractiveEvent(event: Event): boolean {
+  const path = event.composedPath();
+  for (const node of path) {
+    if (
+      node instanceof Element &&
+      (node.tagName === "A" || node.tagName === "BUTTON")
+    ) {
+      return true;
+    }
+  }
+  return false;
 }
 
 export interface HomeNavControllerProps {
@@ -72,26 +94,55 @@ export function HomeNavController({ children }: HomeNavControllerProps) {
   // La función `navigate` es estable vía `useCallback` en el
   // provider, así que el effect solo se monta una vez por montaje
   // del controlador.
+  //
+  // Los listeners se registran en el `document` en **fase de
+  // captura** (`capture: true`) para que se ejecuten ANTES que el
+  // evento llegue al elemento enfocado. Esto es esencial para
+  // Enter/Space cuando el foco está en el botón PRESS START (un
+  // `<a>`): sin capture, el `<a>` recibe primero la tecla, ejecuta
+  // su acción por defecto (que es navegar al href) y compite con
+  // nuestro listener global. Con capture, nosotros llegamos
+  // primero, llamamos a `stopPropagation()` + `preventDefault()` y
+  // somos el único punto que navega.
+  //
+  // Usamos `document` en lugar de `window` porque Playwright
+  // (`page.keyboard.press`) puede dispatchar el evento sin
+  // burbujear hasta `window` cuando el foco está en un elemento
+  // interactivo interno. El `document` en captura SIEMPRE recibe el
+  // evento en su camino descendente al target.
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.altKey || event.ctrlKey || event.metaKey) return;
       if (!shouldHandleKey(event.key)) return;
       if (navigatingRef.current) return;
       event.preventDefault();
+      event.stopPropagation();
       navigate();
     };
 
     const handleClick = (event: MouseEvent) => {
-      if (isInteractiveTarget(event.target)) return;
+      // Si el click ocurrió sobre (o dentro de) un <a>/<button>
+      // dejamos que ese elemento haga su trabajo: el <a> PRESS
+      // START navega por sí solo al href y el <button> de sonido
+      // ejecuta su toggle sin que nosotros naveguemos. Usamos
+      // `composedPath()` (no `event.target.closest(...)`) porque
+      // algunos elementos dentro de Shadow DOM cortan la cadena
+      // de ancestros y harían que detectásemos "click neutro"
+      // cuando en realidad fue sobre un <button>.
+      if (isInteractiveEvent(event)) return;
       if (navigatingRef.current) return;
       navigate();
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("click", handleClick);
+    document.addEventListener("keydown", handleKeyDown, { capture: true });
+    // Click en capture phase también: garantiza que interceptamos
+    // el click en cualquier elemento antes de que un handler
+    // parental pueda cancelarlo, y nos permite inspeccionar
+    // `composedPath()` con la información completa del target.
+    document.addEventListener("click", handleClick, { capture: true });
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("click", handleClick);
+      document.removeEventListener("keydown", handleKeyDown, { capture: true });
+      document.removeEventListener("click", handleClick, { capture: true });
     };
   }, [navigate]);
 
