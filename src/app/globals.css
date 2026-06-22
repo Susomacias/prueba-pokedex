@@ -113,3 +113,147 @@ body {
     transform: translate(-128px, -128px);
   }
 }
+
+/* -------------------------------------------------------------------------- *
+ * Animaciones — Plan 03.3 (slider de pokemons, ash respiración, pokedex glow)
+ * -------------------------------------------------------------------------- *
+ * El slider pinta todos los SVG simultáneos para precargarlos y solo anima el
+ * `translateX` + `opacity` del slide activo. Los slides inactivos permanecen
+ * fuera de pantalla (`translateX(-150%)`) con `pointer-events: none`.
+ *
+ * La "respiración" de Ash es una escala Y muy sutil para sugerir vida sin
+ * distraer. El brillo de la Pokédex es un `filter: drop-shadow` pulsante.
+ *
+ * Todas las animaciones se desactivan automáticamente con la regla global de
+ * `prefers-reduced-motion: reduce` que ya hay definida arriba.
+ */
+
+@keyframes home-slider-enter {
+  from {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes home-slider-exit {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+}
+
+@layer utilities {
+  .home-slider-slide--enter {
+    animation: home-slider-enter 600ms ease-out both;
+    z-index: 2;
+  }
+  .home-slider-slide--hold {
+    animation: none;
+    transform: translateX(0);
+    opacity: 1;
+    z-index: 2;
+  }
+  .home-slider-slide--exit {
+    animation: home-slider-exit 600ms ease-in both;
+    z-index: 1;
+  }
+  .home-slider-slide--hidden {
+    transform: translateX(-150%);
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+@keyframes home-ash-breathe {
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(1.02);
+  }
+}
+
+@layer utilities {
+  .animate-ash-breathe {
+    animation: home-ash-breathe 3.6s ease-in-out infinite;
+    transform-origin: 50% 100%;
+  }
+}
+
+@keyframes home-pokedex-glow {
+  0%,
+  100% {
+    filter: drop-shadow(0 18px 24px rgba(0, 0, 0, 0.45))
+      drop-shadow(0 0 0 rgba(255, 146, 3, 0));
+  }
+  50% {
+    filter: drop-shadow(0 18px 24px rgba(0, 0, 0, 0.45))
+      drop-shadow(0 0 18px rgba(255, 146, 3, 0.55));
+  }
+}
+
+@layer utilities {
+  .animate-pokedex-glow {
+    animation: home-pokedex-glow 4s ease-in-out infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-ash-breathe,
+  .animate-pokedex-glow,
+  .home-slider-slide--enter,
+  .home-slider-slide--hold,
+  .home-slider-slide--exit,
+  .home-slider-slide--hidden {
+    animation: none !important;
+  }
+  .home-slider-slide--hidden {
+    transform: translateX(0);
+    opacity: 0;
+  }
+}
+
+/* -------------------------------------------------------------------------- *
+ * Animaciones — Plan 03.4 (botón PRESS START arcade)
+ * -------------------------------------------------------------------------- *
+ * Pulse combinado: escala (1 → 1.04 → 1) y glow naranja (intenso → sutil).
+ * El bisel se mantiene via `box-shadow` de Tailwind en la clase del botón.
+ */
+
+@keyframes home-press-start-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow:
+      6px 6px 0 #0c1c3e,
+      0 0 0 0 rgba(255, 146, 3, 0.55);
+  }
+  50% {
+    transform: scale(1.04);
+    box-shadow:
+      6px 6px 0 #0c1c3e,
+      0 0 24px 6px rgba(255, 146, 3, 0.35);
+  }
+}
+
+@layer utilities {
+  .animate-press-start-pulse {
+    animation: home-press-start-pulse 1.6s ease-in-out infinite;
+    transform-origin: 50% 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-press-start-pulse {
+    animation: none !important;
+  }
+}
