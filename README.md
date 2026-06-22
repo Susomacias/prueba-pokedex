@@ -18,6 +18,17 @@ npm run dev
 
 Abre [http://localhost:3000](http://localhost:3000) en el navegador para ver la aplicación.
 
+## Variables de entorno
+
+Copia `.env.example` a `.env.local` y ajusta los valores si lo necesitas.
+
+| Variable | Descripción | Por defecto |
+| -------- | ----------- | ----------- |
+| `NEXT_PUBLIC_POKEAPI_GRAPHQL_URL` | Endpoint GraphQL de PokeAPI. El cliente (`src/lib/graphql/client.ts`) lo lee para ejecutar las queries de la capa de datos. | `https://beta.pokeapi.co/graphql/v1beta` |
+
+> `.env.local` está ignorado por git, así que cada desarrollador puede
+> apuntar a su propio mirror o entorno de pruebas.
+
 ## Scripts disponibles
 
 | Script                | Descripción                                                  |
