@@ -86,6 +86,14 @@ La selección de pokemon (que rellena estos slots) dispara **también** la apari
 - Test: click en evolución navega a su ficha.
 - Test: filtro CSS aplicado a las imágenes.
 
+**Fixtures (obligatorio):** la cadena de evoluciones (`pokemonspecies.evolves_from_species`, `pokemonevolutions[*]`) debe provenir de **respuestas reales de PokeAPI** capturadas en `__tests__/fixtures/pokeapi/<name>.json` (generadas con `scripts/capture-pokeapi-fixture.ts` ejecutando `POKEMON_DETAIL_QUERY` contra `https://graphql.pokeapi.co/v1beta2`). La estructura del árbol de evoluciones en PokeAPI v1beta2 es anidada y profunda: `pokemonspecies(where:{name}) → evolves_from_species(name) → evolves_from_species ...` para los previos; para los posteriores hay que consultar `pokemonevolutions(where:{pokemonspecy.name})` y resolver transitivamente hasta hojas. Un fixture inventado (`evolves_from: "pichu"` plano) NO validaría la lógica real del componente. Mínimo cubrir:
+
+- **Cadena lineal corta** (3 miembros, sin ramificar): `pikachu` (chain `pichu → pikachu → raichu`).
+- **Cadena ramificada** (Eevee con 8 evoluciones finales): `eevee` — valida el orden, el scroll fino y que `evolves_to` se expande.
+- **Pokemon sin evolución** (raíz y hoja a la vez): `magikarp` — valida que solo aparece 1 ítem.
+
+Para el test "filtro CSS aplicado a las imágenes" verificar la clase CSS (no la existencia del filtro — `filter: grayscale sepia contrast(...)`), porque el filtro viene del componente, pero las URLs de imagen en el fixture son reales (incluyen `front_default` real, no inventado).
+
 **Tests a ejecutar (después):**
 - `npm run test:run`
 
@@ -117,6 +125,12 @@ La selección de pokemon (que rellena estos slots) dispara **también** la apari
 **Tests a diseñar (antes):**
 - Test: renderiza los 6 stats.
 - Test: la barra se llena proporcionalmente.
+
+**Fixtures (obligatorio):** los `pokemonstats[*].base_stat`, `pokemonstats[*].stat.name` (HP, Attack, Defense, Special-Attack, Special-Defense, Speed) deben venir de **respuestas reales de PokeAPI** capturadas en `__tests__/fixtures/pokeapi/<name>.json` (con `scripts/capture-pokeapi-fixture.ts` ejecutando `POKEMON_DETAIL_QUERY` contra `https://graphql.pokeapi.co/v1beta2`). El test de "barra se llena proporcionalmente" debe calcular `width = base_stat / 255` (cap real usado por la UI) con los `base_stat` REALES del fixture. NO usar valores inventados (`{ hp: 100, attack: 100, ... }`) porque el test debe validar también el `stat.name` canónico de PokeAPI (`hp`, `attack`, `defense`, `special-attack`, `special-defense`, `speed` — con guiones, NO camelCase) y el orden natural de la API. Mínimo cubrir:
+
+- **Stats bajos**: `magikarp` (valores muy bajos → barras casi vacías, valida el extremo bajo).
+- **Stats altos**: `mewtwo` (valores muy altos → barras casi llenas, valida el extremo alto; id `#150`).
+- **Stats normales**: `pikachu` (valores medios, valida el caso típico).
 
 **Tests a ejecutar (después):**
 - `npm run test:run`
@@ -182,6 +196,8 @@ La selección de pokemon (que rellena estos slots) dispara **también** la apari
 - Test: sin modelo cargado → no se renderiza.
 - Test: con modelo cargado → aparece con animación.
 - Test: click dispara el handler de toggle 3D.
+
+**Fixtures (obligatorio):** el `id` del pokemon usado para construir la URL del modelo 3D (`https://raw.githubusercontent.com/Pokemon-3D-api/assets/.../{id}.glb`) debe provenir del detalle **real de PokeAPI** capturado en `__tests__/fixtures/pokeapi/<name>.json` (`scripts/capture-pokeapi-fixture.ts` contra `https://graphql.pokeapi.co/v1beta2`). El test "click dispara el handler de toggle 3D" debe verificar que la URL del `.glb` construida es exactamente `https://raw.githubusercontent.com/Pokemon-3D-api/assets/refs/heads/main/models/opt/regular/{id}.glb` con el `id` REAL del fixture (p.ej. `25` para pikachu, NO `1` inventado). Para el caso "sin modelo cargado" usar el fixture de un pokemon real sin `.glb` en el repo de `Pokemon-3D-api/assets` (p.ej. algunos de las últimas generaciones pueden no tener — verificar antes de capturar) — NO inventar el caso con un `id: 9999` cualquiera.
 
 **Tests a ejecutar (después):**
 - `npm run test:run`

@@ -29,12 +29,18 @@ import { homeTransitionBus } from "@/src/components/transitions/HomeTransitionOu
  *   1. Evitar dobles navegaciones (`isNavigating` desactiva los
  *      listeners hasta que la promesa devuelta por `router.push`
  *      termine).
- *   2. Exponer el estado `isLoading` al `HomeLoadingOverlay`, que
- *      muestra el pikachu + "CARGANDO…" si la transición tarda.
- *   3. Permitir que el Plan 04 (transiciones animadas) sustituya la
+ *   2. Permitir que el Plan 04 (transiciones animadas) sustituya la
  *      implementación de `navigate()` por una promesa que espera a
  *      los assets y resuelve al final del fade-out — sin tocar a
  *      los consumidores.
+ *
+ * El estado `isLoading` se conserva en el contexto para mantener la
+ * compatibilidad con consumidores existentes, pero ya NO se usa para
+ * mostrar un overlay: el borrador (líneas 317–319 del
+ * `Borrador_Pokedex.md`) prohíbe el loading overlay entre la home y
+ * la Pokédex porque todos los assets críticos se preloadean en el
+ * primer paint. Si en el futuro queremos re-introducir un overlay
+ * (p.ej. para la vista 3D), lo conectamos a un proveedor distinto.
  *
  * Plan 04.2 — coordinación con la animación de salida:
  *   - `navigate()` invoca `homeTransitionBus.playExit()` ANTES de

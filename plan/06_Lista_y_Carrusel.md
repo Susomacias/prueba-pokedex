@@ -92,6 +92,8 @@ Implementar el contenido del slot `CARRUSEL_IMAGENES_DESCRIPCION` y sus slot ady
 - Test: renderiza nombre, miniatura y 4 chips.
 - Test: los chips tienen los colores correctos por tipo.
 
+**Fixtures (obligatorio):** los props del pokemon (nombre, `pokemonsprites[0].sprites.front_default`, `pokemontypes[*].type.name`, `pokemonspecy.pokemonhabitat.name`, `pokemonspecy.generation.name`) deben leerse de **ficheros JSON capturados de PokeAPI real** (`__tests__/fixtures/pokeapi/<name>.json`), generados una vez con `scripts/capture-pokeapi-fixture.ts` ejecutando la query `POKEMON_DETAIL_QUERY` contra `https://graphql.pokeapi.co/v1beta2` y guardando la respuesta cruda. Los tests NUNCA deben inventar valores (p.ej. `name: "poke-1"`) para verificar mapeos de color o slots: el color de cada chip depende del `type.name` real (canonical en PokeAPI: `grass`, `fire`, `water`, …) y un nombre inventado podría no tener entrada en `POKEMON_TYPE_COLORS`. Mínimo cubrir: Bulbasaur (doble tipo + habitat `grass`), Pikachu (tipo `electric` único), Magikarp (tipo `water` + habitat `waters-edge` para validar mapeo habitat→color).
+
 **Tests a ejecutar (después):**
 - `npm run test:run`
 
@@ -131,6 +133,8 @@ Implementar el contenido del slot `CARRUSEL_IMAGENES_DESCRIPCION` y sus slot ady
 - Test: pulsar un botón manual detiene el auto-avance.
 - Test: el flavor text está en español.
 - Test: el nombre siempre visible.
+
+**Fixtures (obligatorio):** los fixtures del detalle (`pokemonsprites[*].sprites`, `pokemonspecies[*].flavor_text`, `name`) deben proceder de **respuestas reales de PokeAPI** guardadas en `__tests__/fixtures/pokeapi/<name>.json` (capturadas con `scripts/capture-pokeapi-fixture.ts` ejecutando `POKEMON_DETAIL_QUERY` contra `https://graphql.pokeapi.co/v1beta2`). El test de flavor text en español depende del campo `language.name === "es"` real (PokeAPI tiene varios `flavor_text` por especie en distintos idiomas; un fixture inventado podría no contener la entrada `es` o tener el formato con caracteres de control que PokeAPI inserta — p.ej. saltos de línea `\n` y `\f` dentro del texto). Mínimo cubrir: Pikachu (muchos sprites + flavor es con caracteres de control), Magikarp (pocos sprites, valida mínimo 2 diapositivas), Bulbasaur (cadena con flavor es largo). El test de "N diapositivas según sprites" debe contar las claves reales presentes en `sprites` del fixture (no asumir un número fijo hardcoded).
 
 **Tests a ejecutar (después):**
 - `npm run test:run`
@@ -229,6 +233,8 @@ Implementar el contenido del slot `CARRUSEL_IMAGENES_DESCRIPCION` y sus slot ady
 **Tests a diseñar (antes):**
 - Test: click reproduce el audio (mock `HTMLAudioElement`).
 - Test: sin cry → botón no se renderiza o está disabled.
+
+**Fixtures (obligatorio):** el `cry.latest` / `cry.legacy` usado en los tests debe provenir de **respuestas reales de PokeAPI** en `__tests__/fixtures/pokeapi/<name>.json` (capturado desde `POKEMON_DETAIL_QUERY` contra `https://graphql.pokeapi.co/v1beta2`). El campo `cry` en PokeAPI v1beta2 es un JSON-string con la forma `{ latest: "https://…", legacy: "https://…" }` — NO usar URLs hardcoded inventadas, porque el parser real debe soportar exactamente el formato que devuelve PokeAPI (claves `latest` y `legacy`, URLs de `https://raw.githubusercontent.com/PokeAPI/cries/main/…`). Para el caso "sin cry" usar el fixture de un pokemon real sin `cry` (p.ej. alguno de las últimas generaciones puede no tener `cry.legacy`) — NO inventar `cry: null` en un objeto literal mockeado.
 
 **Tests a ejecutar (después):**
 - `npm run test:run`

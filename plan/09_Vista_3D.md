@@ -60,6 +60,8 @@ El hábitat **ya está visible** desde que el pokemon fue seleccionado (Plan 10.
 - Test: ante error, estado es `error` y no lanza.
 - Test: dos llamadas con el mismo id solo cargan una vez (cache).
 
+**Fixtures (obligatorio):** el `pokemonId` que recibe `usePokemonModel(pokemonId)` en estos tests debe venir del `id` REAL capturado de PokeAPI en `__tests__/fixtures/pokeapi/<name>.json` (con `scripts/capture-pokeapi-fixture.ts` ejecutando `POKEMON_DETAIL_QUERY` contra `https://graphql.pokeapi.co/v1beta2`). El test de URL válida debe verificar que la URL construida es exactamente `https://raw.githubusercontent.com/Pokemon-3D-api/assets/refs/heads/main/models/opt/regular/{id}.glb` usando el id real del fixture (p.ej. `25` para pikachu, `133` para eevee, NO números inventados). El test de error debe disparar contra una URL real que **se sabe** que devuelve 404 en el repo de `Pokemon-3D-api/assets` (p.ej. `id: 10000` o el id de un pokemon de una generación sin modelo — verificar antes de capturar) — NO `vi.mocked(loader).mockImplementation(() => Promise.reject(...))`, porque eso no validaría el manejo real del `Response.error()` del fetch. El test de cache (dos llamadas con el mismo id) debe usar el mismo `id` real del fixture para ambas llamadas.
+
 **Tests a ejecutar (después):**
 - `npm run test:run`
 - `npm run lint`
@@ -203,6 +205,12 @@ El hábitat **ya está visible** desde que el pokemon fue seleccionado (Plan 10.
 - Test: desactivar la restaura.
 - Test: cambiar pokemon con 3D activo → desactiva y destruye.
 - E2E: cargar ficha de un pokemon con modelo, pulsar 3D, verificar que el canvas es visible.
+
+**Fixtures (obligatorio):** los tests de esta fase deben usar el `id` REAL del pokemon capturado de PokeAPI (`__tests__/fixtures/pokeapi/<name>.json`). Para el E2E:
+
+- Usar **siempre `pikachu`** (`id: 25`, tiene `.glb` en el repo de `Pokemon-3D-api/assets`, está cacheado en el repo, disponible y estable).
+- El dev server (`npm run dev`) tiene que tener acceso de red a `https://graphql.pokeapi.co/v1beta2` (para la ficha) y a `https://raw.githubusercontent.com/Pokemon-3D-api/assets/...` (para el `.glb`). Marcar el spec con `@live-api` en `playwright.config.ts` (mismo patrón que en Plan 07.5) y **skippear** si la red no está disponible — **NO** usar `page.route()` para mockear estas respuestas, porque el E2E valida la integración real (URL correcta del `.glb`, parseo real del GLB, instanciación real del `WebGLRenderer`).
+- Para el test "cambiar pokemon con 3D activo" usar transiciones reales entre dos pokemons con `.glb` (`pikachu` → `eevee`) leyendo sus `id` reales de los fixtures.
 
 **Tests a ejecutar (después):**
 - `npm run test:run`

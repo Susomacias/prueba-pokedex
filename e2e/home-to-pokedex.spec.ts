@@ -96,4 +96,27 @@ test.describe("Transición Inicio → Pokédex (Plan 04.2)", () => {
 
     await context.close();
   });
+
+  test("NO se muestra el loading overlay del pikachu durante la transición — corrección del borrador", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page.waitForFunction(
+      () =>
+        document.querySelector('[data-home-nav-ready="true"]') !== null,
+      { timeout: 15000 },
+    );
+
+    // Mientras la transición está en curso, NO debe existir el overlay
+    // de "CARGANDO…" (data-testid="home-loading-overlay"). El
+    // borrador prohíbe ese overlay: los assets ya están preloadeados.
+    const overlayDuringTransition = page
+      .getByTestId("home-loading-overlay")
+      .or(page.getByText(/cargando/i));
+    await expect(overlayDuringTransition).toHaveCount(0);
+
+    // Confirmamos que la transición funciona (sanity check).
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL(/\/pokedex$/, { timeout: 10000 });
+  });
 });

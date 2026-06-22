@@ -74,6 +74,8 @@ Implementar el sistema de filtros completo: **consola de terminal**, **dropdowns
 - Test: historial con flechas.
 - Test: opciones asíncronas muestran indicador mientras cargan.
 
+**Fixtures (obligatorio):** los tests que verifiquen opciones de filtro (`options <filtro>`, el `help` con nombres reales, el `resumen` con valores reales, `quitar <filtro>` con un nombre que exista en PokeAPI) deben usar fixtures capturados de **respuestas reales de PokeAPI** en `__tests__/fixtures/pokeapi/filter-options/<key>.json` (generados con `scripts/capture-pokeapi-fixture.ts` ejecutando `TYPES_QUERY`, `GENERATIONS_QUERY`, `COLORS_QUERY`, `HABITATS_QUERY`, `ABILITIES_QUERY` contra `https://graphql.pokeapi.co/v1beta2`). La lista de nombres de cada filtro es **estática** en PokeAPI (los 18 tipos canónicos, 9 generaciones, etc.) — usar nombres inventados podría dar lugar a falsos positivos si el parser acepta cualquier string. Mínimo cubrir: `fire` y `water` (tipos), `generation-i` (generación), `forest` (hábitat), `overgrow` (habilidad). El test de "opciones asíncronas con indicador de carga" debe usar `fetchFilterOptions()` real contra el fixture JSON, NO un mock que devuelva `Promise.resolve([{name:'fire'}])` (eso no validaría la estructura real de la respuesta — p.ej. que `TYPES_QUERY` devuelve `{ pokemon_v2_type: [{ name, id, ... }] }` y hay que mapear).
+
 **Tests a ejecutar (después):**
 - `npm run test:run`
 - `npm run lint`
@@ -152,6 +154,13 @@ Implementar el sistema de filtros completo: **consola de terminal**, **dropdowns
 - Test: seleccionar resultado navega a la ficha.
 - Test: debounce evita llamadas excesivas.
 
+**Fixtures (obligatorio):** el test de búsqueda ("pika" → Pikachu, fallback a descripción/tipos/hábitats) debe ejercitar el camino real contra PokeAPI. Las opciones son:
+
+- **Opción A (preferida para unit tests)**: usar fixtures JSON capturados de `POKEMON_LIST_QUERY` / `POKEMON_LIST_FILTERED_QUERY` en `__tests__/fixtures/pokeapi/search/pika.json`, generados con `scripts/capture-pokeapi-fixture.ts` contra `https://graphql.pokeapi.co/v1beta2`. La query debe pasarse al cliente tal cual la construye `useFilterOptions`/`fetchPokemonList`, y el assertion debe verificar que el resultado contiene `{ name: "pikachu", id: 25, … }` (los campos reales de PokeAPI — NO asumir `name: "Pikachu"` capitalizado, PokeAPI devuelve `name` siempre en minúsculas).
+- **Opción B (alternativa para E2E)**: el test E2E de Plan 10.6 cubre el flujo end-to-end con el dev server contra PokeAPI real (red habilitada en `playwright.config.ts` solo para specs marcados con `@live-api`).
+
+Está **prohibido** mockear la respuesta con un array literal de objetos `{ name: 'Pikachu', id: 25 }` — eso no validaría la query GraphQL ni el shape real de PokeAPI. Para el test de "sin match en nombre expande a descripción" usar un término que de verdad no exista como nombre (p.ej. `"fuego"` → debe matchear contra el `type.name === "fire"` real en PokeAPI).
+
 **Tests a ejecutar (después):**
 - `npm run test:run`
 
@@ -218,6 +227,14 @@ Implementar el sistema de filtros completo: **consola de terminal**, **dropdowns
 - E2E: pegar URL con filtros → dropdown y consola los reflejan.
 - E2E: back del navegador restaura filtros previos.
 - E2E: filtro que devuelve 1 pokemon → redirige a ficha.
+
+**Fixtures (obligatorio):** los E2E que aplican filtros o navegan fichas deben trabajar con datos **reales de PokeAPI** (`https://graphql.pokeapi.co/v1beta2`) servidos a través del dev server. NO usar `page.route('**/graphql.pokeapi.co/**', ...)` para mockear respuestas — el objetivo del test es validar la integración real con PokeAPI (URL correcta, query correcta, parsing de la respuesta real). Estrategia:
+
+- Specs marcados con `@live-api` en `playwright.config.ts` (config aparte o `testMatch` específico) habilitan la red hacia `graphql.pokeapi.co`.
+- Los specs usan siempre **pokemons reales y estables** como datos de prueba: `pikachu` (#25, tiene modelo 3D, varias evoluciones en una cadena lineal — `pichu→pikachu→raichu`), `eevee` (#133, para filtros que devuelven 1 pokemon + para cadenas de evolución ramificadas), `magikarp` (#129, habitat `waters-edge`), `bulbasaur` (#1, doble tipo `grass`+`poison`, habitat `grassland`).
+- Si en CI la red a PokeAPI no está disponible, el spec se **skippea** (no se mockea): `@live-api` → `test.skip(!process.env.CI || !process.env.POKEAPI_REACHABLE)`.
+
+Está prohibido `page.route()` con respuesta inventada para `graphql.pokeapi.co` en estos E2E.
 
 **Tests a ejecutar (después):**
 - `npm run test:run`

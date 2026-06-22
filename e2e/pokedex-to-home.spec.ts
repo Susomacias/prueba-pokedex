@@ -100,4 +100,24 @@ test.describe("Transición Pokédex → Inicio (Plan 04.3)", () => {
     await page.getByRole("button", { name: /volver al inicio/i }).click();
     await expect(page).toHaveURL(/\/$/, { timeout: 10000 });
   });
+
+  test("el botón 'Volver al inicio' muestra la imagen del logo (no un icono ArrowLeft) — corrección del borrador", async ({
+    page,
+  }) => {
+    await page.goto("/pokedex");
+    await page.waitForFunction(
+      () =>
+        document.querySelector('[data-pokedex-ready="true"]') !== null,
+      { timeout: 15000 },
+    );
+
+    const button = page.getByTestId("pokedex-home-button");
+    // El borrador (línea 317 del `Borrador_Pokedex.md`) exige que el
+    // LOGO de la home actúe como botón "Volver al inicio". El
+    // componente lo materializa como una imagen dentro del botón
+    // (atributo `data-pokedex-logo="true"`) con la URL del logo.
+    await expect(button).toHaveAttribute("data-pokedex-logo", "true");
+    const logoImg = button.locator('img[src*="logo.svg"]');
+    await expect(logoImg).toBeAttached();
+  });
 });

@@ -93,6 +93,13 @@ Es decir: la presencia del hábitat **no** implica bajar la pokedex. La pokedex 
 - Test: al activar/desactivar la vista 3D, el hábitat no se desmonta ni re-anima (solo cambia la pokedex).
 - Test: al volver a la lista (sin pokemon seleccionado), el hábitat se desmonta con animación de salida.
 
+**Fixtures (obligatorio):** el `habitat.name` que recibe `HabitatBackground` debe venir del detalle **real de PokeAPI** capturado en `__tests__/fixtures/pokeapi/<name>.json` (con `scripts/capture-pokeapi-fixture.ts` ejecutando `POKEMON_DETAIL_QUERY` contra `https://graphql.pokeapi.co/v1beta2`). La lista canónica de hábitats en PokeAPI es fija (`cave`, `forest`, `grassland`, `mountain`, `rare`, `rough-terrain`, `sea`, `urban`, `waters-edge`, `unknown` — total 9 + `unknown`), y el mapeo a `public/habitats/<name>.webp` debe validarse con `habitat.name` real, NO con strings inventados. Mínimo cubrir:
+
+- **Habitat conocido con `.webp` propio**: `pikachu` (`forest`) → valida el mapeo directo.
+- **Habitat distinto conocido**: `magikarp` (`waters-edge`) → valida que no todos van a `forest.webp`.
+- **Habitat `unknown`**: capturar el fixture de un pokemon cuyo `pokemonspecy.pokemonhabitat.name === "unknown"` (p.ej. algunos legendarios o de generaciones nuevas) → debe ir a `generico.webp`. NO usar `habitat: null` o `habitat: "no-existe"` inventado — el componente debe poder distinguir `null` (sin `pokemonhabitat`) de `"unknown"` (valor explícito de PokeAPI).
+- Para el test "al activar/desactivar la vista 3D, el hábitat no se desmonta" usar un pokemon con `.glb` (p.ej. `pikachu`) capturado de PokeAPI real.
+
 **Tests a ejecutar (después):**
 - `npm run test:run`
 
@@ -241,6 +248,8 @@ Es decir: la presencia del hábitat **no** implica bajar la pokedex. La pokedex 
 - `next-best-practices` (deploying).
 
 **Tests a diseñar (antes):** los specs E2E son el deliverable.
+
+**Fixtures (obligatorio):** los specs E2E de esta fase (en particular #2 filtros, #3 buscador, #4 carrusel, #5 evoluciones, #6 3D) deben trabajar con datos **reales de PokeAPI** servidos por el dev server, NO con respuestas interceptadas por `page.route()`. Todos estos specs se marcan con `@live-api` en `playwright.config.ts` (mismo patrón definido en Plan 07.5) y se **skippean** si `graphql.pokeapi.co` no es alcanzable desde CI (`test.skip(!process.env.POKEAPI_REACHABLE)`). Pokemons canónicos de los specs (todos con datos estables en PokeAPI): `pikachu` (#25, tiene `.glb`, cadena de evoluciones lineal, habitat `forest`, flavor text es), `eevee` (#133, habitat `urban`, evoluciones ramificadas — valida el spec de evoluciones), `magikarp` (#129, habitat `waters-edge`, stats bajos, muchos sprites faltantes — valida spec de carrusel con fallback), `bulbasaur` (#1, doble tipo `grass`+`poison`, habitat `grassland`). Las capturas para los unit tests de esta fase (`__tests__/fixtures/pokeapi/<name>.json`) se generan con `scripts/capture-pokeapi-fixture.ts` ejecutando `POKEMON_DETAIL_QUERY` / `POKEMON_LIST_QUERY` contra `https://graphql.pokeapi.co/v1beta2`.
 
 **Tests a ejecutar (después):**
 - `npm run test:run`

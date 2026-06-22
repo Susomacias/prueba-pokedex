@@ -1,27 +1,33 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { useEffect, useState, type ReactNode } from "react";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { createNavigationHarness, type NavigationHarness } from "@/__tests__/hooks/harness";
 import { FiltersProvider } from "@/src/components/filters/FiltersProvider";
-import { PokemonList } from "@/src/components/pokedex/list/PokemonList";
+import { POKEMON_LIST_PAGE_SIZE } from "@/src/lib/types/pokemon";
 import type { PokemonListItem } from "@/src/lib/types/pokemon";
 
 /**
- * Plan 06.1 — TDD de la lista virtualizada con ventana deslizante.
+ * Plan 06.1 — TDD de la lista virtualizada con
+ * `@tanstack/react-virtual`.
  *
  * Cobertura:
- *  - Render inicial de 30 cards (primera página).
- *  - Scroll al final → segunda página (60 cards) vía IntersectionObserver.
- *  - Al visualizar el item 60, los items 1–30 se desmontan.
- *  - Click en una card llama a `router.push('/pokemon/<name>?<filtros>')`.
+ *  - Al montar, carga las dos primeras páginas en paralelo.
+ *  - Renderiza las cards de las páginas cargadas.
+ *  - Click en una card llama a `router.push('/pokemon/<name>?
+ *    <filtros>')`.
  *  - `single=true` → la lista NO se monta (la UI pasa a la ficha).
+ *  - Estructura accesible: `role="listbox"` con `aria-label`.
+ *  - Cuando el `total` es mayor que las páginas cargadas, el
+ *    virtualizador dispara fetches adicionales bajo demanda.
  *
  * Mock strategy:
  *  - `useNavigation` mockeado al harness ya usado por `useFilters`.
  *  - `applyFiltersToList` (capa de datos) mockeada.
- *  - `IntersectionObserver` polyfill: cada instancia se registra en
- *    un Set global y expone un `trigger(entries)`; los tests localizan
- *    el observer correcto por el sentinel observado.
+ *  - `useVirtualizer` mockeado para que en jsdom (donde el
+ *    `clientHeight` es 0 y por tanto el virtualizador real no
+ *    reporta items visibles) devuelva un item por cada `count`,
+ *    con `start = index * 70` y `size = 70`. Así los tests
+ *    inspeccionan el DOM de forma determinista.
  */
 
 const harnessRef = globalThis as unknown as { __harness?: NavigationHarness };
@@ -47,7 +53,31 @@ vi.mock("@/src/lib/pokemon/cachedPokemonApi", () => ({
   applyFiltersToList: vi.fn(),
 }));
 
+vi.mock("@tanstack/react-virtual", () => ({
+  useVirtualizer: <TScroll extends Element, TItem extends Element>(opts: {
+    count: number;
+  }) => {
+    const items: Array<{ index: number; key: number; start: number; size: number; measureElement: (el: TItem | null) => void }> = [];
+    for (let i = 0; i < opts.count; i++) {
+      items.push({
+        index: i,
+        key: i,
+        start: i * 70,
+        size: 70,
+        measureElement: () => {},
+      });
+    }
+    return {
+      getVirtualItems: () => items,
+      getTotalSize: () => opts.count * 70,
+      measureElement: () => {},
+      measure: () => {},
+    } as unknown as ReturnType<typeof import("@tanstack/react-virtual").useVirtualizer<TScroll, TItem>>;
+  },
+}));
+
 import * as api from "@/src/lib/pokemon/cachedPokemonApi";
+import { PokemonList } from "@/src/components/pokedex/list/PokemonList";
 
 /* ---------- Helpers ---------- */
 
@@ -64,11 +94,11 @@ function makeItem(id: number, name?: string): PokemonListItem {
   };
 }
 
-function page(offset: number, size: number, next: number | null) {
+function page(offset: number, size: number, next: number | null, total = 200) {
   return {
     items: Array.from({ length: size }, (_, i) => makeItem(offset + i + 1)),
     nextOffset: next,
-    total: 200,
+    total,
     single: false,
   };
 }
@@ -77,163 +107,42 @@ function wrapper({ children }: { children: ReactNode }) {
   return <FiltersProvider>{children}</FiltersProvider>;
 }
 
-/* ---------- IntersectionObserver polyfill ---------- */
-
-interface ObserverEntry {
-  isIntersecting: boolean;
-  target: Element;
-}
-
-type ObserverCallback = (entries: ObserverEntry[]) => void;
-
-interface MockObserver {
-  callback: ObserverCallback;
-  elements: Set<Element>;
-  trigger(entries: ObserverEntry[]): void;
-}
-
-const liveObservers = new Set<MockObserver>();
-
-class MockIntersectionObserver {
-  private observer: MockObserver;
-  constructor(cb: ObserverCallback) {
-    const triggerCb = cb;
-    this.observer = {
-      get callback() {
-        return triggerCb;
-      },
-      elements: new Set<Element>(),
-      trigger(entries: ObserverEntry[]) {
-        triggerCb(entries);
-      },
-    };
-    liveObservers.add(this.observer);
-  }
-  observe(el: Element): void {
-    this.observer.elements.add(el);
-  }
-  unobserve(el: Element): void {
-    this.observer.elements.delete(el);
-  }
-  disconnect(): void {
-    this.observer.elements.clear();
-    liveObservers.delete(this.observer);
-  }
-}
-
 beforeEach(() => {
   harnessRef.__harness = createNavigationHarness({ pathname: "/pokedex" });
   vi.clearAllMocks();
-  liveObservers.clear();
-  (globalThis as unknown as { IntersectionObserver: unknown }).IntersectionObserver =
-    MockIntersectionObserver;
 });
-
-afterEach(() => {
-  delete (globalThis as unknown as { IntersectionObserver?: unknown }).IntersectionObserver;
-});
-
-/** Devuelve el observer vivo que esté observando `el`. */
-function observerFor(el: Element): MockObserver | undefined {
-  for (const obs of liveObservers) {
-    if (obs.elements.has(el)) return obs;
-  }
-  return undefined;
-}
 
 /* ---------- Tests ---------- */
 
-describe("PokemonList (Plan 06.1) — ventana deslizante", () => {
-  it("renderiza 30 cards iniciales tras la primera carga", async () => {
-    vi.mocked(api.applyFiltersToList).mockResolvedValueOnce(page(0, 30, 30));
-
-    render(<PokemonList />, { wrapper });
-
-    await waitFor(() => {
-      expect(screen.getAllByTestId("pokemon-list-card")).toHaveLength(30);
-    });
-    expect(api.applyFiltersToList).toHaveBeenCalledTimes(1);
-    expect(api.applyFiltersToList).toHaveBeenCalledWith({}, 0, undefined);
-  });
-
-  it("al hacer scroll al final (intersect bottom sentinel) carga la página siguiente (60 cards)", async () => {
+describe("PokemonList (Plan 06.1) — virtualización con @tanstack/react-virtual", () => {
+  it("al montar carga las dos primeras páginas en paralelo", async () => {
     vi.mocked(api.applyFiltersToList).mockResolvedValueOnce(page(0, 30, 30));
     vi.mocked(api.applyFiltersToList).mockResolvedValueOnce(page(30, 30, 60));
 
     render(<PokemonList />, { wrapper });
-
-    await waitFor(() => {
-      expect(screen.getAllByTestId("pokemon-list-card")).toHaveLength(30);
-    });
-
-    const bottomEl = document.querySelector<HTMLElement>(
-      '[data-testid="pokemon-list-bottom-sentinel"]',
-    );
-    expect(bottomEl).not.toBeNull();
-    const obs = observerFor(bottomEl!);
-    expect(obs).toBeDefined();
-
-    await act(async () => {
-      obs!.trigger([{ isIntersecting: true, target: bottomEl! }]);
-    });
 
     await waitFor(() => {
       expect(api.applyFiltersToList).toHaveBeenCalledTimes(2);
     });
-    await waitFor(() => {
-      expect(screen.getAllByTestId("pokemon-list-card")).toHaveLength(60);
-    });
-    expect(api.applyFiltersToList).toHaveBeenCalledTimes(2);
-    expect(api.applyFiltersToList).toHaveBeenLastCalledWith({}, 30, undefined);
+    expect(api.applyFiltersToList).toHaveBeenNthCalledWith(1, {}, 0, undefined);
+    expect(api.applyFiltersToList).toHaveBeenNthCalledWith(2, {}, 30, undefined);
   });
 
-  it("al visualizar el item 60, los items 1–30 se desmontan (ventana deslizante)", async () => {
-    // Páginas: [0..29], [30..59], [60..89]
+  it("pinta las cards de las páginas cargadas", async () => {
     vi.mocked(api.applyFiltersToList).mockResolvedValueOnce(page(0, 30, 30));
     vi.mocked(api.applyFiltersToList).mockResolvedValueOnce(page(30, 30, 60));
-    vi.mocked(api.applyFiltersToList).mockResolvedValueOnce(page(60, 30, 90));
 
     render(<PokemonList />, { wrapper });
 
     await waitFor(() => {
-      expect(screen.getAllByTestId("pokemon-list-card")).toHaveLength(30);
+      expect(screen.getAllByTestId("pokemon-list-card").length).toBeGreaterThan(0);
     });
-
-    // 1) Scroll al final → carga página 30.
-    const bottomEl1 = document.querySelector<HTMLElement>(
-      '[data-testid="pokemon-list-bottom-sentinel"]',
-    )!;
-    await act(async () => {
-      observerFor(bottomEl1)!.trigger([
-        { isIntersecting: true, target: bottomEl1 },
-      ]);
-    });
-    await waitFor(() => {
-      expect(screen.getAllByTestId("pokemon-list-card")).toHaveLength(60);
-    });
-
-    // 2) Al visualizar el item 60 (último de la segunda página), la
-    //    ventana avanza: destruye items 1..30, carga página 60.
-    const bottomEl2 = document.querySelector<HTMLElement>(
-      '[data-testid="pokemon-list-bottom-sentinel"]',
-    )!;
-    await act(async () => {
-      observerFor(bottomEl2)!.trigger([
-        { isIntersecting: true, target: bottomEl2 },
-      ]);
-    });
-
-    await waitFor(() => {
-      const cards = screen.getAllByTestId("pokemon-list-card");
-      expect(cards).toHaveLength(60);
-      const names = cards.map((c) => c.getAttribute("data-pokemon"));
-      expect(names).not.toContain("pkm-1");
-      expect(names).not.toContain("pkm-30");
-      expect(names).toContain("pkm-31");
-      expect(names).toContain("pkm-90");
-    });
-    expect(api.applyFiltersToList).toHaveBeenCalledTimes(3);
-    expect(api.applyFiltersToList).toHaveBeenLastCalledWith({}, 60, undefined);
+    const names = screen
+      .getAllByTestId("pokemon-list-card")
+      .map((c) => c.getAttribute("data-pokemon"));
+    expect(names).toContain("pkm-1");
+    expect(names).toContain("pkm-30");
+    expect(names).toContain("pkm-31");
   });
 
   it("pulsar una card dispara router.push('/pokemon/<name>?<filtros>')", async () => {
@@ -260,7 +169,7 @@ describe("PokemonList (Plan 06.1) — ventana deslizante", () => {
     );
   });
 
-  it("cuando la API devuelve single=true, la lista NO se monta (la UI pasa a la ficha)", async () => {
+  it("cuando la API devuelve single=true, la lista NO se monta", async () => {
     vi.mocked(api.applyFiltersToList).mockResolvedValueOnce({
       items: [makeItem(25, "pikachu")],
       nextOffset: null,
@@ -280,11 +189,12 @@ describe("PokemonList (Plan 06.1) — ventana deslizante", () => {
 
   it("la lista expone data-testid='pokemon-list' y rol listbox accesible", async () => {
     vi.mocked(api.applyFiltersToList).mockResolvedValueOnce(page(0, 30, 30));
+    vi.mocked(api.applyFiltersToList).mockResolvedValueOnce(page(30, 30, 60));
 
     render(<PokemonList />, { wrapper });
 
     await waitFor(() => {
-      expect(screen.getAllByTestId("pokemon-list-card")).toHaveLength(30);
+      expect(screen.getAllByTestId("pokemon-list-card").length).toBeGreaterThan(0);
     });
 
     const list = screen.getByTestId("pokemon-list");
@@ -292,7 +202,7 @@ describe("PokemonList (Plan 06.1) — ventana deslizante", () => {
     expect(list.getAttribute("aria-label")).toBeTruthy();
   });
 
-  it("con 1 solo resultado y single=false la lista sigue mostrando la única card", async () => {
+  it("con 1 solo resultado y single=false la lista muestra la única card", async () => {
     vi.mocked(api.applyFiltersToList).mockResolvedValueOnce({
       items: [makeItem(25, "pikachu")],
       nextOffset: null,
@@ -305,5 +215,64 @@ describe("PokemonList (Plan 06.1) — ventana deslizante", () => {
     await waitFor(() => {
       expect(screen.getAllByTestId("pokemon-list-card")).toHaveLength(1);
     });
+  });
+
+  it("pide páginas adicionales bajo demanda cuando el virtualizador lo requiere", async () => {
+    // Mockeamos respuestas para 3 páginas: la precarga consume las
+    // dos primeras, y la siguiente demanda del componente consume
+    // la tercera (offset=60). El componente solo debe pedir esa
+    // única página adicional mientras haya rango visible por
+    // cubrir.
+    vi.mocked(api.applyFiltersToList).mockImplementation(
+      async (_f, offset) => {
+        // Devolvemos `next=null` si la cola se ha acabado para que
+        // el componente marque `loadedAll` y detenga más fetches.
+        if (offset >= 90) return page(offset, 30, null, 200);
+        return page(offset, 30, offset + POKEMON_LIST_PAGE_SIZE, 200);
+      },
+    );
+
+    render(<PokemonList />, { wrapper });
+
+    // Tras la precarga y al menos un fetch de demanda, la página
+    // con offset=60 debe haberse pedido.
+    await waitFor(() => {
+      const calls = vi.mocked(api.applyFiltersToList).mock.calls;
+      expect(calls.some((c) => c[1] === 60)).toBe(true);
+    });
+  });
+
+  it("usa `POKEMON_LIST_PAGE_SIZE` como tamaño de página al calcular offsets", async () => {
+    // Si el tamaño de página cambiara en el futuro, este test
+    // garantiza que el offset del segundo fetch es exactamente
+    // `POKEMON_LIST_PAGE_SIZE`.
+    vi.mocked(api.applyFiltersToList).mockResolvedValueOnce(
+      page(0, POKEMON_LIST_PAGE_SIZE, POKEMON_LIST_PAGE_SIZE),
+    );
+    vi.mocked(api.applyFiltersToList).mockResolvedValueOnce(
+      page(
+        POKEMON_LIST_PAGE_SIZE,
+        POKEMON_LIST_PAGE_SIZE,
+        POKEMON_LIST_PAGE_SIZE * 2,
+      ),
+    );
+
+    render(<PokemonList />, { wrapper });
+
+    await waitFor(() => {
+      expect(api.applyFiltersToList).toHaveBeenCalledTimes(2);
+    });
+    expect(api.applyFiltersToList).toHaveBeenNthCalledWith(
+      1,
+      {},
+      0,
+      undefined,
+    );
+    expect(api.applyFiltersToList).toHaveBeenNthCalledWith(
+      2,
+      {},
+      POKEMON_LIST_PAGE_SIZE,
+      undefined,
+    );
   });
 });

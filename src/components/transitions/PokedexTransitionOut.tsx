@@ -7,9 +7,14 @@ import {
   useImperativeHandle,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import { useMusicFadeController } from "@/src/components/transitions/useMusicFade";
+import {
+  getHomePreloadSources,
+  preloadSources,
+} from "@/src/components/transitions/assetPreloader";
 
 /**
  * Plan 04.3 — Orquestador visual de la salida de la Pokédex.
@@ -19,15 +24,26 @@ import { useMusicFadeController } from "@/src/components/transitions/useMusicFad
  * `data-leaving` al contenedor cuando alguien dispara la salida.
  *
  * Secuencia:
- *   1. Botón "Volver al inicio" (o un futuro "logo") llama al bus
+ *   1. Botón "Volver al inicio" llama al bus
  *      `pokedexTransitionBus.playExit()`.
  *   2. El componente marca `data-leaving="true"` y la CSS global
  *      hace que la carcasa baje fuera de pantalla con fade out.
  *   3. Si la música estaba activa (vía `useSoundMusic().isPlaying`),
  *      `useMusicFadeController.fadeIn(0.6, 600ms)` sube el volumen
  *      desde 0 (silenciado por la transición 04.2) hasta el target.
- *   4. Al terminar, el bus devuelve la promesa resuelta y el caller
+ *   4. EN PARALELO: precarga los assets de la pantalla de inicio
+ *      (logo, ash, pokedex_cerrada, los 10 pokemon, tileFondo) para
+ *      que cuando lleguemos a `/`, `HomeTransitionOut` encuentre
+ *      los assets cacheados y pueda ejecutar la animación de
+ *      entrada (`home-enter-*`) sin parpadeos.
+ *   5. Al terminar, el bus devuelve la promesa resuelta y el caller
  *      hace `router.push('/')`.
+ *
+ * El borrador exige "Hay que cargar los elementos y asegurarse de
+ * que estén cargados antes de empezar la animación" (líneas
+ * 120-122 del Borrador_Pokedex.md). Lo garantizamos con
+ * `preloadSources(getHomePreloadSources())` que resuelve cuando
+ * TODAS las URLs estén listas (o son ya cacheadas).
  *
  * `prefers-reduced-motion`:
  *   - `data-leaving="instant"`: la carcasa desaparece sin animar y
@@ -95,9 +111,12 @@ export const PokedexTransitionOut = forwardRef<
     inflightRef.current = true;
     setLeaving(reduceMotion ? "instant" : "true");
 
-    // En paralelo: fade in de música + espera de la animación CSS.
-    // El fade in es silencioso si la música no estaba activa (lo
-    // respeta `useMusicFadeController`).
+    // En paralelo: fade in de música + espera de la animación CSS +
+    // precarga de los assets de la pantalla de inicio. La precarga
+    // es fire-and-forget en el sentido de que no bloquea si un
+    // asset falla (rechaza con un error que `.catch` convierte en
+    // no-op), pero sí garantiza que cuando lleguemos a `/` los
+    // assets estén en caché del navegador.
     const music = fade.fadeIn(MUSIC_TARGET_VOLUME, MUSIC_FADE_IN_MS);
     const wait = reduceMotion
       ? Promise.resolve()
@@ -107,7 +126,16 @@ export const PokedexTransitionOut = forwardRef<
             MUSIC_FADE_IN_MS + POST_ANIMATION_BUFFER_MS,
           ),
         );
-    await Promise.all([music, wait]);
+    // Precarga: si falla (404, red, etc.) seguimos adelante. El
+    // `preloadSources` ya es tolerante a fallos a nivel interno
+    // (los `Image()` que no disparan onload resuelven igual en
+    // jsdom), pero envolvemos en `.catch` por seguridad.
+    const preload = preloadSources(getHomePreloadSources()).catch(() => {
+      // Modo degradado: la animación de entrada en la home se
+      // ejecutará igualmente; los assets que no estén cacheados
+      // simplemente aparecerán cuando el navegador los descargue.
+    });
+    await Promise.all([music, wait, preload]);
   }, [fade, reduceMotion]);
 
   useImperativeHandle(
@@ -149,8 +177,6 @@ function usePrefersReducedMotionStatic(): boolean {
     return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   };
   const getServerSnapshot = () => false;
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { useSyncExternalStore } = require("react") as typeof import("react");
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
 

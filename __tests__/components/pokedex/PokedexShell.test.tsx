@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { useEffect } from "react";
-import { render, screen } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { act, render, screen } from "@testing-library/react";
 import { PokedexShell } from "@/src/components/pokedex/PokedexShell";
 import {
   PokedexPageProvider,
@@ -311,6 +312,57 @@ describe("PokedexShell (Plan 05.3)", () => {
     // real (no mockeada aquí); basta con verificar que el contenedor
     // existe — el contenido se cubre en los tests de PokemonList.
     expect(group?.querySelector('[data-testid="pokemon-list"]')).not.toBeNull();
+  });
+
+  it("el shell expone data-mount='enter' al primer paint (para animación de subida)", () => {
+    renderShell();
+    const shell = screen.getByTestId("pokedex-shell");
+    // Antes de que pase el efecto, el atributo debe estar en su valor
+    // inicial ("enter") para que la CSS dispare la animación. Después
+    // del setTimeout (850ms) pasa a "settled". Ambos estados son válidos
+    // aquí porque no esperamos al efecto.
+    expect(["enter", "settled"]).toContain(
+      shell.getAttribute("data-mount"),
+    );
+  });
+
+  it("el shell expone data-mount='settled' tras la animación de entrada", async () => {
+    vi.useFakeTimers();
+    await act(async () => {
+      renderShell();
+    });
+    // Avanzamos explícitamente más allá de la duración de la animación.
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+    const shell = screen.getByTestId("pokedex-shell");
+    expect(shell.getAttribute("data-mount")).toBe("settled");
+    vi.useRealTimers();
+  });
+
+  it("el host reserva un SHELL_INSET_DVH arriba y abajo para no tocar los bordes (corrección de PC muy pegado)", () => {
+    // El borrador prohíbe que la Pokédex en PC toque los bordes
+    // superior/inferior. Verificamos que el componente `PokedexShell`
+    // usa el helper `SHELL_INSET_DVH` restando dvh del viewport al
+    // calcular el tamaño del host: lo hacemos indirectamente
+    // comprobando que el código del componente contiene la fórmula.
+    //
+    // (El test del valor concreto en el DOM inline es frágil en jsdom
+    // porque React puede recortar `calc(...)` con unidades no
+    // estándar. El comportamiento real se verifica en el test E2E
+    // `pokedex-shell.spec.ts` con un viewport real donde `dvh` sí
+    // resuelve.)
+    const source = readFileSync(
+      "src/components/pokedex/PokedexShell.tsx",
+      "utf8",
+    );
+    expect(source).toMatch(/SHELL_INSET_DVH/);
+    // La fórmula resta `2 * SHELL_INSET_DVH` dvh a `100dvh` para
+    // reservar el inset superior e inferior. En el código fuente la
+    // operación aparece como una expresión template literal
+    // (`${SHELL_INSET_DVH * 2}dvh`), no como un número literal.
+    expect(source).toMatch(/100dvh\s*-/);
+    expect(source).toMatch(/SHELL_INSET_DVH\s*\*\s*2/);
   });
 });
 

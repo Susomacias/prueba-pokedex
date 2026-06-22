@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
-import { HomeLoadingOverlay } from "@/src/components/home/HomeLoadingOverlay";
 import { useHomeNavigation } from "@/src/components/home/HomeNavigationContext";
 
 /**
@@ -81,7 +80,7 @@ export interface HomeNavControllerProps {
 }
 
 export function HomeNavController({ children }: HomeNavControllerProps) {
-  const { isNavigating, isLoading, navigate } = useHomeNavigation();
+  const { isNavigating, navigate } = useHomeNavigation();
 
   // Ref que refleja el último valor de `isNavigating`. Permite que
   // los listeners (registrados una sola vez) lean el estado actual
@@ -176,7 +175,13 @@ export function HomeNavController({ children }: HomeNavControllerProps) {
         aria-hidden="true"
       />
       {children}
-      <HomeLoadingOverlay isLoading={isLoading} />
+      {/* El `<HomeLoadingOverlay>` ya NO se monta aquí: el borrador
+          (líneas 317–319 del `Borrador_Pokedex.md`) prohíbe el
+          loading overlay porque todos los assets deben estar ya
+          precargados al iniciar la home, listos para transicionar
+          a la Pokédex sin pantalla intermedia. Los assets críticos
+          se cargan en el `assetPreloader` antes del primer paint y
+          la transición de salida de la home no espera a nada. */}
     </>
   );
 }

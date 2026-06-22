@@ -108,3 +108,37 @@ Si en el futuro se activa `cacheComponents: true`, las constantes
 de `cacheStrategy.ts` se pueden migrar a directivas `'use cache'`
 con `cacheLife(...)` y `cacheTag(...)` manteniendo los mismos
 valores nominales (ver `node_modules/next/dist/docs/01-app/03-api-reference/01-directives/use-cache.md`).
+
+## Fixtures de tests basadas en PokeAPI real
+
+Todo test que valide la **forma de los datos** que devuelve PokeAPI
+(shape de `pokemonsprites`, `pokemontypes`, `pokemonspecies`,
+`pokemonhabitat`, `pokemonstats`, `pokemonevolutions`, `cry`, etc.)
+debe usar **fixtures capturados de respuestas reales** de PokeAPI,
+NO objetos literales inventados en el test.
+
+- **Ubicación**: `__tests__/fixtures/pokeapi/<scope>/<name>.json`
+  (p.ej. `__tests__/fixtures/pokeapi/pikachu.json`,
+  `__tests__/fixtures/pokeapi/filter-options/types.json`).
+- **Generación**: `scripts/capture-pokeapi-fixture.ts` ejecuta la
+  query GraphQL correspondiente (`POKEMON_LIST_QUERY`,
+  `POKEMON_LIST_FILTERED_QUERY`, `POKEMON_DETAIL_QUERY`,
+  `TYPES_QUERY`, etc.) contra `https://graphql.pokeapi.co/v1beta2`
+  y guarda la respuesta cruda. Los fixtures son commits binarios
+  versionados: si PokeAPI cambia de schema, el script avisa y se
+  regenera.
+- **Mocks vs fixtures**: un mock sirve para verificar que el
+  componente **hace** la llamada correcta (URL, query, headers) o
+  para simular errores de red. Un fixture sirve para verificar que
+  el componente **procesa** los datos reales (mapeos, colores,
+  formatos, caracteres de control, claves con guiones como
+  `special-attack`). Mezclar ambos tipos en el mismo test está
+  prohibido — si necesitas ambos, son dos tests separados.
+- **E2E contra PokeAPI real**: los specs marcados con `@live-api`
+  en `playwright.config.ts` ejercitan el camino real (red habilitada
+  a `graphql.pokeapi.co` y a `raw.githubusercontent.com` para los
+  `.glb`). Se **skippean** automáticamente si `POKEAPI_REACHABLE` no
+  está definido en CI. **Prohibido** usar `page.route()` para mockear
+  respuestas de PokeAPI en estos specs — el objetivo es validar la
+  integración real. Ver Planes 07.5, 09.5 y 10.6 para el detalle
+  por spec.
