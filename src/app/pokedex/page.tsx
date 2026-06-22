@@ -1,5 +1,29 @@
 import type { Metadata } from "next";
+import { PokedexPageProvider } from "@/src/components/pokedex/PokedexPageProvider";
+import { PokedexShell } from "@/src/components/pokedex/PokedexShell";
 
+/**
+ * Plan 05.3 + 05.4 — Página `/pokedex`.
+ *
+ * Esta página es un Server Component que monta el `PokedexPageProvider`
+ * y el `PokedexShell`. El provider es el único punto que conoce el
+ * estado real de la Pokédex (pokemon seleccionado, modo 3D, filtros
+ * activos, etc.) y lo expone al shell vía Context. De este modo, el
+ * Server Component NO cruza la frontera con callbacks/funciones
+ * (limitación de Next 16 / RSC).
+ *
+ * Por ahora (fase 05.3 + 05.4), el provider mantiene el estado mínimo
+ * en `useState` con valores por defecto sensatos. En fases posteriores
+ * (Plan 06–09) estos estados se derivarán de la URL (`searchParams`) y
+ * de los datos cargados.
+ *
+ * El shell garantiza:
+ *   - Render sin scroll (`100dvh × 100vw`, `overflow-hidden`).
+ *   - Selección responsive vertical/horizontal según viewport
+ *     (`useViewportLayout`).
+ *   - Cada `<g data-slot>` queda listo para inyectar el contenido
+ *     correspondiente (stubs en esta fase).
+ */
 export const metadata: Metadata = {
   title: "Pokédex",
   description:
@@ -9,8 +33,21 @@ export const metadata: Metadata = {
 
 export default function PokedexPage() {
   return (
-    <main className="flex flex-1 items-center justify-center">
-      <p>Pokédex — próxima fase</p>
+    <main
+      className="pokedex-page"
+      style={{
+        position: "relative",
+        width: "100vw",
+        height: "100dvh",
+        maxWidth: "100vw",
+        maxHeight: "100dvh",
+        overflow: "hidden",
+      }}
+    >
+      <h1 className="sr-only">Pokédex</h1>
+      <PokedexPageProvider>
+        <PokedexShell />
+      </PokedexPageProvider>
     </main>
   );
 }

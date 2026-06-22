@@ -1,0 +1,96 @@
+/* Plan 05.1 / 05.2 — Estilos extraídos del <style> inline del SVG original.
+ *
+ * Las clases .st0..st24 son equivalentes a las que Adobe Illustrator
+ * embebió en los SVG `public/pokedex_*.svg`. Se mantienen tal cual para
+ * que las carcases TSX se vean idénticas al original. Los nombres
+ * crípticos se conservan para no introducir regresiones visuales.
+ *
+ * NOTA: este archivo NO es un módulo CSS (no usa `:local` ni nombres
+ * hasheados) porque necesitamos que las clases sean globales y
+ * consultables desde tests E2E / unitarios con `querySelector('.st0')`.
+ */
+
+.st0 {
+  fill: #1d1d1b;
+}
+.st1 {
+  fill: #db0a2f;
+}
+.st2 {
+  fill: #8a1823;
+}
+.st3 {
+  fill: #eb6e81;
+}
+.st4 {
+  fill: #f2f2f2;
+}
+.st5 {
+  fill: #46a2da;
+}
+.st6 {
+  fill: #126ca3;
+}
+.st7 {
+  fill: #a6d8f6;
+}
+.st8 {
+  fill: #e6e6e6;
+}
+.st9 {
+  fill: #808080;
+  stroke: #000000;
+  stroke-width: 2;
+  stroke-miterlimit: 10;
+}
+.st10 {
+  fill: #dedfde;
+  stroke: #000000;
+  stroke-width: 2;
+  stroke-miterlimit: 10;
+}
+.st11 {
+  fill: #ffffff;
+  stroke: #000000;
+  stroke-width: 2;
+  stroke-miterlimit: 10;
+}
+.st12 {
+  fill: #5c5c5c;
+}
+.st13 {
+  fill: #e11405;
+}
+.st14 {
+  fill: #910d03;
+}
+.st15 {
+  fill: #ff6363;
+}
+.st16 {
+  fill: #ffc905;
+}
+.st17 {
+  fill: #ff9203;
+}
+.st18 {
+  fill: #ffe590;
+}
+.st19 {
+  fill: #00b81c;
+}
+.st20 {
+  fill: #008c15;
+}
+.st21 {
+  fill: #75d984;
+}
+.st22 {
+  fill: #ffcb05;
+}
+.st23 {
+  fill: #ffffff;
+}
+.st24 {
+  fill: none;
+}

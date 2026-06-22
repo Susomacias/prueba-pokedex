@@ -38,6 +38,42 @@ Serialización URL: `filtersToSearchParams` / `searchParamsToFilters` /
 `applyFilterChange` en `src/lib/filters/serialization.ts`. El mapa de
 filtros vive en `src/lib/filters/types.ts` (`FILTERS`).
 
+## Capas / slots de la carcasa (Plan 05)
+
+Cada capa del SVG (`public/pokedex_vertical.svg`,
+`public/pokedex_horizontal.svg`) tiene su componente slot dedicado
+en `src/components/pokedex/slots/`:
+
+| Slot del SVG              | Componente                     |
+|---------------------------|--------------------------------|
+| `BOTON_3D`                | `Button3DSlot.tsx`             |
+| `TIPO1_TIPO2_GENERACION`  | `ChipsSlot.tsx`                |
+| `PUNTOS_CARRUSEL`         | `CarouselDotsSlot.tsx`         |
+| `CARRUSEL_IMAGENES_DESCRIPCION` | `CarouselSlot.tsx`       |
+| `BOTONES_CARRUSEL`        | `CarouselButtonsSlot.tsx`      |
+| `SONIDO_POKEMON`          | `SoundSlot.tsx`                |
+| `EVOLUCIONES`             | `EvolutionsSlot.tsx`           |
+| `STATS`                   | `StatsSlot.tsx`                |
+| `VER_HABILIDADES_VER_STATS` | `ToggleStatsAbilitiesSlot.tsx`|
+| `CONSOLA_FILTROS`         | `FilterConsoleSlot.tsx`        |
+| `DROPDOWNS_FILTROS`       | `FilterDropdownsSlot.tsx`      |
+| `BUSCAR_RESET_FILTRAR`    | `SearchResetFilterSlot.tsx`    |
+
+Reglas:
+
+- La carcasa (`PokedexVerticalSvg` / `PokedexHorizontalSvg`) sólo
+  recibe `SlotMap` con `ReactNode`s. NO contiene lógica de UI ni
+  estado propio.
+- El ensamblador (`src/components/pokedex/PokedexShell.tsx`) es el
+  único componente que conoce el estado global de la Pokédex y
+  construye el `SlotMap` a partir de él. Consume
+  `PokedexPageProvider` (Context) y el hook `useViewportLayout` para
+  decidir la carcasa según el viewport.
+- Cada slot emite `data-stub` y `data-pokemon` (cuando aplica) en su
+  nodo raíz para que tests E2E y unitarios puedan inspeccionar qué
+  slot está activo y con qué pokemon. Esto lo aplica
+  `buildSlotAttrs()` en `src/components/pokedex/slots/types.ts`.
+
 ## Estrategia de caché de la capa de datos (Plan 01.6)
 
 Toda la PokeAPI se consulta desde `src/lib/pokemon/`. La estrategia
