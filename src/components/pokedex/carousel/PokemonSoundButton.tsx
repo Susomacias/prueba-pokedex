@@ -1,11 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Volume2 } from "lucide-react";
 
 /**
- * Plan 06.6 — `PokemonSoundButton`: botón del slot `SONIDO_POKEMON`
- * que reproduce el "cry" del pokemon seleccionado.
+ * Plan 06.6 + 11 — `PokemonSoundButton`: botón del slot
+ * `SONIDO_POKEMON` que reproduce el "cry" del pokemon seleccionado.
  *
  * Comportamiento:
  *  - Al pulsar: crea un `new Audio(cryUrl)` y reproduce.
@@ -18,10 +17,17 @@ import { Volume2 } from "lucide-react";
  *    para todas las species).
  *  - Limpieza del audio al desmontar.
  *
+ * Icono: SVG inline (no usamos `lucide-react` porque su SVG anidado
+ * dentro del `<foreignObject>` del chasis de la Pokédex a veces no
+ * se renderizaba visible — el `width/height` por defecto del icono
+ * competía con el del SVG exterior y el icono aparecía como un punto
+ * diminuto o invisible). Un `<svg>` con `width="60%" height="60%"`
+ * explícitos resuelve el problema en todos los navegadores.
+ *
  * Accesibilidad:
  *  - `aria-label` dinámico: "Reproducir sonido de <nombre>".
  *  - `aria-pressed` refleja el estado de reproducción.
- *  - Icono `Volume2` decorativo (`aria-hidden`).
+ *  - Icono decorativo (`aria-hidden`).
  */
 
 export interface PokemonSoundButtonProps {
@@ -83,7 +89,25 @@ export function PokemonSoundButton({ pokemonName, cryUrl }: PokemonSoundButtonPr
       onClick={handlePlay}
       className="pokemon-sound-button"
     >
-      <Volume2 aria-hidden="true" className="pokemon-sound-button__icon" />
+      {/* Icono SVG inline — siempre visible independientemente del
+          contexto. currentColor hereda del `color: #fff` del botón. */}
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        width="60%"
+        height="60%"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z" />
+        <path d="M16 9a5 5 0 0 1 0 6" />
+        <path d="M19.364 18.364a9 9 0 0 0 0-12.728" />
+      </svg>
       {playing ? (
         <span className="pokemon-sound-button__waves" aria-hidden="true">
           <span className="pokemon-sound-button__wave" />

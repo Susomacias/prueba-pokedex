@@ -132,6 +132,40 @@ function extractCryLatest(cries: unknown): string | null {
   return typeof c.latest === "string" ? c.latest : null;
 }
 
+/**
+ * Fallback a la PokeAPI REST para obtener el cry cuando la query
+ * GraphQL beta (`v1beta2`) no lo expone.
+ *
+ * La beta de GraphQL no incluye los cries de la mayoría de pokemons
+ * (devuelve `pokemoncries: []` siempre). Sin embargo, la PokeAPI
+ * REST (`/api/v2/pokemon/{name}`) sí expone `cries.latest` para los
+ * pokemons que tienen cry disponible. Como fallback, cuando el
+ * GraphQL no devuelve cry, hacemos una llamada REST adicional
+ * ligera para extraerlo. La llamada falla silenciosamente (devuelve
+ * `null`) si el pokemon no tiene cry o si la red falla.
+ *
+ * La URL del cry suele ser:
+ *   https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/{id}.ogg
+ * Pero no todos los IDs tienen cry disponible, así que validamos
+ * que el endpoint REST devuelva `cries.latest` no nulo.
+ */
+async function fetchCryFromRest(pokemonId: number): Promise<string | null> {
+  try {
+    const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${pokemonId}`, {
+      // Cache agresivo: los cries no cambian.
+      next: { revalidate: 86400 * 7 },
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      cries?: { latest?: string | null; legacy?: string | null };
+    };
+    const latest = data.cries?.latest;
+    return typeof latest === "string" && latest.length > 0 ? latest : null;
+  } catch {
+    return null;
+  }
+}
+
 export interface RawPokemonDetailResponse {
   pokemonspecies: Array<{
     id: number;
@@ -296,9 +330,21 @@ export async function fetchPokemonDetail(name: string): Promise<PokemonDetail> {
     .sort((a, b) => a.slot - b.slot);
 
   const sprites = mapSprites(pokemon.pokemonsprites[0]?.sprites);
-  const cryLatestUrl = extractCryLatest(
-    pokemon.pokemoncries[0]?.cries,
-  );
+
+  // Cry: la query GraphQL beta (`v1beta2`) no expone los cries
+  // (`pokemoncries: []` siempre). Para que el botón de sonido
+  // funcione, hacemos una llamada adicional a la PokeAPI REST
+  // (`/api/v2/pokemon/{id}`) **en paralelo** al mapeo. La latencia
+  // total del detalle es `max(graphql, rest)` en lugar de
+  // `graphql + rest` secuencial.
+  //
+  // Si GraphQL devuelve cry (caso raro), lo usamos y descartamos
+  // la promesa REST. Si no, esperamos al REST.
+  const cryGraphql = extractCryLatest(pokemon.pokemoncries[0]?.cries);
+  const restCryPromise: Promise<string | null> = cryGraphql
+    ? Promise.resolve(null)
+    : fetchCryFromRest(pokemon.id);
+  const cryLatestUrl = cryGraphql ?? (await restCryPromise);
 
   // Flavor text: prioridad al primer elemento (ordenado por version_id DESC).
   const firstFlavor = species.pokemonspeciesflavortexts[0];

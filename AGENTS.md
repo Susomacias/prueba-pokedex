@@ -205,3 +205,87 @@ NO objetos literales inventados en el test.
   respuestas de PokeAPI en estos specs — el objetivo es validar la
   integración real. Ver Planes 07.5, 09.5 y 10.6 para el detalle
   por spec.
+
+## Política de navegación y URL (Plan 11 — overlay lista ↔ carrusel)
+
+La Pokédex es una SPA de una sola página (`/`) pero la URL **siempre
+refleja el estado real**: `/`, `/pokedex`, `/pokemon/<name>`. Esto
+permite compartir links, recargar, usar back/forward. La diferencia
+entre cambiar la URL **desde la propia UI** vs **desde una fuente
+externa** es crucial y debe respetarse en cualquier desarrollo futuro:
+
+| Origen del cambio                                       | API                                                                                                                  | Animación de vista global (home↔pokedex) | Animación del overlay lista↔carrusel |
+|---------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|------------------------------------------|--------------------------------------|
+| Card de la lista → `onSelect(name)`                     | `useAppShell().goToPokemon(name)` → `history.pushState({}, '', '/pokemon/<name>')` + `setPathname` + `setView("pokedex")` | **NO** (la Pokédex ya está visible, la lista sigue debajo) | SÍ (scale + fade del carrusel) |
+| Botón X del overlay → `onClose()`                       | `useAppShell().goToPokedex()` → `history.pushState({}, '', '/pokedex')` + `setPathname` + `setView("pokedex")` (la Pokédex sigue visible) | **NO** (la Pokédex sigue visible) | SÍ (encoge y desaparece) |
+| Evolución → pulsar nodo                                 | `goToPokemon(name)` (igual que card)                                                                                  | **NO** | SÍ |
+| Aplicar filtros / cambiar dropdowns                     | `useFilters()` → `router.replace(..., { scroll: false })` (Next router)                                              | **NO** (la Pokédex ya está visible)      | n/a |
+| Deep-link externo: refresh, link compartido, `/pokedex` | El servidor renderiza esa ruta; el cliente detecta `view="home"` en el primer paint y dispara la transición de entrada | **SÍ** (transición coreografiada home → pokedex) | SÍ (el carrusel aparece tras la transición) |
+| Botón "atrás" del navegador / popstate                  | `useAppShell` ya escucha `popstate` y sincroniza `view` y `pathname`                                                   | **SÍ** (interpretamos que el usuario viene "de fuera") | SÍ |
+
+**Reglas duras:**
+
+1. **NUNCA** usar `router.push` del `next/navigation` para cambiar el
+   pokemon seleccionado desde la UI interna. El árbol NO debe
+   desmontarse: la Pokédex y la lista siguen montadas, sólo cambia
+   `selectedName` y la URL se actualiza con `pushState` para que el
+   back/forward del navegador funcione.
+
+2. **NUNCA** recargar la página al cambiar de pokemon. La animación
+   del overlay (scale + fade) ES la única transición que debe ver el
+   usuario cuando navega por la Pokédex. Recargar rompería la música,
+   el scroll de la lista, los filtros aplicados y la sensación de SPA.
+
+3. La transición home↔pokedex (subir la Pokédex, esconder la home)
+   **sólo** se ejecuta cuando la URL cambia "desde fuera":
+   - Carga inicial en `/pokedex` o `/pokemon/<name>`.
+   - `popstate` (back/forward del navegador).
+   - Link externo a `/pokedex` o `/pokemon/<name>` que provoque
+     navegación real.
+   En esos casos `PokedexPageTransition` fija `view="home"` en el
+   primer paint y dispara la transición.
+
+4. Al pulsar una card, una evolución o aplicar un filtro, la URL **se
+   actualiza siempre** (`pushState` para cambios de pokemon,
+   `router.replace` para filtros) para que la URL siga siendo fiel al
+   estado y se pueda compartir/recargar.
+
+5. El botón X del overlay `pokedex-overlay` cierra el carrusel y
+   deja `selectedName=null` (vuelve a `/pokedex`), pero NO oculta la
+   Pokédex. La animación es local al slot
+   `CARRUSEL_IMAGENES_DESCRIPCION` (scale 1 → 0.6, opacity 1 → 0).
+
+**Implementación:**
+- `useAppShell().goToPokemon(name)` y `goToPokedex()` son las
+  funciones canónicas para cambiar la URL desde la UI. Usan
+  `history.pushState` y NO causan re-mount.
+- `useFilters()` usa `useNavigation().router.replace(...)` para
+  sincronizar la URL con el estado de filtros sin recargar.
+- El flag "venimos de fuera" lo gestiona `PokedexPageTransition`
+  fijando `view="home"` en `initialView` para `/pokedex` y
+  `/pokemon/[name]`. Después del primer paint, `AppShellProvider`
+  recalcula `view` desde el pathname y dispara la transición.
+
+## Overlay lista ↔ carrusel (Plan 11)
+
+El slot `CARRUSEL_IMAGENES_DESCRIPCION` muestra **siempre la lista
+de pokemons** como base. Cuando hay un pokemon seleccionado
+(`selectedName != null`), el carrusel se monta ENCIMA con
+`position: absolute; inset: 0` ocupando el 100% del slot.
+
+- Lista visible siempre que no haya pokemon seleccionado
+  (`data-stub="list"`, `data-active="false"`).
+- Carrusel con animación de entrada (`scale(0.6) opacity:0 →
+  scale(1) opacity:1`, duración 350ms) cuando se selecciona un
+  pokemon desde la lista.
+- Botón X (esquina superior derecha del slot) cierra el carrusel
+  con la animación inversa y restaura `selectedName=null`.
+- Cuando `selectedName` cambia (otro pokemon), el carrusel hace
+  crossfade del contenido (350ms) sin tocar la lista detrás.
+- `pointer-events: auto` en el overlay del carrusel mientras esté
+  visible; `none` cuando no. La lista detrás queda inerte.
+
+**Anti-patrón prohibido:** volver al modelo antiguo donde el slot
+era "lista o carrusel, según haya pokemon". Eso rompía la sensación
+de continuidad al explorar la Pokédex y obligaba a recargar. La
+lista debe quedarse SIEMPRE detrás.

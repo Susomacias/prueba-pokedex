@@ -181,10 +181,9 @@ function Slide({ slide, index }: { slide: CarouselSlide; index: number }) {
                 src={slide.imageUrl}
                 alt=""
                 aria-hidden="true"
-                width={120}
-                height={120}
+                width={220}
+                height={220}
                 unoptimized
-                className="h-full w-full object-contain"
               />
             ) : null}
           </div>
@@ -211,8 +210,8 @@ function Slide({ slide, index }: { slide: CarouselSlide; index: number }) {
           <Image
             src={slide.imageUrl}
             alt={`Imagen principal de ${detailAltFor(slide.imageUrl)}`}
-            width={220}
-            height={220}
+            width={420}
+            height={420}
             unoptimized
             priority
             className="pokemon-carousel__slide-hero-image"
@@ -233,8 +232,8 @@ function Slide({ slide, index }: { slide: CarouselSlide; index: number }) {
         <Image
           src={slide.imageUrl}
           alt={slide.label ?? "Imagen del pokemon"}
-          width={200}
-          height={200}
+          width={380}
+          height={380}
           unoptimized
           className="pokemon-carousel__slide-gallery-image"
         />

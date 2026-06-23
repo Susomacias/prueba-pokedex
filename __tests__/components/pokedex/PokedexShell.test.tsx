@@ -45,6 +45,20 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
+// Plan 11: la lista se monta SIEMPRE dentro del slot
+// `CARRUSEL_IMAGENES_DESCRIPCION`, así que necesitamos mockear la
+// API para evitar fetches reales en los tests de shell. Devolvemos
+// un resultado vacío.
+vi.mock("@/src/lib/pokemon/cachedPokemonApi", () => ({
+  applyFiltersToList: vi.fn().mockResolvedValue({
+    items: [],
+    nextOffset: null,
+    total: 0,
+    single: false,
+  }),
+  fetchPokemonDetail: vi.fn(),
+}));
+
 // `AppShellProvider` lee `window.location.pathname` directamente
 // (no usa `usePathname`), por eso mockeamos esa propiedad por test.
 // El mock se aplica y restaura en `mockWindowPathname`/`resetWindowPathname`.

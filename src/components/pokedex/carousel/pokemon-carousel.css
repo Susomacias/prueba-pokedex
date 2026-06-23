@@ -90,10 +90,15 @@
 }
 
 .pokemon-carousel__slide-hero-image {
-  width: auto;
-  height: auto;
-  max-width: 80%;
-  max-height: 80%;
+  /* Plan 11: las imágenes del carrusel deben ocupar una buena parte
+     del espacio. Slot del carrusel ~400×235 (horizontal) o
+     ~328×352 (vertical) en coordenadas SVG. Como el tamaño real
+     en pantalla depende del escalado del SVG, usamos porcentajes
+     grandes con un mínimo absoluto razonable. */
+  width: min(92%, 360px);
+  height: min(92%, 360px);
+  max-width: 98%;
+  max-height: 98%;
   object-fit: contain;
   image-rendering: pixelated;
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
@@ -105,7 +110,7 @@
 
 .pokemon-carousel__slide-flavor-grid {
   display: grid;
-  grid-template-columns: 100px 1fr;
+  grid-template-columns: min(180px, 40%) 1fr;
   gap: 16px;
   width: 100%;
   height: 100%;
@@ -118,6 +123,15 @@
   justify-content: center;
   background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 80%);
   border-radius: 4px;
+  overflow: hidden;
+}
+
+.pokemon-carousel__slide-flavor-image img {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
 }
 
 .pokemon-carousel__slide-flavor-text {
@@ -143,8 +157,11 @@
 }
 
 .pokemon-carousel__slide-gallery-image {
-  max-width: 70%;
-  max-height: 75%;
+  /* Plan 11: aumento del tamaño mínimo en galerías. */
+  width: min(92%, 320px);
+  height: min(92%, 320px);
+  max-width: 98%;
+  max-height: 92%;
   object-fit: contain;
   image-rendering: pixelated;
 }
@@ -329,9 +346,12 @@
   justify-content: center;
   width: 100%;
   height: 100%;
+  /* El slot del SVG mide ~28-34px. Reducimos padding y border para
+     que el icono SVG inline (60% del contenedor) tenga espacio
+     suficiente. */
   min-height: 24px;
   min-width: 24px;
-  padding: 4px;
+  padding: 2px;
   border-radius: 50%;
   border: 2px solid #1d1d1b;
   background: radial-gradient(circle, #46a2da 0%, #126ca3 100%);
@@ -362,10 +382,12 @@
   outline-offset: 2px;
 }
 
-.pokemon-sound-button__icon {
-  width: 16px;
-  height: 16px;
-  stroke-width: 2.5;
+/* El SVG inline ya define width/height="60%" en el JSX; aquí
+   sólo aseguramos que el icono herede el color del botón y no
+   tenga márgenes extraños. */
+.pokemon-sound-button > svg {
+  flex: 0 0 auto;
+  display: block;
 }
 
 .pokemon-sound-button[data-playing="true"] {
@@ -425,5 +447,175 @@
   .pokemon-sound-button__wave {
     animation: none !important;
     transition: none !important;
+  }
+}
+
+/* -------------------------------------------------------------------------- *
+ * Overlay lista ↔ carrusel — Plan 11
+ * -------------------------------------------------------------------------- *
+ *
+ * El slot `CARRUSEL_IMAGENES_DESCRIPCION` siempre muestra la lista de
+ * pokemons como capa base. Cuando hay un pokemon seleccionado, el
+ * carrusel se monta ENCIMA (`position: absolute; inset: 0`) con una
+ * animación de entrada/salida scale + fade. La lista permanece detrás
+ * para no perder el scroll ni la sensación de SPA.
+ *
+ * Estados (`data-state` del overlay):
+ *   - enter : scale(0.6) + opacity 0 → scale(1) + opacity 1 (350ms).
+ *   - shown : estado estable, scale(1), opacity 1.
+ *   - exit  : scale(1) + opacity 1 → scale(0.6) + opacity 0 (280ms).
+ *
+ * El botón X (`pokedex-carousel-slot__close`) también anima su
+ * propio scale para reforzar la sensación de "se cierra el modal".
+ */
+
+.pokedex-carousel-slot--overlay-host {
+  position: relative;
+}
+
+.pokedex-carousel-slot__list {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+.pokedex-carousel-slot__list[data-active="behind"] {
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.pokedex-carousel-slot__list[data-active="visible"] {
+  pointer-events: auto;
+  visibility: visible;
+}
+
+.pokedex-carousel-slot__overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  z-index: 2;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(12, 28, 62, 0.96) 0%,
+    rgba(12, 28, 62, 0.92) 100%
+  );
+  border-radius: 6px;
+  transform-origin: 50% 50%;
+  will-change: transform, opacity;
+  pointer-events: auto;
+}
+
+/* Animación de entrada: scale + fade. */
+.pokedex-carousel-slot__overlay[data-state="enter"] {
+  animation: pokedex-overlay-enter 350ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Estado estable (overlay abierto a tamaño completo). */
+.pokedex-carousel-slot__overlay[data-state="shown"] {
+  transform: scale(1);
+  opacity: 1;
+}
+
+/* Animación de salida: encoge y se desvanece. */
+.pokedex-carousel-slot__overlay[data-state="exit"] {
+  animation: pokedex-overlay-exit 280ms cubic-bezier(0.55, 0, 0.7, 0.2) both;
+}
+
+@keyframes pokedex-overlay-enter {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes pokedex-overlay-exit {
+  from {
+    transform: scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+}
+
+/* Botón X — Plan 11. Esquina superior derecha del slot, estilo
+ * arcade circular. Animación de scale al entrar/salir con el
+ * overlay. */
+.pokedex-carousel-slot__close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 3;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid #1d1d1b;
+  background: radial-gradient(circle, #ff6363 0%, #910d03 100%);
+  color: #fff8e0;
+  font-family: var(--font-press-start-2p), Arial, Helvetica, sans-serif;
+  font-size: 16px;
+  font-weight: bold;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow:
+    0 2px 0 #1d1d1b,
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  transition:
+    transform 80ms ease-out,
+    box-shadow 80ms ease-out,
+    background 120ms ease-out;
+  animation: pokedex-overlay-close-enter 350ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.pokedex-carousel-slot__close:hover {
+  background: radial-gradient(circle, #ff8a8a 0%, #b00d03 100%);
+}
+
+.pokedex-carousel-slot__close:active {
+  transform: translateY(1px);
+  box-shadow:
+    0 1px 0 #1d1d1b,
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.pokedex-carousel-slot__close:focus-visible {
+  outline: 2px solid #ff9203;
+  outline-offset: 2px;
+}
+
+@keyframes pokedex-overlay-close-enter {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pokedex-carousel-slot__overlay[data-state="enter"],
+  .pokedex-carousel-slot__overlay[data-state="exit"],
+  .pokedex-carousel-slot__close {
+    animation: none !important;
+    transition: none !important;
+  }
+  .pokedex-carousel-slot__overlay[data-state="enter"],
+  .pokedex-carousel-slot__overlay[data-state="shown"] {
+    transform: scale(1);
+    opacity: 1;
+  }
+  .pokedex-carousel-slot__overlay[data-state="exit"] {
+    transform: scale(0.6);
+    opacity: 0;
   }
 }

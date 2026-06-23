@@ -111,7 +111,7 @@ Crear un plan en la carpeta plan/ en archivos .md divididos por fases para desar
 
 \- Creamos una pokedex (Horizontal o vertical dependiendo del tamaño de la pantalla) en la parte inferior fuera de la pantalla  
 \- Si la música se estuviera ejecutando bajamos el volúmen lentamente  
-\- Logo: Transiciona a la parte superior derecha pero más pequeño, al pulsarlo vuelve a la página de inicio  
+\- Logo: Transiciona a la parte superior izquierda pero más pequeño, al pulsarlo vuelve a la página de inicio  
 \- Ash: va hacia la izquierda de la pantalla para desparecer y se destruye  
 \- Animación de pokemons, va hacia la derecha de la pantalla y se destruye  
 \- Botones y pokedex cerrada va hacia abajo de la pantalla y se destruye  
@@ -318,5 +318,35 @@ Hay errores importantes:
 * Hay un loading no solicitado en el borrador, todos los elementos deberían estar ya cargados al inicar la página de inicio listos para transicionar a la página de pokedex
 * La pokedex aparece de repente en lugar de transicionar desde abajo de la pantalla hacia el medio
 - La pokedex abierta en la vista de pc es demasiado grande está muy pegada a la parte superior e inferio de la pantalla, debería haber un poco de espacio pero sin overflow
-- La parte de la pokedex donde iría la lista y el carrusel marca este error:Error cargando la lista: not a valid graphql query, lo que indica que no solo está mal la query si no que también está mal los test.
-Estamos en el punto del plan de desarrollo 06.2, analiza si estos problemas están previstos y se van a arreglar posteriormente y si no estaban previstos hay que dejarlos arreglados.
+
+-----------------
+Hay un problema con la lista de pokemons, el sistema para mostarar más pokemons a menida que el usuario navega hacia arriba o hacia abajo y se van destruyendo y añadiendo para no sobrecargar la memoria no está funcionando, solo carga nuevos datos cuando llega al final , debería cargarlos y destruirlos cuando inicia un movimiento hacia arriba o hacia abajo el usuario no cuando llegue abajo o arriba, para entonces ya es tarde y su comportamiento es raro. Basicamente el usuario no debería ser capaz de poner la barra de navegación arriba o abajo del todo salvo que esté en el primer o último pokemon pues siempre van a ir apareciendo más.
+
+No está hacien la transición entre pantallas indicada en el borrador del plan, hay unas instrucciones específicas para ello que no está haciendo la aplicación, lo elementos no se mueven solo aparecen de repente. También debería haber una transición inversa para volver a la página de inicio que no existe o al menos no se aplica, a demás la pokedex abierta debería estar precargada con la lista en la parte inferior fuera de la pantalla para estar lista para hacer la transición, la carga se hará de forma asincrona para que el usuario no espere a que aparezca.
+---------------
+La transición entre pagina de inicio y pokedex / pokedex pagina de inicio no está bien, no está hecha según las especificaciones:
+## **TRANSICIÓN DE INICIO A POKÉDEX:**
+
+\- Creamos una pokedex (Horizontal o vertical dependiendo del tamaño de la pantalla) en la parte inferior fuera de la pantalla  
+\- Si la música se estuviera ejecutando bajamos el volúmen lentamente  
+\- Logo: Transiciona a la parte superior izquierda pero más pequeño, al pulsarlo vuelve a la página de inicio  
+\- Ash: va hacia la izquierda de la pantalla para desparecer y se destruye  
+\- Animación de pokemons, va hacia la derecha de la pantalla y se destruye  
+\- Botones y pokedex cerrada va hacia abajo de la pantalla y se destruye  
+\- Transicionamos la pokedex horizontal o vertical al medio de la pantalla para comenzar su manejo.
+
+## **TRANSICIÓN DE POKÉDEX A INICIO:**
+
+Será igual que la transición de inicio a pokédex pero al revés. Hay que cargar los elementos y asegurarse de que estén cargados antes de empezar la animación.
+
+En lugar de esto, los elementos aparecen de golpe, lo único que funciona parcialmente es la transición de pokedex a inicio que hace la animación menos la de ocultar la pokedex abierta
+
+Creo que existe sobreingeniería en este proceso y que el problema está en que directamente carga una página y eso impide la transición.
+-------------------------
+En el carrusel del pokemon hay que hacer algunos cambios:
+- Falta el botón de sonido del pokemon que reproduce el archivo de audio que se obtine de la pokeapi para ese pokemon
+- Que la lista no desaparezca, simplemento ponemos el carrusel por encima y hacemos que aparezcan los botones con una animación
+- Habría que añadir un botón de X (cerrar) a la derecha donde está el pokemon, al pulsar se destruyelle el carrusel y los botones con animaciones de encogimiento.
+- Las imágenes son muy pequeñas, hay que ajustarlas a un tamaño mínimo que ocupe una buena parte del espacio.
+- La navegación está fallando, si accedemos desde la lista a un pokemon, no hay que navegar a la página, solamente hay que cargar el pokemoon y los botones. Si accedemos desde url entonces si que hay que hacer la navegación con animaciones.
+- La politica de navegacion desde url o desde interfaz hay que anotarla en agents.md para futuros desarrollos

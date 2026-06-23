@@ -40,6 +40,14 @@ export function SlotLayer({ slot, x, y, width, height, content }: SlotLayerProps
               width: "100%",
               height: "100%",
               overflow: "hidden",
+              // `position: relative` para que los descendientes con
+              // `position: absolute` se posicionen respecto a este
+              // contenedor y NO respecto al viewport. Importante
+              // desde Plan 11: el overlay del carrusel usa
+              // `position: absolute; inset: 0` y debe quedarse dentro
+              // del slot del carrusel, no tapar otros slots como
+              // `SONIDO_POKEMON` o `BOTONES_CARRUSEL`.
+              position: "relative",
             }}
           >
             {content}

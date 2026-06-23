@@ -1,10 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, type CSSProperties } from "react";
-import { useFiltersContext } from "@/src/components/filters/FiltersProvider";
 import { useFilteredPokemonList } from "@/src/components/filters/useFilteredPokemonList";
-import { useNavigation } from "@/src/hooks/useNavigation";
-import type { Filters } from "@/src/lib/filters/types";
+import { useAppShell } from "@/src/components/app/ViewContext";
 import { PokemonListCard } from "./PokemonListCard";
 import "./pokemon-list.css";
 
@@ -35,7 +33,11 @@ import "./pokemon-list.css";
  *    reinicia automáticamente (re-fetch con `filterKey`).
  *  - Si la API devuelve `single=true`, la lista NO se monta: la UI
  *    debe navegar a la ficha del pokemon directamente.
- *  - Al pulsar una card → `router.push("/pokemon/<name>?<filtros>")`.
+ *  - Al pulsar una card → `useAppShell().goToPokemon(name)` (que
+ *    hace `history.pushState` sin recargar la página). Plan 11:
+ *    la lista se queda detrás del carrusel overlay y la Pokédex NO
+ *    se re-monta. Los filtros aplicados se mantienen vivos en la URL
+ *    vía `useFilters` (router.replace, sin entrada en historial).
  *
  * Accesibilidad:
  *  - `role="listbox"` con `aria-label`.
@@ -53,8 +55,7 @@ export interface PokemonListProps {
 }
 
 export function PokemonList({ selectedName = null }: PokemonListProps) {
-  const { filters } = useFiltersContext();
-  const navigation = useNavigation();
+  const { goToPokemon } = useAppShell();
 
   const {
     items,
@@ -119,12 +120,15 @@ export function PokemonList({ selectedName = null }: PokemonListProps) {
    * ---------------------------------------------------------------- */
   const onSelect = useCallback(
     (name: string) => {
-      const query = filtersToQueryString(filters);
-      const url =
-        query.length > 0 ? `/pokemon/${name}?${query}` : `/pokemon/${name}`;
-      navigation.router.push(url);
+      // Plan 11: navegación SPA sin recarga. `goToPokemon` hace
+      // `history.pushState({}, '', '/pokemon/<name>')` y actualiza el
+      // pathname en el estado. NO desmonta la Pokédex ni la lista:
+      // sólo dispara la animación de entrada del overlay del carrusel.
+      // Los filtros activos se preservan porque viven en la URL
+      // (`useFilters` los sincroniza con `router.replace`).
+      goToPokemon(name);
     },
-    [filters, navigation.router],
+    [goToPokemon],
   );
 
   /* ---------------------------------------------------------------- *
@@ -231,21 +235,4 @@ const errorStyle: CSSProperties = {
 /* ------------------------------------------------------------------------- *
  * Helpers
  * ------------------------------------------------------------------------- */
-
-/** Serializa los filtros activos como query string para preservar en la URL. */
-function filtersToQueryString(filters: Filters): string {
-  const params = new URLSearchParams();
-  const keys = Object.keys(filters) as Array<keyof Filters>;
-  for (const key of keys) {
-    const value = filters[key];
-    if (value === undefined || value === null) continue;
-    const raw =
-      typeof value === "object"
-        ? String((value as unknown as Record<string, unknown>).value ?? "")
-        : String(value);
-    if (raw === "") continue;
-    params.set(String(key), raw);
-  }
-  return params.toString();
-}
 
