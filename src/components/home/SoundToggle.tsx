@@ -3,7 +3,7 @@
 import { Volume2, VolumeX } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSoundMusic } from "@/src/components/home/SoundMusicContext";
-import { attachAudioController } from "@/src/components/transitions/useMusicFade";
+import { registerFadeableAudio } from "@/src/components/app/musicViewBinder";
 
 /**
  * Plan 03.4 — Botón de toggle para la música de la pantalla de inicio.
@@ -64,10 +64,7 @@ export function SoundToggle() {
     audio.preload = "auto";
     audio.volume = 0.6;
     audioRef.current = audio;
-    // Plan 04.1: registramos el audio en el controlador de fade
-    // para que el Plan 04.2 pueda hacer fade-out / fade-in sin tener
-    // que conocer la implementación interna de SoundToggle.
-    attachAudioController(audio);
+    registerFadeableAudio(audio);
     return audio;
   }, []);
 
@@ -79,10 +76,7 @@ export function SoundToggle() {
         audio.pause();
         audio.src = "";
         audioRef.current = null;
-        // Desregistramos para que el controlador de fade no opere
-        // sobre un audio muerto (que provocaría errores silenciosos
-        // si se invoca tras navegar a otra página).
-        attachAudioController(null);
+        registerFadeableAudio(null);
       }
     };
   }, []);

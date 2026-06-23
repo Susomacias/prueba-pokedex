@@ -2,6 +2,35 @@ import { BASE_COLORS } from "./colors";
 import type { ColorSet, PokemonType } from "@/src/lib/types/pokemon";
 
 /**
+ * Etiquetas en español para los 18 tipos canónicos.
+ *
+ * La PokeAPI no expone nombres de tipo traducidos, por lo que esta
+ * es la única fuente de verdad para mostrarlos al usuario en español.
+ * Se usa en chips de cards, dropdowns de filtros y resumen de la
+ * consola de filtros.
+ */
+export const POKEMON_TYPE_LABELS: Record<PokemonType, string> = {
+  normal: "Normal",
+  fighting: "Lucha",
+  flying: "Volador",
+  poison: "Veneno",
+  ground: "Tierra",
+  rock: "Roca",
+  bug: "Bicho",
+  ghost: "Fantasma",
+  steel: "Acero",
+  fire: "Fuego",
+  water: "Agua",
+  grass: "Planta",
+  electric: "Eléctrico",
+  psychic: "Psíquico",
+  ice: "Hielo",
+  dragon: "Dragón",
+  dark: "Siniestro",
+  fairy: "Hada",
+};
+
+/**
  * Colores por tipo de Pokémon.
  *
  * `bg`/`border` usan tonos saturados para fondos y bordes;

@@ -7,7 +7,10 @@ import type {
   Habitat,
   PokemonListItem,
 } from "@/src/lib/types/pokemon";
-import { POKEMON_TYPE_COLORS } from "@/src/lib/constants/pokemonTypes";
+import {
+  POKEMON_TYPE_COLORS,
+  POKEMON_TYPE_LABELS,
+} from "@/src/lib/constants/pokemonTypes";
 import { POKEMON_GENERATION_COLORS } from "@/src/lib/constants/pokemonGenerations";
 import { BASE_COLORS } from "@/src/lib/constants/colors";
 
@@ -139,7 +142,7 @@ function TypeChip({ type }: TypeChipProps) {
   return (
     <Chip
       testIdSuffix={`type-${type}`}
-      label={type}
+      label={POKEMON_TYPE_LABELS[type] ?? type}
       bg={palette.bg}
       border={palette.border}
       text={palette.text}

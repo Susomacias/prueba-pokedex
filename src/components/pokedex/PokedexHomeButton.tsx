@@ -2,76 +2,44 @@
 
 import { useCallback, useRef } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { pokedexTransitionBus } from "@/src/components/transitions/PokedexTransitionOut";
-import { markHomeArrivalFromPokedex } from "@/src/components/transitions/HomeTransitionOut";
+import { useView } from "@/src/components/app/ViewContext";
 
 /**
- * Plan 04.3 — Botón "Volver al inicio" de la Pokédex.
+ * Botón "Volver al inicio" de la Pokédex.
  *
- * El borrador (línea 317 del `Borrador_Pokedex.md`) establece que el
- * LOGO de la página de inicio debe servir como botón para volver a la
- * home desde la Pokédex. Este componente materializa esa idea: renderiza
- * la misma imagen `/pagina_inicio/logo.svg` que aparece en la home, pero
- * posicionada de forma fija en la esquina superior izquierda y dentro
- * de un `<button>` accesible.
+ * El borrador pide que el LOGO de la página de inicio actúe como
+ * botón para volver desde la Pokédex. Como ahora la Pokédex y la
+ * Home conviven en el mismo árbol (SPA de una sola URL), basta con
+ * cambiar el estado de vista a "home" — no hay navegación.
  *
- * Continuidad visual con la transición:
- *   - Salida de la home: el logo se anima desde el centro hacia la
- *     parte superior izquierda (`@keyframes home-exit-logo`).
- *   - Entrada en la Pokédex: este botón aparece en la misma posición
- *     final, dando la sensación de que el logo "aterriza" allí.
- *   - Vuelta a la home: al pulsar, se marca el flag de "venimos de
- *     la Pokédex" en `sessionStorage` (vía
- *     `markHomeArrivalFromPokedex`) para que el `HomeTransitionOut`
- *     ejecute la animación INVERSA de entrada (`home-enter-*`) al
- *     montarse la home.
- *
- * El botón consume `pokedexTransitionBus.playExit()` para coordinar
- * la coreografía con el `PokedexTransitionOut` que envuelve la
- * Pokédex (ver `src/components/transitions/PokedexTransitionOut.tsx`).
- *
- * Si NO hay `PokedexTransitionOut` montado (entornos sin la
- * transición, tests aislados), la navegación es directa (pero
- * seguimos marcando el flag para que la home ejecute la animación
- * de entrada).
- *
- * Accesibilidad:
- *   - `aria-label="Volver al inicio"`.
- *   - Foco visible con outline de alto contraste.
- *   - `type="button"` para evitar submits accidentales.
- *   - La imagen tiene `alt=""` + `aria-hidden` porque el botón ya
- *     aporta nombre accesible (evita duplicación).
+ * La continuidad visual con la transición es responsabilidad del
+ * CSS: cuando `data-view="home"`, el logo de la home vuelve desde
+ * la esquina superior izquierda al centro (`@keyframes
+ * home-enter-logo`), dando la sensación de que "este botón se
+ * convierte en el logo".
  */
-
 export interface PokedexHomeButtonProps {
   className?: string;
 }
 
 export function PokedexHomeButton({ className }: PokedexHomeButtonProps) {
-  const router = useRouter();
-  // Ref que evita dobles clicks mientras la transición está en curso.
+  const { goToHome, view } = useView();
   const inflightRef = useRef(false);
 
-  const handleClick = useCallback(async () => {
+  const handleClick = useCallback(() => {
     if (inflightRef.current) return;
+    if (view === "home") return;
     inflightRef.current = true;
     try {
-      // Marcamos ANTES de la animación que vamos a volver a la
-      // home. De este modo, aunque la home se monte muy rápido,
-      // el `HomeTransitionOut` verá el flag al inicializar y
-      // disparará la animación de entrada (`home-enter-*`).
-      markHomeArrivalFromPokedex();
-      if (pokedexTransitionBus.hasSubscriber()) {
-        await pokedexTransitionBus.playExit();
-        router.push("/", { scroll: false });
-      } else {
-        router.push("/", { scroll: false });
-      }
+      goToHome();
     } finally {
-      inflightRef.current = false;
+      // El flag se libera tras la duración de la animación (~800ms)
+      // para evitar clicks repetidos que compitan con la transición.
+      window.setTimeout(() => {
+        inflightRef.current = false;
+      }, 850);
     }
-  }, [router]);
+  }, [goToHome, view]);
 
   return (
     <button

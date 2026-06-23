@@ -9,6 +9,7 @@ import {
   type PokedexPageApi,
 } from "@/src/components/pokedex/PokedexPageProvider";
 import { FiltersProvider } from "@/src/components/filters/FiltersProvider";
+import { ViewProvider } from "@/src/components/app/ViewContext";
 import { createEmptySlots } from "@/src/components/pokedex/carcases/slots";
 
 // Mock de `useNavigation` para evitar que `useRouter` (de next/navigation)
@@ -109,14 +110,16 @@ function renderShell(
   }
   // Envoltorio en `FiltersProvider` para que `CarouselSlot` →
   // `PokemonList` pueda consumir `useFiltersContext` (Plan 06.1).
-  // En producción, `FiltersProvider` se monta en
-  // `src/app/pokedex/layout.tsx`.
+  // `ViewProvider` lo necesita `PokedexShell` desde la SPA de una
+  // sola URL: lee `useView()` para marcar `data-active-view`.
   return render(
-    <FiltersProvider>
-      <PokedexPageProvider>
-        <Harness />
-      </PokedexPageProvider>
-    </FiltersProvider>,
+    <ViewProvider initial="pokedex">
+      <FiltersProvider>
+        <PokedexPageProvider>
+          <Harness />
+        </PokedexPageProvider>
+      </FiltersProvider>
+    </ViewProvider>,
   );
 }
 
@@ -314,30 +317,14 @@ describe("PokedexShell (Plan 05.3)", () => {
     expect(group?.querySelector('[data-testid="pokemon-list"]')).not.toBeNull();
   });
 
-  it("el shell expone data-mount='enter' al primer paint (para animación de subida)", () => {
+  it("el shell expone data-active-view al primer paint (para reflejar la vista activa)", () => {
     renderShell();
     const shell = screen.getByTestId("pokedex-shell");
-    // Antes de que pase el efecto, el atributo debe estar en su valor
-    // inicial ("enter") para que la CSS dispare la animación. Después
-    // del setTimeout (850ms) pasa a "settled". Ambos estados son válidos
-    // aquí porque no esperamos al efecto.
-    expect(["enter", "settled"]).toContain(
-      shell.getAttribute("data-mount"),
-    );
-  });
-
-  it("el shell expone data-mount='settled' tras la animación de entrada", async () => {
-    vi.useFakeTimers();
-    await act(async () => {
-      renderShell();
-    });
-    // Avanzamos explícitamente más allá de la duración de la animación.
-    act(() => {
-      vi.advanceTimersByTime(1000);
-    });
-    const shell = screen.getByTestId("pokedex-shell");
-    expect(shell.getAttribute("data-mount")).toBe("settled");
-    vi.useRealTimers();
+    // En la SPA de una sola URL, el shell ya no necesita `data-mount`
+    // para su propia animación de subida (la hace el wrapper exterior
+    // `[data-view-target="pokedex"]` vía CSS). Sí expone la vista
+    // activa para que tests E2E y selectores puedan inspeccionarla.
+    expect(shell.getAttribute("data-active-view")).toBe("pokedex");
   });
 
   it("el host reserva un SHELL_INSET_DVH arriba y abajo para no tocar los bordes (corrección de PC muy pegado)", () => {

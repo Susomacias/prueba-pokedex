@@ -61,7 +61,7 @@ describe("PokemonListCard (Plan 06.2)", () => {
     const chips = screen.getAllByTestId("pokemon-list-card-chip");
     // tipo1 + tipo2 + habitat + generacion = 4
     expect(chips).toHaveLength(4);
-    expect(chips.map((c) => c.textContent)).toEqual(["fire", "flying", "montaña", "gen I"]);
+    expect(chips.map((c) => c.textContent)).toEqual(["Fuego", "Volador", "montaña", "gen I"]);
   });
 
   it("cuando sólo hay 1 tipo, renderiza 3 chips (tipo1 + habitat + generacion)", () => {
@@ -69,7 +69,7 @@ describe("PokemonListCard (Plan 06.2)", () => {
 
     const chips = screen.getAllByTestId("pokemon-list-card-chip");
     expect(chips).toHaveLength(3);
-    expect(chips.map((c) => c.textContent)).toEqual(["grass", "pradera", "gen I"]);
+    expect(chips.map((c) => c.textContent)).toEqual(["Planta", "pradera", "gen I"]);
   });
 
   it("los chips de tipo usan los colores de POKEMON_TYPE_COLORS", () => {

@@ -25,6 +25,7 @@ import {
 } from "@/src/components/pokedex/slots";
 import { CarouselProvider } from "@/src/components/pokedex/carousel/CarouselController";
 import { usePokedexPage } from "@/src/components/pokedex/PokedexPageProvider";
+import { useView } from "@/src/components/app/ViewContext";
 
 /**
  * Plan 05.3 + 05.4 — Ensamblador de slots y switch responsive.
@@ -58,6 +59,7 @@ import { usePokedexPage } from "@/src/components/pokedex/PokedexPageProvider";
 
 export function PokedexShell(): ReactElement {
   const orientation = useViewportLayout();
+  const { view } = useView();
   const {
     selectedName,
     mode3D,
@@ -66,44 +68,23 @@ export function PokedexShell(): ReactElement {
     filtersActive,
   } = usePokedexPage();
 
-  // `data-mount` activa la animación de ENTRADA de la Pokédex
-  // (`@keyframes pokedex-enter-shell` en `globals.css`). Sólo se
-  // aplica durante el primer montaje del shell: si Next.js remonta el
-  // componente durante navegaciones internas (pokedex → pokemon →
-  // pokedex) NO queremos volver a animar la entrada.
+  // El estado del shell es "enter" en el primer paint (la Pokédex
+  // sube desde abajo) y "settled" tras la animación. NO depende de
+  // la vista activa (la Pokédex se pre-renderiza offscreen al cargar
+  // la home; cuando el usuario pulsa PRESS START, los selectores CSS
+  // de `[data-view="pokedex"] .pokedex-shell` aplican la animación
+  // de entrada usando la posición final `translateY(0)` como destino).
   //
-  // Estrategia:
-  //   - El atributo parte como `"enter"` para que la animación arranque
-  //     en el primer paint.
-  //   - Un `useEffect` lo cambia a `"settled"` tras 850ms (la duración
-  //     de la animación más un buffer). A partir de ahí, futuros
-  //     remontajes sólo verán `data-mount="settled"` y no animarán.
-  //   - Si el usuario prefiere reducir movimiento, salta directamente
-  //     a `"instant"` para que la CSS oculte la animación.
-  //
-  // El atributo se aplica DIRECTAMENTE al nodo DOM del shell en lugar
-  // de a un wrapper externo, para que la transición de salida
-  // (`@keyframes pokedex-exit-shell`) y la de entrada operen sobre el
-  // mismo elemento y no se "pisen".
+  // En realidad la Pokédex SIEMPRE está al centro en su subtree
+  // (position absolute inset-0). Su "entrada" es el cambio de
+  // translateY del WRAPPER (`pokedex-view`) controlado por
+  // `data-view` en `globals.css`. El shell sólo necesita reflejar
+  // `data-view` para accesibilidad (atributos aria-hidden por
+  // slot) y marcar el atributo estable `data-testid`.
   const shellRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
-    // Detección de prefers-reduced-motion tolerante con SSR / tests
-    // sin matchMedia: si la API no está disponible, asumimos que NO
-    // se prefiere reducir el movimiento (comportamiento por defecto).
-    let reduced = false;
-    if (typeof window !== "undefined" && typeof window.matchMedia === "function") {
-      reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    }
-    if (reduced && shellRef.current) {
-      shellRef.current.setAttribute("data-mount", "instant");
-      return;
-    }
-    const t = setTimeout(() => {
-      if (shellRef.current) {
-        shellRef.current.setAttribute("data-mount", "settled");
-      }
-    }, 850);
-    return () => clearTimeout(t);
+    // Sin lógica: la animación de la Pokédex la gestiona el wrapper
+    // exterior (`[data-view-target="pokedex"]`) vía CSS.
   }, []);
 
   const slots: SlotMap = useMemo(() => {
@@ -179,7 +160,7 @@ export function PokedexShell(): ReactElement {
     <div
       ref={shellRef}
       data-testid="pokedex-shell"
-      data-mount="enter"
+      data-active-view={view}
       className="pokedex-shell"
       style={{
         position: "relative",

@@ -5,26 +5,15 @@ import {
   useSyncExternalStore,
   type CSSProperties,
 } from "react";
-import Link from "next/link";
-import { TRANSITION_PATHS } from "@/src/components/transitions/TransitionOrchestratorContext";
+import { useView } from "@/src/components/app/ViewContext";
 
 /**
- * Plan 03.4 + 03.5 + 04.1 + 04.2 — Botón "PRESS START" de la pantalla
- * de inicio.
+ * Botón "PRESS START" de la pantalla de inicio.
  *
- * En 03.5 se renderiza como un `<Link>` de Next.js para beneficiarse
- * del prefetch automático. Plan 04.1 añadió una interceptación del
- * click para llamar al orquestador de transiciones. Plan 04.2 ha
- * refactorizado la interceptación: ahora la navegación (con o sin
- * animación) la coordina `HomeNavigationContext.navigate()`, que
- * dispara `homeTransitionBus.playExit()` antes del push.
- *
- * Resultado: este botón ya NO necesita interceptar el click. El
- * `<Link>` navega de forma nativa y, gracias al listener global de
- * clicks del `HomeNavController` (que NO intercepta clicks sobre
- * `<a>`/`<button>`), el `HomeNavigationContext` recibe la
- * navegación. Si está montado un `HomeTransitionOut`, se ejecuta la
- * animación; si no, la navegación es directa.
+ * Cambia la vista a "pokedex" vía `useView()`. No navega: la Pokédex
+ * ya está pre-renderizada offscreen en el árbol, así que pulsar
+ * PRESS START sólo dispara la transición CSS que sube la Pokédex al
+ * centro y mueve la home fuera de pantalla.
  *
  * Estilo arcade: bisel + glow pulsante (`animate-press-start-pulse`),
  * desactivado automáticamente cuando el usuario tiene
@@ -32,9 +21,6 @@ import { TRANSITION_PATHS } from "@/src/components/transitions/TransitionOrchest
  */
 
 function usePrefersReducedMotion(): boolean {
-  // Usamos `useSyncExternalStore` (canónico React 19) para leer la
-  // media query de forma segura frente a hidratación y evitar
-  // `setState` dentro de `useEffect` (anti-patrón React 19).
   const subscribe = (cb: () => void) => {
     if (typeof window === "undefined" || !window.matchMedia) {
       return () => undefined;
@@ -64,16 +50,20 @@ const BASE_CLASSES =
 
 export function PressStartButton() {
   const reduceMotion = usePrefersReducedMotion();
+  const { goToPokedex, view } = useView();
   const pulseStyle: CSSProperties = reduceMotion ? { animation: "none" } : {};
   const classes = useMemo(
     () => BASE_CLASSES + (reduceMotion ? "" : " animate-press-start-pulse"),
     [reduceMotion],
   );
 
+  const disabled = view !== "home";
+
   return (
-    <Link
-      href={TRANSITION_PATHS.pokedex}
-      prefetch
+    <button
+      type="button"
+      onClick={goToPokedex}
+      disabled={disabled}
       aria-label="PRESS START — entrar a la Pokédex"
       data-testid="home-press-start"
       className={classes}
@@ -82,6 +72,6 @@ export function PressStartButton() {
       <span className="relative z-10 drop-shadow-[1px_1px_0_rgba(255,255,255,0.6)]">
         PRESS START
       </span>
-    </Link>
+    </button>
   );
 }

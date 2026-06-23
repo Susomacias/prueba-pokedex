@@ -4,6 +4,7 @@ import type {
   PokemonType,
   Generation,
 } from "@/src/lib/types/pokemon";
+import { POKEMON_TYPE_LABELS } from "@/src/lib/constants/pokemonTypes";
 
 /**
  * Filtros activos — Plan 02.2.
@@ -44,7 +45,7 @@ export const FILTERS = [
     label: "Tipo 1",
     parse: (raw: string): PokemonType | undefined =>
       raw === "" ? undefined : (raw as PokemonType),
-    format: (value: PokemonType): string => value,
+    format: (value: PokemonType): string => POKEMON_TYPE_LABELS[value] ?? value,
   },
   {
     key: "type2",
@@ -52,7 +53,7 @@ export const FILTERS = [
     label: "Tipo 2",
     parse: (raw: string): PokemonType | undefined =>
       raw === "" ? undefined : (raw as PokemonType),
-    format: (value: PokemonType): string => value,
+    format: (value: PokemonType): string => POKEMON_TYPE_LABELS[value] ?? value,
   },
   {
     key: "generation",

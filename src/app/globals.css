@@ -259,250 +259,178 @@ body {
 }
 
 /* -------------------------------------------------------------------------- *
- * Animaciones — Plan 04.2 + 04.3 (transición Inicio ↔ Pokédex)
+ * Animaciones — Transición Inicio ↔ Pokédex (SPA, una sola URL)
  * -------------------------------------------------------------------------- *
  *
- * IMPORTANTE: estas animaciones se declaran en CSS PLANO (no dentro
- * de `@layer utilities`) porque Tailwind v4 PURGA los selectores que
- * no detecta en el HTML estático que escanea. Los selectores de
- * transición (`[data-leaving="true"]`, `[data-mount="enter"]`,
- * `[data-arrival-from="pokedex"]`) se aplican DINÁMICAMENTE desde
- * JavaScript en runtime, así que Tailwind no los encuentra en el
- * escaneo y los BORRARÍA del bundle compilado, rompiendo la
- * animación sin que se vea ningún error en consola.
+ * Arquitectura: la Home y la Pokédex conviven SIEMPRE en el árbol.
+ * El estado de vista activa (`data-view="home" | "pokedex"`) en el
+ * contenedor raíz del AppShell decide cuál es visible:
  *
- * Por eso este bloque va entero FUERA de cualquier `@layer` y se
- * sitúa al final del archivo, después de cualquier bloque `@layer`.
+ *   - data-view="home"   → .home-view visible al centro,
+ *                          .pokedex-view translateY(100%) (offscreen).
+ *   - data-view="pokedex"→ .pokedex-view translateY(0) al centro,
+ *                          .home-view: logo/ash/slider/botones
+ *                          animados fuera de pantalla.
  *
- * Coreografía:
- *   - Salida de la home (data-leaving="true"): logo arriba-izquierda
- *     + scale 0.5, ash izquierda, slider derecha, pokedex cerrada y
- *     botones abajo. La Pokédex abierta (premontada con la lista)
- *     sube al centro (Plan 06 / 08: ya montada en la Home vía
- *     portal).
- *   - Entrada de la home (data-arrival-from="pokedex"): camino
- *     inverso — los elementos llegan desde sus posiciones finales
- *     de salida hasta el centro de la pantalla. Esta es la
- *     transición Pokédex → Inicio del borrador (líneas 120-122 del
- *     Borrador_Pokedex.md): "Será igual que la transición de inicio
- *     a pokédex pero al revés".
- *   - Salida de la Pokédex (data-leaving="true" en
- *     [data-pokedex-shell-wrapper]): la carcasa baja con fade out.
- *   - Entrada de la Pokédex (data-mount="enter"): la carcasa sube
- *     desde la parte inferior de la pantalla al centro.
+ * Coreografía (vista home → pokedex):
+ *   - logo: centro → arriba-izquierda con scale 0.5.
+ *   - ash:  centro → izquierda.
+ *   - slider pokemons: centro → derecha.
+ *   - pokedex cerrada + botones fila inferior: centro → abajo.
+ *   - pokedex abierta: sube desde translateY(100%) a 0.
  *
- * Música: `useMusicFadeController` reduce/sube el volumen en
- * paralelo (no pausamos del todo para permitir reentrada suave).
+ * Coreografía inversa (pokedex → home): mismos elementos vuelven
+ * desde sus posiciones finales hasta el centro.
  *
- * `prefers-reduced-motion`: con `data-leaving="instant"` /
- * `data-mount="instant"` / `data-arrival-from="pokedex-instant"`
- * los elementos aparecen/desaparecen sin animar. Cumple
+ * `prefers-reduced-motion`: cuando está activo, el contenedor raíz
+ * recibe `data-view="home-instant" | "pokedex-instant"` y los
+ * elementos saltan a su posición final sin animar. Cumple
  * accesibilidad.
+ *
+ * NOTA: las reglas se escriben en CSS plano (fuera de @layer) para
+ * que Tailwind v4 no las purgue: los selectores `[data-view="..."]`
+ * son dinámicos y Tailwind no los detecta en el escaneo estático.
  */
 
-/* ===== Keyframes ===== */
+/* ===== Posiciones de cada elemento en cada vista =====
+   Centralizamos los transforms en variables CSS para reutilizar las
+   posiciones finales en home-exit, pokedex-exit y las entradas. */
 
-@keyframes home-exit-logo {
-  0% {
-    transform: translate(0, 0) scale(1);
-    opacity: 1;
-  }
-  100% {
-    /* El borrador pide que el logo se mueva del centro a la parte
-       SUPERIOR IZQUIERDA y se quede allí como botón "Volver al
-       inicio" en la Pokédex. Para que el resultado se vea igual en
-       cualquier viewport usamos porcentajes negativos: el logo se
-       desplaza ~45% a la izquierda y ~40% hacia arriba desde su
-       posición centrada original. El `scale(0.5)` reduce su tamaño
-       para encajar como botón de la Pokédex. */
-    transform: translate(-45vw, -40dvh) scale(0.5);
-    opacity: 0;
-  }
+.home-exit-target-logo {
+  --pos-active: translate(0, 0) scale(1);
+  --pos-leaving: translate(-45vw, -40dvh) scale(0.5);
+  --pos-arriving: translate(-45vw, -40dvh) scale(0.5);
+}
+.home-exit-target-ash {
+  --pos-active: translateX(0);
+  --pos-leaving: translateX(-100vw);
+  --pos-arriving: translateX(-100vw);
+}
+.home-exit-target-slider {
+  --pos-active: translateX(0);
+  --pos-leaving: translateX(100vw);
+  --pos-arriving: translateX(100vw);
+}
+.home-exit-target-bottom {
+  --pos-active: translateY(0);
+  --pos-leaving: translateY(100vh);
+  --pos-arriving: translateY(100vh);
 }
 
-@keyframes home-exit-ash {
-  0% {
-    transform: translateX(0);
-    opacity: 1;
-  }
-  100% {
-    transform: translateX(-100vw);
-    opacity: 0;
-  }
+/* Estado base (vista = home, todo en su sitio). Las transiciones
+   CSS animan los cambios de propiedad al modificarse --pos-*. */
+.home-exit-target-logo,
+.home-exit-target-ash,
+.home-exit-target-slider,
+.home-exit-target-bottom {
+  transform: var(--pos-active);
+  opacity: 1;
+  transition:
+    transform 700ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 500ms ease-out;
+  will-change: transform, opacity;
 }
 
-@keyframes home-exit-slider {
-  0% {
-    transform: translateX(0);
-    opacity: 1;
-  }
-  100% {
-    transform: translateX(100vw);
-    opacity: 0;
-  }
+/* Cuando la vista activa es "pokedex", el contenedor padre lleva
+   [data-view="pokedex"]. Movemos cada elemento a su posición
+   --pos-leaving para que la transición CSS se dispare. */
+[data-view="pokedex"] .home-exit-target-logo {
+  transform: var(--pos-leaving);
+  opacity: 0;
+}
+[data-view="pokedex"] .home-exit-target-ash {
+  transform: var(--pos-leaving);
+  opacity: 0;
+}
+[data-view="pokedex"] .home-exit-target-slider {
+  transform: var(--pos-leaving);
+  opacity: 0;
+}
+[data-view="pokedex"] .home-exit-target-bottom {
+  transform: var(--pos-leaving);
+  opacity: 0;
 }
 
-@keyframes home-exit-bottom {
-  0% {
-    transform: translateY(0);
-    opacity: 1;
-  }
-  100% {
-    transform: translateY(100vh);
-    opacity: 0;
-  }
+/* El contenedor .home-view se "apaga" (no recibe pointer-events y
+   se vuelve invisible al final de la transición) cuando la Pokédex
+   está activa. Así el usuario no puede clickar accidentalmente sobre
+   un botón fantasma de la home que está debajo de la Pokédex. */
+.home-view {
+  opacity: 1;
+  pointer-events: auto;
+  transition: opacity 600ms ease-out 100ms;
+  z-index: 1;
+}
+.pokedex-view {
+  opacity: 1;
+  pointer-events: none;
+  z-index: 2;
+  transform: translateY(100%);
+  transition:
+    transform 800ms cubic-bezier(0.16, 1, 0.3, 1) 100ms,
+    opacity 400ms ease-out;
+  will-change: transform, opacity;
+}
+[data-view="pokedex"] .home-view {
+  opacity: 0;
+  pointer-events: none;
+  transition-delay: 350ms;
+}
+[data-view="pokedex"] .pokedex-view {
+  transform: translateY(0);
+  pointer-events: auto;
+  transition-delay: 100ms;
+}
+[data-view="home"] .pokedex-view {
+  pointer-events: none;
 }
 
-/* Animaciones inversas (entrada) — se usan cuando el usuario VIENE
-   de la Pokédex (data-arrival-from="pokedex"). Los elementos
-   empiezan en sus posiciones finales de salida y vuelven al centro
-   de la pantalla. */
-
-/* Logo: entra desde arriba-izquierda (donde quedó al salir) hacia
-   el centro con un scale desde 0.5 hasta 1. */
-@keyframes home-enter-logo {
-  0% {
-    transform: translate(-45vw, -40dvh) scale(0.5);
-    opacity: 0;
-  }
-  100% {
-    transform: translate(0, 0) scale(1);
-    opacity: 1;
-  }
+/* El PRESS START debe ser no-clickable mientras la Pokédex está
+   activa para evitar dobles disparos. El componente ya controla el
+   atributo `disabled`, pero el CSS refuerza el aspecto visual. */
+[data-view="pokedex"] [data-testid="home-press-start"] {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 300ms ease-out 200ms;
 }
 
-/* Ash: entra desde la izquierda. */
-@keyframes home-enter-ash {
-  0% {
-    transform: translateX(-100vw);
-    opacity: 0;
-  }
-  100% {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
+/* ===== prefers-reduced-motion ===== */
 
-/* Slider pokemons: entra desde la derecha. */
-@keyframes home-enter-slider {
-  0% {
-    transform: translateX(100vw);
-    opacity: 0;
-  }
-  100% {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-/* Pokédex cerrada + botones de la fila inferior: entran desde abajo. */
-@keyframes home-enter-bottom {
-  0% {
-    transform: translateY(100vh);
-    opacity: 0;
-  }
-  100% {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-@keyframes pokedex-exit-shell {
-  0% {
-    transform: translateY(0);
-    opacity: 1;
-  }
-  100% {
-    transform: translateY(100%);
-    opacity: 0;
+@media (prefers-reduced-motion: reduce) {
+  .home-exit-target-logo,
+  .home-exit-target-ash,
+  .home-exit-target-slider,
+  .home-exit-target-bottom,
+  .home-view,
+  .pokedex-view {
+    transition-duration: 0ms !important;
+    transition-delay: 0ms !important;
   }
 }
 
-@keyframes pokedex-enter-shell {
-  0% {
-    transform: translateY(100%);
-    opacity: 0;
-  }
-  100% {
-    transform: translateY(0);
-    opacity: 1;
-  }
+/* El componente que detecta prefers-reduced-motion aplica el valor
+   "home-instant" | "pokedex-instant" al contenedor raíz. En esos
+   casos saltamos a la posición final sin animar (sin transition). */
+[data-view$="-instant"] .home-exit-target-logo,
+[data-view$="-instant"] .home-exit-target-ash,
+[data-view$="-instant"] .home-exit-target-slider,
+[data-view$="-instant"] .home-exit-target-bottom,
+[data-view$="-instant"] .home-view,
+[data-view$="-instant"] .pokedex-view {
+  transition: none !important;
 }
-
-/* ===== Selectores (CSS plano, fuera de @layer utilities) ===== */
-
-/* Cuando el contenedor raíz tiene `data-leaving="true"` aplicamos
-   las animaciones de salida a sus descendientes. */
-[data-leaving="true"] .home-exit-target-logo {
-  animation: home-exit-logo 800ms ease-in-out forwards;
+[data-view="pokedex-instant"] .home-exit-target-logo,
+[data-view="pokedex-instant"] .home-exit-target-ash,
+[data-view="pokedex-instant"] .home-exit-target-slider,
+[data-view="pokedex-instant"] .home-exit-target-bottom {
+  transform: var(--pos-leaving);
+  opacity: 0;
 }
-[data-leaving="true"] .home-exit-target-ash {
-  animation: home-exit-ash 600ms ease-in forwards;
+[data-view="pokedex-instant"] .home-view {
+  opacity: 0;
+  pointer-events: none;
 }
-[data-leaving="true"] .home-exit-target-slider {
-  animation: home-exit-slider 600ms ease-in forwards;
-}
-[data-leaving="true"] .home-exit-target-bottom {
-  animation: home-exit-bottom 600ms ease-in forwards;
-}
-
-/* Entrada de la home (viniendo de la Pokédex). Se activa cuando el
-   contenedor raíz tiene `data-arrival-from="pokedex"` (lo marca
-   `HomeTransitionOut` al detectar que llegamos desde /pokedex). */
-[data-arrival-from="pokedex"] .home-exit-target-logo {
-  animation: home-enter-logo 800ms ease-in-out forwards;
-}
-[data-arrival-from="pokedex"] .home-exit-target-ash {
-  animation: home-enter-ash 600ms ease-out forwards;
-}
-[data-arrival-from="pokedex"] .home-exit-target-slider {
-  animation: home-enter-slider 600ms ease-out forwards;
-}
-[data-arrival-from="pokedex"] .home-exit-target-bottom {
-  animation: home-enter-bottom 600ms ease-out forwards;
-}
-
-/* Cuando `data-leaving="instant"` (reduced-motion) los elementos
-   desaparecen sin animar. */
-[data-leaving="instant"] .home-exit-target-logo,
-[data-leaving="instant"] .home-exit-target-ash,
-[data-leaving="instant"] .home-exit-target-slider,
-[data-leaving="instant"] .home-exit-target-bottom {
-  animation: none !important;
-  opacity: 0 !important;
-  transform: none !important;
-}
-
-/* Cuando `data-arrival-from="pokedex-instant"` (reduced-motion en la
-   transición Pokédex → Home), los elementos aparecen directamente en
-   su posición final sin animar. */
-[data-arrival-from="pokedex-instant"] .home-exit-target-logo,
-[data-arrival-from="pokedex-instant"] .home-exit-target-ash,
-[data-arrival-from="pokedex-instant"] .home-exit-target-slider,
-[data-arrival-from="pokedex-instant"] .home-exit-target-bottom {
-  animation: none !important;
-  opacity: 1 !important;
-  transform: none !important;
-}
-
-/* Salida de la Pokédex (data-leaving="true" en el wrapper). */
-[data-leaving="true"] [data-pokedex-shell] {
-  animation: pokedex-exit-shell 600ms ease-in forwards;
-}
-[data-leaving="instant"] [data-pokedex-shell] {
-  animation: none !important;
-  opacity: 0 !important;
-  transform: none !important;
-}
-
-/* Entrada de la Pokédex (al montarse en /pokedex). El atributo
-   `data-mount="enter"` se aplica durante el primer render y se
-   quita tras 850ms en `PokedexShell.tsx`. */
-[data-pokedex-shell][data-mount="enter"] {
-  animation: pokedex-enter-shell 800ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-[data-pokedex-shell][data-mount="instant"] {
-  animation: none !important;
-  opacity: 1 !important;
-  transform: none !important;
+[data-view="pokedex-instant"] .pokedex-view {
+  transform: translateY(0);
+  pointer-events: auto;
 }

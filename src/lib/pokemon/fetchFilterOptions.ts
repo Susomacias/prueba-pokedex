@@ -10,6 +10,7 @@ import {
   type PokemonType,
 } from "@/src/lib/types/pokemon";
 import { HABITAT_IMAGES } from "@/src/lib/constants/habitats";
+import { POKEMON_TYPE_LABELS } from "@/src/lib/constants/pokemonTypes";
 import { request } from "@/src/lib/graphql/client";
 import {
   ABILITIES_QUERY,
@@ -68,27 +69,6 @@ const GENERATION_LABEL: Record<Generation, string> = {
   "generation-vii": "Generación VII",
   "generation-viii": "Generación VIII",
   "generation-ix": "Generación IX",
-};
-
-const TYPE_LABEL: Record<PokemonType, string> = {
-  normal: "Normal",
-  fighting: "Lucha",
-  flying: "Volador",
-  poison: "Veneno",
-  ground: "Tierra",
-  rock: "Roca",
-  bug: "Bicho",
-  ghost: "Fantasma",
-  steel: "Acero",
-  fire: "Fuego",
-  water: "Agua",
-  grass: "Planta",
-  electric: "Eléctrico",
-  psychic: "Psíquico",
-  ice: "Hielo",
-  dragon: "Dragón",
-  dark: "Siniestro",
-  fairy: "Hada",
 };
 
 /**
@@ -155,7 +135,7 @@ function mapTypes(raw: ReadonlyArray<RawType>): ReadonlyArray<FilterOption> {
     const type = t.name as PokemonType;
     out.push({
       value: type,
-      label: TYPE_LABEL[type],
+      label: POKEMON_TYPE_LABELS[type],
     });
   }
   return out;
