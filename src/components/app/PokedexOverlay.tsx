@@ -5,6 +5,7 @@ import { FiltersProvider } from "@/src/components/filters/FiltersProvider";
 import { PokedexPageProvider } from "@/src/components/pokedex/PokedexPageProvider";
 import { PokedexShell } from "@/src/components/pokedex/PokedexShell";
 import { PokedexHomeButton } from "@/src/components/pokedex/PokedexHomeButton";
+import { DataLoadingAggregator } from "@/src/components/loading/DataLoadingAggregator";
 
 /**
  * Vista "Pokédex abierta" siempre pre-renderizada en el árbol.
@@ -21,6 +22,13 @@ import { PokedexHomeButton } from "@/src/components/pokedex/PokedexHomeButton";
  * El botón "Volver al inicio" se renderiza también dentro de este
  * subtree. Al estar en posición fija arriba-izquierda es siempre
  * visible cuando la Pokédex está activa.
+ *
+ * Plan 06.7 — `DataLoadingAggregator` se monta como hermano del
+ * `PokedexShell` (no como hijo) para que pueda leer el
+ * `selectedName` desde el `PokedexPageProvider` sin depender del
+ * `CarouselProvider` (que sí envuelve la carcasa del shell). El
+ * aggregator renderiza un `LoadingPikachu` discreto en la esquina
+ * inferior-derecha mientras hay cargas de datos activas.
  */
 export function PokedexOverlay() {
   return (
@@ -29,6 +37,7 @@ export function PokedexOverlay() {
         <PokedexPageProvider>
           <PokedexHomeButton />
           <PokedexShell />
+          <DataLoadingAggregator />
         </PokedexPageProvider>
       </FiltersProvider>
     </Suspense>

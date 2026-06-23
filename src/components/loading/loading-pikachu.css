@@ -1,0 +1,75 @@
+/* Plan 06.7 — Animación del `LoadingPikachu`.
+ *
+ * El pikachu se posiciona en la ESQUINA SUPERIOR IZQUIERDA
+ * (cerca del logo, alineado con `top: 12px; left: 12px` desde
+ * el `DataLoadingAggregator`). Desde ahí recorre la pantalla
+ * hacia la derecha, atravesándola de extremo a extremo, hasta
+ * desaparecer por el borde derecho con un fade-out.
+ *
+ * Recorrido: `translateX(0)` (esquina superior izquierda) →
+ * `translateX(calc(100vw - 100% - 24px))` (esquina superior
+ * derecha, alineada con el padding derecho del contenedor) →
+ * `translateX(120vw)` (fuera de pantalla). El pikachu cruza
+ * así toda la zona SUPERIOR de la pantalla en línea recta.
+ *
+ * La duración por defecto es 2400 ms pero puede sobreescribirse
+ * con la variable CSS `--loading-pikachu-duration` (los tests
+ * lo hacen para acelerar los casos con timers).
+ *
+ * `prefers-reduced-motion: reduce` desactiva la animación: el
+ * gif queda visible estático en su posición inicial (esquina
+ * superior izquierda). El componente cliente sigue ciclando al
+ * detectar `animationend` (que en ese caso se dispara
+ * inmediatamente con duración 0) — el efecto visual es que el
+ * pikachu parpadea al final de cada "ciclo", pero NO anima de
+ * izquierda a derecha (respeta la preferencia del usuario).
+ */
+
+.loading-pikachu {
+  /* Tamaño pequeño y discreto. Override posible vía inline
+     style (los tests verifican que NO excede 40×40). */
+  width: 28px;
+  height: 28px;
+  display: inline-block;
+  pointer-events: none;
+  user-select: none;
+  /* El contenedor NO se anima (sólo la imagen interior).
+     Así el `width: 28px` no se "estira" durante el
+     translateX. */
+  overflow: visible;
+}
+
+.loading-pikachu__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  animation: loading-pikachu-cross var(--loading-pikachu-duration, 2400ms)
+    linear forwards;
+  will-change: transform, opacity;
+}
+
+@keyframes loading-pikachu-cross {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  85% {
+    /* Casi en la esquina superior derecha: ancho del viewport
+       menos el ancho del pikachu y su padding derecho (12px). */
+    transform: translateX(calc(100vw - 100% - 24px));
+    opacity: 0.85;
+  }
+  100% {
+    /* Fuera de pantalla por la derecha. */
+    transform: translateX(120vw);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-pikachu__img {
+    animation: none;
+    opacity: 1;
+  }
+}
