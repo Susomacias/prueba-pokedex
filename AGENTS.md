@@ -4,6 +4,140 @@
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
 
+## Endpoint GraphQL de PokeAPI — REGLAS DURAS
+
+> **LEE ESTO ANTES DE TOCAR CUALQUIER QUERY O FIXTURE DE POKEMON.**
+
+El proyecto usa **exclusivamente** el endpoint:
+
+```
+https://beta.pokeapi.co/graphql/v1beta
+```
+
+(NO `https://graphql.pokeapi.co/v1beta2` — ese está **caído** desde
+junio de 2026 con HTTP 521 de Cloudflare `origin_down` y no responde
+aunque la query esté bien formada.)
+
+### Schema: prefijo `pokemon_v2_` obligatorio
+
+Este endpoint expone el schema con el **prefijo `pokemon_v2_` en todos
+los tipos y campos** (igual que la PokeAPI REST `/api/v2/...` y que los
+queries de Postman/curl clásicos). Los nombres sin prefijo
+(`pokemonspecies`, `pokemontypes`, etc.) **NO existen** en este endpoint
+y devuelven `field not found in type: 'query_root'`.
+
+### Ejemplo real que funciona (verificado en Postman y desde este repo)
+
+```graphql
+POST https://beta.pokeapi.co/graphql/v1beta
+Content-Type: application/json
+
+{
+  "query": "query getPokemonData { pokemon_v2_pokemon(where: {name: {_eq: \"pikachu\"}}) { id name height weight pokemon_v2_pokemontypes { pokemon_v2_type { name } } } }"
+}
+```
+
+Devuelve:
+
+```json
+{
+  "data": {
+    "pokemon_v2_pokemon": [
+      {
+        "id": 25,
+        "name": "pikachu",
+        "height": 4,
+        "weight": 60,
+        "pokemon_v2_pokemontypes": [
+          { "pokemon_v2_type": { "name": "electric" } }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### Mapeo de nombres (v1beta2 → v1beta)
+
+| Schema v1beta2 (caído)        | Schema v1beta (usado)              |
+| ----------------------------- | ---------------------------------- |
+| `pokemon`                     | `pokemon_v2_pokemon`               |
+| `pokemonspecies`              | `pokemon_v2_pokemonspecies`        |
+| `pokemon` (default form)      | `pokemon_v2_pokemons` (plural)     |
+| `pokemonspecy` (singular FK)  | `pokemon_v2_pokemonspecy`          |
+| `pokemontypes`                | `pokemon_v2_pokemontypes`          |
+| `pokemonsprites`              | `pokemon_v2_pokemonsprites`        |
+| `pokemonabilities`            | `pokemon_v2_pokemonabilities`      |
+| `pokemonstats`                | `pokemon_v2_pokemonstats`          |
+| `pokemoncries`                | `pokemon_v2_pokemoncries`          |
+| `pokemonspeciesflavortexts`   | `pokemon_v2_pokemonspeciesflavortexts` |
+| `pokemonhabitat`              | `pokemon_v2_pokemonhabitat`        |
+| `pokemoncolor`                | `pokemon_v2_pokemoncolor`          |
+| `pokemonmove`                 | `pokemon_v2_pokemonmove`           |
+| `pokemon_aggregate`           | `pokemon_v2_pokemon_aggregate`     |
+| `pokemon_bool_exp`            | `pokemon_v2_pokemon_bool_exp`      |
+| `pokemon_order_by`            | `pokemon_v2_pokemon_order_by`      |
+| `type`                        | `pokemon_v2_type`                  |
+| `generation`                  | `pokemon_v2_generation`            |
+| `ability`                     | `pokemon_v2_ability`               |
+| `evolutionchain`              | `pokemon_v2_evolutionchain`        |
+
+Lo mismo aplica a las relaciones anidadas: dentro de
+`pokemon_v2_pokemonspecies { pokemon_v2_pokemons }` el campo `type`
+del type pasa a ser `pokemon_v2_type`, `ability` → `pokemon_v2_ability`,
+`language` → `pokemon_v2_language`, `version` → `pokemon_v2_version`,
+etc.
+
+### CORS y proxy
+
+`beta.pokeapi.co/graphql/v1beta` devuelve `Access-Control-Allow-Origin: *`
+en las respuestas, así que el navegador puede llamarlo directamente
+sin proxy. El proyecto sigue exponiendo el proxy same-origin
+`/api/pokeapi` (`src/app/api/pokeapi/route.ts`) por si en el futuro
+cambia la política de CORS del endpoint, pero ya no es estrictamente
+necesario.
+
+### Si el endpoint vuelve a caer o cambia
+
+1. Verificar primero que la red alcanza `beta.pokeapi.co`:
+   ```bash
+   curl -X POST https://beta.pokeapi.co/graphql/v1beta \
+     -H "Content-Type: application/json" \
+     -d '{"query":"{ __typename }"}'
+   ```
+2. Si responde 200 y la app sigue fallando, el problema es nuestro:
+   revisar fixtures y mocks contra la tabla de mapeo de arriba.
+3. Si responde 5xx, **NO** cambiar el código de la app para "arreglarlo":
+   el upstream está caído. La UI ya muestra un mensaje legible y un
+   contador de reintentos (ver "Política de auto-retry" más abajo).
+
+## Política de auto-retry y errores 5xx del upstream
+
+Cuando el proxy `/api/pokeapi` (o el endpoint directo en RSC) recibe
+un 5xx del upstream:
+
+- El proxy normaliza la respuesta a shape GraphQL estándar:
+  `{ data: null, errors: [{ message, extensions: { code, retryable, upstreamStatus, retryAfter } }] }`.
+  Los códigos posibles son:
+  - `UPSTREAM_CLOUDFLARE_521` — Cloudflare `origin_down`
+  - `UPSTREAM_CLOUDFLARE_5XX` — otros 5xx de Cloudflare
+  - `UPSTREAM_5XX` — 5xx genérico
+  - `UPSTREAM_NETWORK` — fetch upstream rechaza (red caída)
+  - `UPSTREAM_NON_JSON` — upstream devolvió HTML / no-JSON
+- El cliente (`src/lib/graphql/client.ts`) lanza `GraphQLUpstreamError`
+  con `status`, `retryable`, `retryAfterMs` (leídos del body normalizado
+  o del header HTTP `Retry-After`).
+- El hook `useFilteredPokemonList` (`src/components/filters/useFilteredPokemonList.ts`)
+  usa `retryAfterMs` como **suelo** del backoff de auto-retry. Si
+  Cloudflare sugiere 120s (lo normal en 521), reintenta a los 120s en
+  vez de cada 1-2-4s como antes. Tope: 3 reintentos.
+
+La UI (`PokemonList.tsx`) muestra un mensaje en español según el código:
+> "La PokéAPI está temporalmente caída (Cloudflare 521)..."
+> "Reintentaremos automáticamente en 2:00"
+
+Y un botón "Reintentar" para forzar un reintento manual.
+
 ## Comandos obligatorios al final de cada fase
 
 Tras completar el código de una fase, ejecuta SIEMPRE estos comandos y confirma que pasan en verde antes de dar la fase por terminada:
@@ -90,7 +224,7 @@ Si una fase necesita verificar comportamiento contra PokeAPI real
 - Marcarse con `@live-api` y `test.skip(!process.env.POKEAPI_REACHABLE)`.
 - Usar SIEMPRE pokemons reales y estables (`pikachu`, `eevee`,
   `magikarp`, `bulbasaur`).
-- **NO** usar `page.route('**/graphql.pokeapi.co/**', ...)` para
+- **NO** usar `page.route('**/beta.pokeapi.co/graphql/**', ...)` para
   mockear respuestas — el objetivo es validar la integración real.
 
 ## Tests unitarios — qué validar y qué no
@@ -273,8 +407,9 @@ valores nominales (ver `node_modules/next/dist/docs/01-app/03-api-reference/01-d
 ## Fixtures de tests basadas en PokeAPI real
 
 Todo test que valide la **forma de los datos** que devuelve PokeAPI
-(shape de `pokemonsprites`, `pokemontypes`, `pokemonspecies`,
-`pokemonhabitat`, `pokemonstats`, `pokemonevolutions`, `cry`, etc.)
+(shape de `pokemon_v2_pokemonsprites`, `pokemon_v2_pokemontypes`,
+`pokemon_v2_pokemonspecies`, `pokemon_v2_pokemonhabitat`,
+`pokemon_v2_pokemonstats`, `pokemon_v2_pokemonabilities`, `cry`, etc.)
 debe usar **fixtures capturados de respuestas reales** de PokeAPI,
 NO objetos literales inventados en el test.
 
@@ -284,10 +419,10 @@ NO objetos literales inventados en el test.
 - **Generación**: `scripts/capture-pokeapi-fixture.ts` ejecuta la
   query GraphQL correspondiente (`POKEMON_LIST_QUERY`,
   `POKEMON_LIST_FILTERED_QUERY`, `POKEMON_DETAIL_QUERY`,
-  `TYPES_QUERY`, etc.) contra `https://graphql.pokeapi.co/v1beta2`
-  y guarda la respuesta cruda. Los fixtures son commits binarios
-  versionados: si PokeAPI cambia de schema, el script avisa y se
-  regenera.
+  `TYPES_QUERY`, etc.) contra
+  `https://beta.pokeapi.co/graphql/v1beta` y guarda la respuesta
+  cruda. Los fixtures son commits binarios versionados: si PokeAPI
+  cambia de schema, el script avisa y se regenera.
 - **Mocks vs fixtures**: un mock sirve para verificar que el
   componente **hace** la llamada correcta (URL, query, headers) o
   para simular errores de red. Un fixture sirve para verificar que
@@ -297,7 +432,7 @@ NO objetos literales inventados en el test.
   prohibido — si necesitas ambos, son dos tests separados.
 - **E2E contra PokeAPI real**: los specs marcados con `@live-api`
   en `playwright.config.ts` ejercitan el camino real (red habilitada
-  a `graphql.pokeapi.co` y a `raw.githubusercontent.com` para los
+  a `beta.pokeapi.co` y a `raw.githubusercontent.com` para los
   `.glb`). Se **skippean** automáticamente si `POKEAPI_REACHABLE` no
   está definido en CI. **Prohibido** usar `page.route()` para mockear
   respuestas de PokeAPI en estos specs — el objetivo es validar la

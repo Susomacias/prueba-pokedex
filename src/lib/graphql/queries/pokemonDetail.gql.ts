@@ -2,7 +2,7 @@
  * Query GraphQL: detalle completo de un pokemon por `name`
  * (Plan 01.3).
  *
- * Se entra por `pokemonspecy` para acceder a:
+ * Se entra por `pokemon_v2_pokemonspecies` para acceder a:
  *  - datos básicos del pokemon por defecto
  *  - stats y abilities
  *  - tipos
@@ -12,67 +12,67 @@
  *  - flavor text en español
  *  - cadena evolutiva completa (todas las species de la cadena)
  *
- * Endpoint v1beta2 (Plan 06.2): naming sin prefijo `pokemon_v2_`.
+ * Endpoint v1beta: naming CON prefijo `pokemon_v2_`.
  */
 export const POKEMON_DETAIL_QUERY = /* GraphQL */ `
   query PokemonDetail($name: String!) {
-    pokemonspecies(where: { name: { _eq: $name } }) {
+    pokemon_v2_pokemonspecies(where: { name: { _eq: $name } }) {
       id
       name
       is_legendary
       is_mythical
       capture_rate
       base_happiness
-      generation {
+      pokemon_v2_generation {
         name
       }
-      pokemonhabitat {
+      pokemon_v2_pokemonhabitat {
         name
       }
-      pokemonspeciesflavortexts(
-        where: { language: { name: { _eq: "es" } } }
+      pokemon_v2_pokemonspeciesflavortexts(
+        where: { pokemon_v2_language: { name: { _eq: "es" } } }
         limit: 5
         order_by: { version_id: desc }
       ) {
         flavor_text
-        version {
+        pokemon_v2_version {
           name
         }
       }
-      pokemons(limit: 1, where: { is_default: { _eq: true } }) {
+      pokemon_v2_pokemons(limit: 1, where: { is_default: { _eq: true } }) {
         id
         name
         height
         weight
         base_experience
-        pokemonstats {
+        pokemon_v2_pokemonstats {
           base_stat
-          stat {
+          pokemon_v2_stat {
             name
           }
         }
-        pokemonabilities {
+        pokemon_v2_pokemonabilities {
           is_hidden
           slot
-          ability {
+          pokemon_v2_ability {
             name
           }
         }
-        pokemontypes {
+        pokemon_v2_pokemontypes {
           slot
-          type {
+          pokemon_v2_type {
             name
           }
         }
-        pokemonsprites {
+        pokemon_v2_pokemonsprites {
           sprites
         }
-        pokemoncries {
+        pokemon_v2_pokemoncries {
           cries
         }
       }
-      evolutionchain {
-        pokemonspecies(order_by: { id: asc }) {
+      pokemon_v2_evolutionchain {
+        pokemon_v2_pokemonspecies(order_by: { id: asc }) {
           id
           name
           evolves_from_species_id

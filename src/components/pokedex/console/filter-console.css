@@ -1,0 +1,217 @@
+/* El wrapper del slot (generado por `FilterConsoleSlot` con
+   `buildSlotAttrs("filter-console", ...)`) DEBE ocupar el 100% del
+   alto del `<foreignObject>` que lo contiene. Sin esto, `.fc-root` (su
+   único hijo) recibe un contenedor padre sin altura explícita y la
+   regla `height: 100%` de `.fc-root` resuelve a `0`, dejando la
+   consola visualmente mucho más pequeña que el hueco del rectángulo
+   `CONSOLA_FILTROS` del SVG. Lo fijamos aquí para que venga de fábrica
+   y no haya que añadir `style={{ height: "100%" }}` inline en cada
+   stub. */
+div[data-stub="filter-console"] {
+  width: 100%;
+  height: 100%;
+}
+
+/* ========================================================================= *
+ * FilterConsole — estética terminal retro (Plan 07.1).
+ *
+ * Pantalla negra con texto fósforo, scrollbar discreto y cursor
+ * parpadeante. Usa la fuente de píxel del proyecto (PressStart2P)
+ * heredada del body. Las clases usan el prefijo `.fc-` para evitar
+ * colisiones.
+ *
+ * Layout (block + absolute, NO flex, para máxima compatibilidad dentro
+ * de `<foreignObject>` SVG donde el porcentaje en flex items a veces
+ * no resuelve a un alto limitado):
+ *
+ *   ┌─────────────────────────────────────────┐
+ *   │ .fc-screen        ← position:absolute   │
+ *   │                       top:0 bottom:INPUT│
+ *   │   .fc-line                              │
+ *   │   .fc-line                              │
+ *   │   ...                                   │
+ *   ├─────────────────────────────────────────┤
+ *   │ .fc-input-row     ← position:absolute   │
+ *   │                       bottom:0           │
+ *   └─────────────────────────────────────────┘
+ *
+ * `.fc-screen` ocupa todo el alto MENOS el input row, y es el único
+ * elemento scrollable. `overflow-y: auto` con altura limitada por
+ * absolute positioning → scroll garantizado.
+ * ========================================================================= */
+
+.fc-root {
+  --fc-bg: #0a0e1a;
+  --fc-bg-soft: #0f1424;
+  --fc-fg: #c8f7d4;
+  --fc-fg-dim: #5a8a6a;
+  --fc-accent: #ffcb05;
+  --fc-accent-2: #ff9203;
+  --fc-error: #ff6b6b;
+  --fc-muted: #6a7a8a;
+  --fc-prompt: #46a2da;
+  --fc-line-height: 1.5;
+  --fc-input-row-height: 28px;
+
+  box-sizing: border-box;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: var(--fc-bg);
+  color: var(--fc-fg);
+  font-family: var(--font-press-start-2p), "Courier New", monospace;
+  font-size: 8px;
+  line-height: var(--fc-line-height);
+  border: 2px solid #1a2540;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.6);
+  /* Habilita scroll vertical por gesto (touchpad + táctil) dentro del
+     `<foreignObject>` SVG. Por defecto algunos navegadores aplican
+     `touch-action: none` a la capa del SVG y bloquean el scroll. */
+  touch-action: pan-y;
+}
+
+/* Sutil scanline / glow de CRT */
+.fc-root::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0) 0px,
+    rgba(0, 0, 0, 0) 2px,
+    rgba(0, 0, 0, 0.12) 3px
+  );
+  z-index: 1;
+}
+
+/* El área scrollable. Absolute positioning: ocupa todo el alto
+   disponible desde arriba hasta justo encima del input row. Esto
+   evita cualquier duda sobre el cálculo del alto en
+   `<foreignObject>` SVG: el alto está fijado por coordenadas
+   absolutas (`top:0; bottom: var(--fc-input-row-height)`), no por
+   `flex: 1` ni `height: 100%`. */
+.fc-screen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: var(--fc-input-row-height);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px 8px 4px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--fc-fg-dim) transparent;
+  z-index: 2;
+  /* `overscroll-behavior: contain` evita que el scroll "rebote" sobre
+     elementos padre y haga scroll el body. */
+  overscroll-behavior: contain;
+  /* Habilita scroll por rueda del ratón en Firefox/Chrome/Safari
+     incluso cuando el contenedor está dentro de un SVG
+     `<foreignObject>`. */
+  scroll-behavior: auto;
+}
+
+.fc-screen::-webkit-scrollbar {
+  width: 6px;
+}
+.fc-screen::-webkit-scrollbar-track {
+  background: transparent;
+}
+.fc-screen::-webkit-scrollbar-thumb {
+  background: var(--fc-fg-dim);
+  border-radius: 3px;
+}
+
+.fc-line {
+  white-space: pre-wrap;
+  word-break: break-word;
+  padding: 1px 0;
+}
+
+.fc-line--input {
+  color: var(--fc-prompt);
+}
+.fc-line--accent {
+  color: var(--fc-accent);
+}
+.fc-line--error {
+  color: var(--fc-error);
+}
+.fc-line--muted {
+  color: var(--fc-muted);
+}
+.fc-line--ok {
+  color: var(--fc-fg);
+}
+
+.fc-input-row {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--fc-input-row-height);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: var(--fc-bg-soft);
+  border-top: 1px solid #1a2540;
+  z-index: 3;
+  box-sizing: border-box;
+}
+
+.fc-prompt {
+  color: var(--fc-accent-2);
+  flex: 0 0 auto;
+  user-select: none;
+}
+
+.fc-input {
+  flex: 1 1 auto;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--fc-fg);
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  caret-color: var(--fc-accent);
+  min-width: 0;
+}
+
+.fc-cursor {
+  display: inline-block;
+  width: 7px;
+  height: 11px;
+  background: var(--fc-accent);
+  animation: fc-blink 1.1s steps(2, start) infinite;
+  flex: 0 0 auto;
+}
+
+@keyframes fc-blink {
+  to {
+    visibility: hidden;
+  }
+}
+
+.fc-loading-dots::after {
+  content: "";
+  animation: fc-dots 1.2s steps(4, end) infinite;
+}
+
+@keyframes fc-dots {
+  0% { content: ""; }
+  25% { content: "."; }
+  50% { content: ".."; }
+  75% { content: "..."; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fc-cursor,
+  .fc-loading-dots::after {
+    animation: none;
+  }
+}

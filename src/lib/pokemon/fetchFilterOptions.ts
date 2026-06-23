@@ -193,12 +193,12 @@ function mapAbilities(
  * -------------------------------------------------------------------------- */
 
 export interface RawFilterOptionsResponse {
-  type: Array<{ id: number; name: string }>;
-  generation: Array<{ id: number; name: string }>;
-  pokemoncolor: Array<{ id: number; name: string }>;
-  pokemonhabitat: Array<{ id: number; name: string }>;
-  ability: Array<{ id: number; name: string }>;
-  pokemon_aggregate: {
+  pokemon_v2_type: Array<{ id: number; name: string }>;
+  pokemon_v2_generation: Array<{ id: number; name: string }>;
+  pokemon_v2_pokemoncolor: Array<{ id: number; name: string }>;
+  pokemon_v2_pokemonhabitat: Array<{ id: number; name: string }>;
+  pokemon_v2_ability: Array<{ id: number; name: string }>;
+  pokemon_v2_pokemon_aggregate: {
     aggregate: {
       min: { height: number | null; weight: number | null };
       max: { height: number | null; weight: number | null };
@@ -213,41 +213,41 @@ export interface RawFilterOptionsResponse {
 /** Carga solo los tipos. */
 export async function fetchTypeOptions(): Promise<ReadonlyArray<FilterOption>> {
   const data = await request<{
-    type: Array<{ id: number; name: string }>;
+    pokemon_v2_type: Array<{ id: number; name: string }>;
   }>(TYPES_QUERY, undefined, "Types", { next: FILTER_CACHE });
-  return mapTypes(data.type);
+  return mapTypes(data.pokemon_v2_type);
 }
 
 /** Carga solo las generaciones. */
 export async function fetchGenerationOptions(): Promise<ReadonlyArray<FilterOption>> {
   const data = await request<{
-    generation: Array<{ id: number; name: string }>;
+    pokemon_v2_generation: Array<{ id: number; name: string }>;
   }>(GENERATIONS_QUERY, undefined, "Generations", { next: FILTER_CACHE });
-  return mapGenerations(data.generation);
+  return mapGenerations(data.pokemon_v2_generation);
 }
 
 /** Carga solo los colores. */
 export async function fetchColorOptions(): Promise<ReadonlyArray<FilterOption>> {
   const data = await request<{
-    pokemoncolor: Array<{ id: number; name: string }>;
+    pokemon_v2_pokemoncolor: Array<{ id: number; name: string }>;
   }>(COLORS_QUERY, undefined, "Colors", { next: FILTER_CACHE });
-  return mapColors(data.pokemoncolor);
+  return mapColors(data.pokemon_v2_pokemoncolor);
 }
 
 /** Carga solo los hábitats (mapeados a claves en español). */
 export async function fetchHabitatOptions(): Promise<ReadonlyArray<FilterOption>> {
   const data = await request<{
-    pokemonhabitat: Array<{ id: number; name: string }>;
+    pokemon_v2_pokemonhabitat: Array<{ id: number; name: string }>;
   }>(HABITATS_QUERY, undefined, "Habitats", { next: FILTER_CACHE });
-  return mapHabitats(data.pokemonhabitat);
+  return mapHabitats(data.pokemon_v2_pokemonhabitat);
 }
 
 /** Carga solo las habilidades. */
 export async function fetchAbilityOptions(): Promise<ReadonlyArray<FilterOption>> {
   const data = await request<{
-    ability: Array<{ id: number; name: string }>;
+    pokemon_v2_ability: Array<{ id: number; name: string }>;
   }>(ABILITIES_QUERY, undefined, "Abilities", { next: FILTER_CACHE });
-  return mapAbilities(data.ability);
+  return mapAbilities(data.pokemon_v2_ability);
 }
 
 /* -------------------------------------------------------------------------- *
@@ -268,14 +268,14 @@ export async function fetchFilterOptions(): Promise<FilterOptionMap> {
     { next: FILTER_CACHE },
   );
 
-  const types = mapTypes(data.type);
+  const types = mapTypes(data.pokemon_v2_type);
   return {
     type1: types,
     type2: types,
-    generation: mapGenerations(data.generation),
-    color: mapColors(data.pokemoncolor),
-    habitat: mapHabitats(data.pokemonhabitat),
-    ability: mapAbilities(data.ability),
+    generation: mapGenerations(data.pokemon_v2_generation),
+    color: mapColors(data.pokemon_v2_pokemoncolor),
+    habitat: mapHabitats(data.pokemon_v2_pokemonhabitat),
+    ability: mapAbilities(data.pokemon_v2_ability),
     height: HEIGHT_BUCKETS,
     weight: WEIGHT_BUCKETS,
   };

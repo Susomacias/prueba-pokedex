@@ -14,9 +14,11 @@
  *     `transition-transform` que lo mantienen en movimiento constante
  *     (Playwright: `element is not stable`). Lo mismo aplica a
  *     `PokedexHomeButton`.
- *   - Existe un bug preexistente de hidratación en
+ *   - Históricamente existía un mismatch de hidratación en
  *     `PokedexPageTransition` (`data-pathname` server `/pokedex` vs
- *     cliente `/`) que añade ruido adicional a los asserts e2e.
+ *     cliente `/`). Se arregló eliminando el atributo del JSX y
+ *     dejándolo sólo en el `useEffect` que sincroniza atributos tras
+ *     el mount, así que ya no aplica.
  *
  * Cualquier ampliación de este spec debe seguir el patrón "smoke
  * mínimo" — no asserts sobre CSS intermedio ni sobre URL exacta.

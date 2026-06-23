@@ -22,7 +22,7 @@ import { LIST_CACHE } from "@/src/lib/pokemon/cacheStrategy";
 
 /** Forma cruda de la respuesta a `POKEMON_LIST_FILTERED_QUERY`. */
 export interface RawPokemonListFilteredResponse {
-  pokemon: RawListPokemon[];
+  pokemon_v2_pokemon: RawListPokemon[];
 }
 
 export type { SearchOptions } from "@/src/lib/graphql/where";
@@ -135,7 +135,7 @@ function combineWhere(
 }
 
 interface RawQueryResponse extends RawListAggregate {
-  pokemon: RawListPokemon[];
+  pokemon_v2_pokemon: RawListPokemon[];
 }
 
 async function runListQuery(
@@ -155,10 +155,10 @@ async function runListQuery(
     { next: LIST_CACHE },
   );
 
-  const items = data.pokemon.map(mapRawListPokemon);
+  const items = data.pokemon_v2_pokemon.map(mapRawListPokemon);
   const nextOffset = items.length === limit ? offset + limit : null;
   const total = withTotal
-    ? (data.pokemon_aggregate?.aggregate.count ?? null)
+    ? (data.pokemon_v2_pokemon_aggregate?.aggregate.count ?? null)
     : null;
 
   return { items, nextOffset, total, single: false };

@@ -55,7 +55,7 @@ function graphqlInit(mock: ReturnType<typeof vi.fn>): FetchInit {
   // Busca la llamada al endpoint GraphQL de PokeAPI (no las llamadas
   // REST de fallback como el cry).
   for (const call of calls) {
-    if (String(call[0]).includes("graphql.pokeapi.co")) {
+    if (String(call[0]).includes("beta.pokeapi.co")) {
       const init = (call[1] ?? {}) as RequestInit & {
         next?: { revalidate?: number; tags?: string[] };
       };
@@ -71,29 +71,31 @@ function graphqlInit(mock: ReturnType<typeof vi.fn>): FetchInit {
 
 interface SpeciesPayload {
   data: {
-    pokemonspecies: Array<{
+    pokemon_v2_pokemonspecies: Array<{
       id: number;
       name: string;
       is_legendary: boolean;
       is_mythical: boolean;
       capture_rate: number;
       base_happiness: number;
-      generation: { name: string };
-      pokemonhabitat: { name: string };
-      pokemonspeciesflavortexts: unknown[];
-      pokemons: Array<{
+      pokemon_v2_generation: { name: string };
+      pokemon_v2_pokemonhabitat: { name: string };
+      pokemon_v2_pokemonspeciesflavortexts: unknown[];
+      pokemon_v2_pokemons: Array<{
         id: number;
         name: string;
         height: number;
         weight: number;
         base_experience: number;
-        pokemonstats: unknown[];
-        pokemonabilities: unknown[];
-        pokemontypes: unknown[];
-        pokemonsprites: Array<{ sprites: unknown }>;
-        pokemoncries: unknown[];
+        pokemon_v2_pokemonstats: unknown[];
+        pokemon_v2_pokemonabilities: unknown[];
+        pokemon_v2_pokemontypes: unknown[];
+        pokemon_v2_pokemonsprites: Array<{ sprites: unknown }>;
+        pokemon_v2_pokemoncries: unknown[];
       }>;
-      evolutionchain: { pokemonspecies: unknown[] };
+      pokemon_v2_evolutionchain: {
+        pokemon_v2_pokemonspecies: unknown[];
+      };
     }>;
   };
 }
@@ -101,7 +103,7 @@ interface SpeciesPayload {
 function detailPayload(id: number, name: string): SpeciesPayload {
   return {
     data: {
-      pokemonspecies: [
+      pokemon_v2_pokemonspecies: [
         {
           id,
           name,
@@ -109,24 +111,26 @@ function detailPayload(id: number, name: string): SpeciesPayload {
           is_mythical: false,
           capture_rate: 0,
           base_happiness: 0,
-          generation: { name: "generation-i" },
-          pokemonhabitat: { name: "forest" },
-          pokemonspeciesflavortexts: [],
-          pokemons: [
+          pokemon_v2_generation: { name: "generation-i" },
+          pokemon_v2_pokemonhabitat: { name: "forest" },
+          pokemon_v2_pokemonspeciesflavortexts: [],
+          pokemon_v2_pokemons: [
             {
               id,
               name,
               height: 1,
               weight: 1,
               base_experience: 1,
-              pokemonstats: [],
-              pokemonabilities: [],
-              pokemontypes: [],
-              pokemonsprites: [{ sprites: null }],
-              pokemoncries: [],
+              pokemon_v2_pokemonstats: [],
+              pokemon_v2_pokemonabilities: [],
+              pokemon_v2_pokemontypes: [],
+              pokemon_v2_pokemonsprites: [{ sprites: null }],
+              pokemon_v2_pokemoncries: [],
             },
           ],
-          evolutionchain: { pokemonspecies: [] },
+          pokemon_v2_evolutionchain: {
+            pokemon_v2_pokemonspecies: [],
+          },
         },
       ],
     },
@@ -136,12 +140,12 @@ function detailPayload(id: number, name: string): SpeciesPayload {
 function filterPayload(): unknown {
   return {
     data: {
-      type: [{ id: 1, name: "fire" }],
-      generation: [{ id: 1, name: "generation-i" }],
-      pokemoncolor: [{ id: 1, name: "red" }],
-      pokemonhabitat: [{ id: 1, name: "forest" }],
-      ability: [{ id: 1, name: "blaze" }],
-      pokemon_aggregate: {
+      pokemon_v2_type: [{ id: 1, name: "fire" }],
+      pokemon_v2_generation: [{ id: 1, name: "generation-i" }],
+      pokemon_v2_pokemoncolor: [{ id: 1, name: "red" }],
+      pokemon_v2_pokemonhabitat: [{ id: 1, name: "forest" }],
+      pokemon_v2_ability: [{ id: 1, name: "blaze" }],
+      pokemon_v2_pokemon_aggregate: {
         aggregate: {
           min: { height: 1, weight: 10 },
           max: { height: 200, weight: 10000 },
@@ -154,12 +158,12 @@ function filterPayload(): unknown {
 function emptyFilterPayload(): unknown {
   return {
     data: {
-      type: [],
-      generation: [],
-      pokemoncolor: [],
-      pokemonhabitat: [],
-      ability: [],
-      pokemon_aggregate: {
+      pokemon_v2_type: [],
+      pokemon_v2_generation: [],
+      pokemon_v2_pokemoncolor: [],
+      pokemon_v2_pokemonhabitat: [],
+      pokemon_v2_ability: [],
+      pokemon_v2_pokemon_aggregate: {
         aggregate: {
           min: { height: 0, weight: 0 },
           max: { height: 0, weight: 0 },
@@ -243,7 +247,7 @@ describe("cachedPokemonApi", () => {
     it("fetchPokemonList pasa revalidate=3600 y tag pokemon-data", async () => {
       const { mock } = captureFetch();
       mock.mockResolvedValue(
-        graphqlResponse({ data: { pokemon: [] } }),
+        graphqlResponse({ data: { pokemon_v2_pokemon: [] } }),
       );
 
       await fetchPokemonList({ offset: 0 });
@@ -324,7 +328,7 @@ describe("cachedPokemonApi", () => {
     it("preloadPokemonList no hace await pero inicia el fetch", async () => {
       const { mock } = captureFetch();
       mock.mockResolvedValue(
-        graphqlResponse({ data: { pokemon: [] } }),
+        graphqlResponse({ data: { pokemon_v2_pokemon: [] } }),
       );
 
       preloadPokemonList({ offset: 0 });
@@ -360,7 +364,7 @@ describe("cachedPokemonApi", () => {
     it("fetchPokemonList envía POKEMON_LIST_QUERY", async () => {
       const { mock } = captureFetch();
       mock.mockResolvedValue(
-        graphqlResponse({ data: { pokemon: [] } }),
+        graphqlResponse({ data: { pokemon_v2_pokemon: [] } }),
       );
 
       await fetchPokemonList({ offset: 0 });
@@ -374,7 +378,7 @@ describe("cachedPokemonApi", () => {
       const { mock } = captureFetch();
       mock.mockResolvedValue(
         graphqlResponse({
-          data: { pokemonspecies: [] },
+          data: { pokemon_v2_pokemonspecies: [] },
         }),
       );
 

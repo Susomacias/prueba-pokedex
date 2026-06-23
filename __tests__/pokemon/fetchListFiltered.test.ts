@@ -13,16 +13,16 @@ function graphqlResponse(body: unknown): Response {
 
 interface RawType {
   slot: number;
-  type: { name: string };
+  pokemon_v2_type: { name: string };
 }
 
 interface RawSpecies {
-  pokemonhabitat: { name: string } | null;
-  generation: { name: string } | null;
-  pokemoncolor: { name: string } | null;
-  pokemonspeciesflavortexts: Array<{
+  pokemon_v2_pokemonhabitat: { name: string } | null;
+  pokemon_v2_generation: { name: string } | null;
+  pokemon_v2_pokemoncolor: { name: string } | null;
+  pokemon_v2_pokemonspeciesflavortexts: Array<{
     flavor_text: string;
-    language: { name: string };
+    pokemon_v2_language: { name: string };
   }>;
 }
 
@@ -31,9 +31,9 @@ interface RawPokemon {
   name: string;
   height: number | null;
   weight: number | null;
-  pokemonsprites: Array<{ sprites: unknown }>;
-  pokemontypes: RawType[];
-  pokemonspecy: RawSpecies | null;
+  pokemon_v2_pokemonsprites: Array<{ sprites: unknown }>;
+  pokemon_v2_pokemontypes: RawType[];
+  pokemon_v2_pokemonspecy: RawSpecies | null;
 }
 
 function captureFetch(): { mock: ReturnType<typeof vi.fn> } {
@@ -66,10 +66,10 @@ function fire(
   aggregate: { count: number } | null = null,
 ): Response {
   const data: Record<string, unknown> = {
-    pokemon: raw,
+    pokemon_v2_pokemon: raw,
   };
   if (aggregate !== null) {
-    data.pokemon_aggregate = { aggregate };
+    data.pokemon_v2_pokemon_aggregate = { aggregate };
   }
   return graphqlResponse({ data });
 }
@@ -86,15 +86,17 @@ function buildRaw(
       name: `poke-${id}`,
       height: id * 2,
       weight: id * 5,
-      pokemonsprites: [
+      pokemon_v2_pokemonsprites: [
         { sprites: { front_default: `https://img/${id}.png` } },
       ],
-      pokemontypes: [{ slot: 1, type: { name: "grass" } }],
-      pokemonspecy: {
-        pokemonhabitat: { name: "forest" },
-        generation: { name: "generation-i" },
-        pokemoncolor: { name: "green" },
-        pokemonspeciesflavortexts: [],
+      pokemon_v2_pokemontypes: [
+        { slot: 1, pokemon_v2_type: { name: "grass" } },
+      ],
+      pokemon_v2_pokemonspecy: {
+        pokemon_v2_pokemonhabitat: { name: "forest" },
+        pokemon_v2_generation: { name: "generation-i" },
+        pokemon_v2_pokemoncolor: { name: "green" },
+        pokemon_v2_pokemonspeciesflavortexts: [],
       },
       ...overrides,
     };
@@ -112,11 +114,9 @@ describe("applyFiltersToList", () => {
     vi.stubEnv("NEXT_PUBLIC_POKEAPI_GRAPHQL_URL", "");
   });
 
-describe("filtros combinables", () => {
+  describe("filtros combinables", () => {
     it("filtra por tipo1 (fire) → solo pokemons de tipo fire", async () => {
       const { mock } = captureFetch();
-      // El mock simula la respuesta del servidor tras aplicar el
-      // `where` server-side: solo devuelve charmander.
       mock.mockResolvedValueOnce(
         fire([
           {
@@ -124,17 +124,17 @@ describe("filtros combinables", () => {
             name: "charmander",
             height: 6,
             weight: 85,
-            pokemonsprites: [
+            pokemon_v2_pokemonsprites: [
               { sprites: { front_default: "x" } },
             ],
-            pokemontypes: [
-              { slot: 1, type: { name: "fire" } },
+            pokemon_v2_pokemontypes: [
+              { slot: 1, pokemon_v2_type: { name: "fire" } },
             ],
-            pokemonspecy: {
-              pokemonhabitat: { name: "mountain" },
-              generation: { name: "generation-i" },
-              pokemoncolor: { name: "red" },
-              pokemonspeciesflavortexts: [],
+            pokemon_v2_pokemonspecy: {
+              pokemon_v2_pokemonhabitat: { name: "mountain" },
+              pokemon_v2_generation: { name: "generation-i" },
+              pokemon_v2_pokemoncolor: { name: "red" },
+              pokemon_v2_pokemonspeciesflavortexts: [],
             },
           },
         ]),
@@ -143,12 +143,11 @@ describe("filtros combinables", () => {
       const page = await applyFiltersToList({ type1: "fire" }, 0);
 
       expect(page.items.map((i) => i.name)).toEqual(["charmander"]);
-      // El `where` enviado debe filtrar por type=fire
       const where = callsOf(mock)[0]!.where as Record<string, unknown>;
       expect(JSON.stringify(where)).toContain("fire");
     });
 
-it("combina tipo + generación con AND", async () => {
+    it("combina tipo + generación con AND", async () => {
       const { mock } = captureFetch();
       mock.mockResolvedValueOnce(
         fire([
@@ -157,17 +156,17 @@ it("combina tipo + generación con AND", async () => {
             name: "charmander",
             height: 6,
             weight: 85,
-            pokemonsprites: [
+            pokemon_v2_pokemonsprites: [
               { sprites: { front_default: "x" } },
             ],
-            pokemontypes: [
-              { slot: 1, type: { name: "fire" } },
+            pokemon_v2_pokemontypes: [
+              { slot: 1, pokemon_v2_type: { name: "fire" } },
             ],
-            pokemonspecy: {
-              pokemonhabitat: { name: "mountain" },
-              generation: { name: "generation-i" },
-              pokemoncolor: { name: "red" },
-              pokemonspeciesflavortexts: [],
+            pokemon_v2_pokemonspecy: {
+              pokemon_v2_pokemonhabitat: { name: "mountain" },
+              pokemon_v2_generation: { name: "generation-i" },
+              pokemon_v2_pokemoncolor: { name: "red" },
+              pokemon_v2_pokemonspeciesflavortexts: [],
             },
           },
         ]),
@@ -181,7 +180,6 @@ it("combina tipo + generación con AND", async () => {
       const where = callsOf(mock)[0]!.where as {
         _and: Array<Record<string, unknown>>;
       };
-      // AND combinando tipo + generación
       expect(where._and.length).toBe(2);
       const dump = JSON.stringify(where);
       expect(dump).toContain("fire");
@@ -197,17 +195,17 @@ it("combina tipo + generación con AND", async () => {
             name: "pikachu",
             height: 4,
             weight: 60,
-            pokemonsprites: [
+            pokemon_v2_pokemonsprites: [
               { sprites: { front_default: "x" } },
             ],
-            pokemontypes: [
-              { slot: 1, type: { name: "electric" } },
+            pokemon_v2_pokemontypes: [
+              { slot: 1, pokemon_v2_type: { name: "electric" } },
             ],
-            pokemonspecy: {
-              pokemonhabitat: { name: "forest" },
-              generation: { name: "generation-i" },
-              pokemoncolor: { name: "yellow" },
-              pokemonspeciesflavortexts: [],
+            pokemon_v2_pokemonspecy: {
+              pokemon_v2_pokemonhabitat: { name: "forest" },
+              pokemon_v2_generation: { name: "generation-i" },
+              pokemon_v2_pokemoncolor: { name: "yellow" },
+              pokemon_v2_pokemonspeciesflavortexts: [],
             },
           },
         ]),
@@ -219,7 +217,6 @@ it("combina tipo + generación con AND", async () => {
         _and: Array<Record<string, unknown>>;
       };
       const dump = JSON.stringify(where);
-      // La clave interna "bosque" se traduce a "forest" antes de enviarse
       expect(dump).toContain("forest");
       expect(dump).not.toContain("bosque");
     });
@@ -234,7 +231,7 @@ it("combina tipo + generación con AND", async () => {
         _and: Array<Record<string, unknown>>;
       };
       const dump = JSON.stringify(where);
-      expect(dump).toContain("pokemonabilities");
+      expect(dump).toContain("pokemon_v2_pokemonabilities");
       expect(dump).toContain("static");
     });
 
@@ -288,10 +285,8 @@ it("combina tipo + generación con AND", async () => {
   });
 
   describe("buscador", () => {
-it("búsqueda por nombre parcial devuelve coincidencias", async () => {
+    it("búsqueda por nombre parcial devuelve coincidencias", async () => {
       const { mock } = captureFetch();
-      // El mock simula la respuesta del servidor tras el filtro
-      // `name: { _ilike: "%pika%" }`: solo devuelve pikachu.
       mock.mockResolvedValueOnce(
         fire([
           {
@@ -299,17 +294,17 @@ it("búsqueda por nombre parcial devuelve coincidencias", async () => {
             name: "pikachu",
             height: 4,
             weight: 60,
-            pokemonsprites: [
+            pokemon_v2_pokemonsprites: [
               { sprites: { front_default: "x" } },
             ],
-            pokemontypes: [
-              { slot: 1, type: { name: "electric" } },
+            pokemon_v2_pokemontypes: [
+              { slot: 1, pokemon_v2_type: { name: "electric" } },
             ],
-            pokemonspecy: {
-              pokemonhabitat: { name: "forest" },
-              generation: { name: "generation-i" },
-              pokemoncolor: { name: "yellow" },
-              pokemonspeciesflavortexts: [],
+            pokemon_v2_pokemonspecy: {
+              pokemon_v2_pokemonhabitat: { name: "forest" },
+              pokemon_v2_generation: { name: "generation-i" },
+              pokemon_v2_pokemoncolor: { name: "yellow" },
+              pokemon_v2_pokemonspeciesflavortexts: [],
             },
           },
         ]),
@@ -327,9 +322,7 @@ it("búsqueda por nombre parcial devuelve coincidencias", async () => {
 
     it("búsqueda con 4+ letras y 0 resultados amplía a flavor_text", async () => {
       const { mock } = captureFetch();
-      // Primera llamada: nombre sin resultados
       mock.mockResolvedValueOnce(fire([]));
-      // Segunda llamada: búsqueda ampliada (flavor text + tipos + habitat + generation)
       mock.mockResolvedValueOnce(
         fire([
           {
@@ -337,20 +330,20 @@ it("búsqueda por nombre parcial devuelve coincidencias", async () => {
             name: "pikachu",
             height: 4,
             weight: 60,
-            pokemonsprites: [
+            pokemon_v2_pokemonsprites: [
               { sprites: { front_default: "x" } },
             ],
-            pokemontypes: [
-              { slot: 1, type: { name: "electric" } },
+            pokemon_v2_pokemontypes: [
+              { slot: 1, pokemon_v2_type: { name: "electric" } },
             ],
-            pokemonspecy: {
-              pokemonhabitat: { name: "forest" },
-              generation: { name: "generation-i" },
-              pokemoncolor: { name: "yellow" },
-              pokemonspeciesflavortexts: [
+            pokemon_v2_pokemonspecy: {
+              pokemon_v2_pokemonhabitat: { name: "forest" },
+              pokemon_v2_generation: { name: "generation-i" },
+              pokemon_v2_pokemoncolor: { name: "yellow" },
+              pokemon_v2_pokemonspeciesflavortexts: [
                 {
                   flavor_text: "Electric mouse.",
-                  language: { name: "en" },
+                  pokemon_v2_language: { name: "en" },
                 },
               ],
             },
@@ -365,15 +358,15 @@ it("búsqueda por nombre parcial devuelve coincidencias", async () => {
       expect(page.items.map((i) => i.name)).toEqual(["pikachu"]);
       expect(mock.mock.calls.length).toBe(2);
 
-const whereExpanded = callsOf(mock)[1]!.where as Record<
+      const whereExpanded = callsOf(mock)[1]!.where as Record<
         string,
         unknown
       >;
       const dump = JSON.stringify(whereExpanded);
-      expect(dump).toContain("pokemonspeciesflavortexts");
-      expect(dump).toContain("pokemonhabitat");
-      expect(dump).toContain("generation");
-      expect(dump).toContain("type");
+      expect(dump).toContain("pokemon_v2_pokemonspeciesflavortexts");
+      expect(dump).toContain("pokemon_v2_pokemonhabitat");
+      expect(dump).toContain("pokemon_v2_generation");
+      expect(dump).toContain("pokemon_v2_type");
     });
 
     it("búsqueda con <3 letras NO amplía a flavor text", async () => {
@@ -395,17 +388,17 @@ const whereExpanded = callsOf(mock)[1]!.where as Record<
             name: "pikachu",
             height: 4,
             weight: 60,
-            pokemonsprites: [
+            pokemon_v2_pokemonsprites: [
               { sprites: { front_default: "x" } },
             ],
-            pokemontypes: [
-              { slot: 1, type: { name: "electric" } },
+            pokemon_v2_pokemontypes: [
+              { slot: 1, pokemon_v2_type: { name: "electric" } },
             ],
-            pokemonspecy: {
-              pokemonhabitat: { name: "forest" },
-              generation: { name: "generation-i" },
-              pokemoncolor: { name: "yellow" },
-              pokemonspeciesflavortexts: [],
+            pokemon_v2_pokemonspecy: {
+              pokemon_v2_pokemonhabitat: { name: "forest" },
+              pokemon_v2_generation: { name: "generation-i" },
+              pokemon_v2_pokemoncolor: { name: "yellow" },
+              pokemon_v2_pokemonspeciesflavortexts: [],
             },
           },
         ]),
@@ -427,17 +420,17 @@ const whereExpanded = callsOf(mock)[1]!.where as Record<
             name: "pikachu",
             height: 4,
             weight: 60,
-            pokemonsprites: [
+            pokemon_v2_pokemonsprites: [
               { sprites: { front_default: "x" } },
             ],
-            pokemontypes: [
-              { slot: 1, type: { name: "electric" } },
+            pokemon_v2_pokemontypes: [
+              { slot: 1, pokemon_v2_type: { name: "electric" } },
             ],
-            pokemonspecy: {
-              pokemonhabitat: { name: "forest" },
-              generation: { name: "generation-i" },
-              pokemoncolor: { name: "yellow" },
-              pokemonspeciesflavortexts: [],
+            pokemon_v2_pokemonspecy: {
+              pokemon_v2_pokemonhabitat: { name: "forest" },
+              pokemon_v2_generation: { name: "generation-i" },
+              pokemon_v2_pokemoncolor: { name: "yellow" },
+              pokemon_v2_pokemonspeciesflavortexts: [],
             },
           },
         ]),
@@ -458,17 +451,17 @@ const whereExpanded = callsOf(mock)[1]!.where as Record<
             name: "pikachu",
             height: 4,
             weight: 60,
-            pokemonsprites: [
+            pokemon_v2_pokemonsprites: [
               { sprites: { front_default: "x" } },
             ],
-            pokemontypes: [
-              { slot: 1, type: { name: "electric" } },
+            pokemon_v2_pokemontypes: [
+              { slot: 1, pokemon_v2_type: { name: "electric" } },
             ],
-            pokemonspecy: {
-              pokemonhabitat: { name: "forest" },
-              generation: { name: "generation-i" },
-              pokemoncolor: { name: "yellow" },
-              pokemonspeciesflavortexts: [],
+            pokemon_v2_pokemonspecy: {
+              pokemon_v2_pokemonhabitat: { name: "forest" },
+              pokemon_v2_generation: { name: "generation-i" },
+              pokemon_v2_pokemoncolor: { name: "yellow" },
+              pokemon_v2_pokemonspeciesflavortexts: [],
             },
           },
         ]),
@@ -486,8 +479,8 @@ const whereExpanded = callsOf(mock)[1]!.where as Record<
       mock.mockResolvedValueOnce(
         graphqlResponse({
           data: {
-            pokemon: buildRaw(1, 30),
-            pokemon_aggregate: { aggregate: { count: 1025 } },
+            pokemon_v2_pokemon: buildRaw(1, 30),
+            pokemon_v2_pokemon_aggregate: { aggregate: { count: 1025 } },
           },
         }),
       );
@@ -504,14 +497,16 @@ const whereExpanded = callsOf(mock)[1]!.where as Record<
 
       await applyFiltersToList({}, 60, { limit: 30 });
 
-const vars = callsOf(mock)[0]!;
+      const vars = callsOf(mock)[0]!;
       expect(vars.offset).toBe(60);
       expect(vars.limit).toBe(30);
     });
 
     it("usa POKEMON_LIST_PAGE_SIZE por defecto", async () => {
       const { mock } = captureFetch();
-      mock.mockResolvedValueOnce(fire(buildRaw(1, POKEMON_LIST_PAGE_SIZE)));
+      mock.mockResolvedValueOnce(
+        fire(buildRaw(1, POKEMON_LIST_PAGE_SIZE)),
+      );
 
       await applyFiltersToList({}, 0);
 
@@ -530,42 +525,46 @@ const vars = callsOf(mock)[0]!;
     });
   });
 
-describe("query", () => {
+  describe("query", () => {
     it("usa la query filtrable", async () => {
       const { mock } = captureFetch();
       mock.mockResolvedValueOnce(fire([]));
 
       await applyFiltersToList({}, 0);
 
-      const firstCall = mock.mock.calls[0] as [RequestInfo | URL, RequestInit];
+      const firstCall = mock.mock.calls[0] as [
+        RequestInfo | URL,
+        RequestInit,
+      ];
       const body = JSON.parse(firstCall[1].body as string) as {
         query: string;
       };
-      // La query filtrable extiende la base añadiendo campos
-      // (color, flavor_text, abilities) y `_aggregate`.
-      expect(body.query).toContain("pokemoncolor");
-      expect(body.query).toContain("pokemonspeciesflavortexts");
-      expect(body.query).toContain("pokemon_aggregate");
+      expect(body.query).toContain("pokemon_v2_pokemoncolor");
+      expect(body.query).toContain("pokemon_v2_pokemonspeciesflavortexts");
+      expect(body.query).toContain("pokemon_v2_pokemon_aggregate");
     });
 
-    it("incluye pokemon_aggregate en la query cuando se pide total", async () => {
+    it("incluye pokemon_v2_pokemon_aggregate en la query cuando se pide total", async () => {
       const { mock } = captureFetch();
       mock.mockResolvedValueOnce(
         graphqlResponse({
           data: {
-            pokemon: buildRaw(1, 1),
-            pokemon_aggregate: { aggregate: { count: 1 } },
+            pokemon_v2_pokemon: buildRaw(1, 1),
+            pokemon_v2_pokemon_aggregate: { aggregate: { count: 1 } },
           },
         }),
       );
 
       await applyFiltersToList({}, 0, { withTotal: true });
 
-      const firstCall = mock.mock.calls[0] as [RequestInfo | URL, RequestInit];
+      const firstCall = mock.mock.calls[0] as [
+        RequestInfo | URL,
+        RequestInit,
+      ];
       const body = JSON.parse(firstCall[1].body as string) as {
         query: string;
       };
-      expect(body.query).toContain("pokemon_aggregate");
+      expect(body.query).toContain("pokemon_v2_pokemon_aggregate");
     });
   });
 });

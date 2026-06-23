@@ -90,7 +90,6 @@ function PokedexPageTransitionInner({
       ref={rootRef}
       data-view={view}
       data-testid="pokedex-route-shell"
-      data-pathname={pathname}
       data-pokedex-route-name={selectedName ?? undefined}
       className="relative h-dvh w-screen overflow-hidden"
     >

@@ -63,7 +63,9 @@ export function PokemonList({ selectedName = null }: PokemonListProps) {
     single,
     error,
     status,
+    retryAfterMs,
     loadMore,
+    retry,
   } = useFilteredPokemonList();
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -189,9 +191,51 @@ export function PokemonList({ selectedName = null }: PokemonListProps) {
       ) : null}
 
       {error ? (
-        <p role="alert" style={errorStyle}>
-          Error cargando la lista: {error.message}
-        </p>
+        <div
+          role="alert"
+          data-testid="pokemon-list-error"
+          style={errorStyle}
+        >
+          <p style={{ margin: "0 0 8px" }}>
+            No se pudo cargar la lista de pokémon.
+          </p>
+          <p
+            style={{
+              margin: "0 0 8px",
+              fontSize: "7px",
+              opacity: 0.85,
+              wordBreak: "break-word",
+            }}
+          >
+            {humanizeListError(error)}
+          </p>
+          {retryAfterMs !== null && retryAfterMs >= 1000 ? (
+            <p
+              data-testid="pokemon-list-retry-hint"
+              style={{ margin: "0 0 8px", fontSize: "7px", opacity: 0.75 }}
+            >
+              Reintentaremos automáticamente en{" "}
+              {formatRetryAfter(retryAfterMs)}.
+            </p>
+          ) : null}
+          <button
+            type="button"
+            onClick={retry}
+            data-testid="pokemon-list-retry"
+            style={{
+              background: "#126CA3",
+              color: "#fff",
+              border: "1px solid #0a4a78",
+              padding: "4px 10px",
+              fontFamily: "inherit",
+              fontSize: "8px",
+              cursor: "pointer",
+              borderRadius: "2px",
+            }}
+          >
+            Reintentar
+          </button>
+        </div>
       ) : null}
     </div>
   );
@@ -235,4 +279,37 @@ const errorStyle: CSSProperties = {
 /* ------------------------------------------------------------------------- *
  * Helpers
  * ------------------------------------------------------------------------- */
+
+/**
+ * Convierte el `Error` crudo del hook en un mensaje legible para el
+ * usuario. La PokeAPI upstream pasa por un proxy que normaliza 5xx a
+ * shape GraphQL con `extensions.code` (`UPSTREAM_CLOUDFLARE_521`,
+ * `UPSTREAM_5XX`, `UPSTREAM_NETWORK`, `UPSTREAM_NON_JSON`). Cuando
+ * reconocemos esos códigos, mostramos una explicación clara en
+ * español; en cualquier otro caso (errores lógicos, 4xx, etc.)
+ * mostramos el mensaje crudo.
+ */
+function humanizeListError(err: Error): string {
+  const code = (err as Error & { code?: string }).code;
+  switch (code) {
+    case "UPSTREAM_CLOUDFLARE_521":
+      return "La PokéAPI está temporalmente caída (Cloudflare 521). El upstream está bloqueando activamente; esperaremos unos minutos antes de reintentar.";
+    case "UPSTREAM_5XX":
+      return "La PokéAPI está teniendo problemas. Lo intentaremos de nuevo en breve.";
+    case "UPSTREAM_NETWORK":
+      return "No se pudo contactar con la PokéAPI. Comprueba tu conexión.";
+    case "UPSTREAM_NON_JSON":
+      return "La PokéAPI devolvió una respuesta inesperada. Lo intentaremos de nuevo.";
+    default:
+      return err.message;
+  }
+}
+
+/** Formatea milisegundos como `X:YY` (p.ej. `2:00` para 120 000 ms). */
+function formatRetryAfter(ms: number): string {
+  const totalSeconds = Math.round(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+}
 

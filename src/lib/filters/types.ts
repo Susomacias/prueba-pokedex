@@ -37,6 +37,7 @@ type HabitatFilter = SingleFilter<"habitat", Habitat>;
 type AbilityFilter = SingleFilter<"ability", string>;
 type HeightFilter = RangeFilter<"height">;
 type WeightFilter = RangeFilter<"weight">;
+type SearchFilter = SingleFilter<"search", string>;
 
 export const FILTERS = [
   {
@@ -123,6 +124,13 @@ export const FILTERS = [
     },
     format: (value: FilterBucket): string => value.value,
   },
+  {
+    key: "search",
+    kind: "single" as const,
+    label: "Búsqueda",
+    parse: (raw: string): string | undefined => (raw === "" ? undefined : raw),
+    format: (value: string): string => value,
+  },
 ] as const satisfies ReadonlyArray<
   | TypeFilter
   | GenerationFilter
@@ -131,6 +139,7 @@ export const FILTERS = [
   | AbilityFilter
   | HeightFilter
   | WeightFilter
+  | SearchFilter
 >;
 
 export type FilterDefinition = (typeof FILTERS)[number];
@@ -149,6 +158,15 @@ export interface Filters {
   readonly ability?: string;
   readonly height?: FilterBucket;
   readonly weight?: FilterBucket;
+  /**
+   * Término de búsqueda libre (Plan 07.1). Actúa como un filtro más
+   * dentro del estado unificado de `useFilters`: se serializa a la
+   * URL (`?search=...`), se refleja en la consola/dropdowns/buscador
+   * y lo consume `useFilteredPokemonList` para alimentar el scroll
+   * infinito. No forma parte de `PokemonFilters` (where-clause) del
+   * backend; se inyecta como `options.search`.
+   */
+  readonly search?: string;
 }
 
 export type FilterValue<K extends FilterKey> = NonNullable<Filters[K]>;

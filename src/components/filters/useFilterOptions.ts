@@ -131,12 +131,22 @@ function getSnapshot(key: FilterOptionKey): CacheEntry {
 }
 
 function getServerSnapshot(): CacheEntry {
-  return {
-    status: "loading",
-    options: [],
-    error: null,
-  };
+  return SERVER_SNAPSHOT;
 }
+
+/**
+ * Snapshot cacheado a nivel de módulo para SSR. `useSyncExternalStore`
+ * exige que `getServerSnapshot` devuelva **siempre la misma referencia**
+ * mientras el servidor renderiza; crear un objeto nuevo en cada llamada
+ * dispara el warning
+ * "The result of getServerSnapshot should be cached to avoid an infinite loop"
+ * y, peor, provoca un bucle de re-render en el servidor.
+ */
+const SERVER_SNAPSHOT: CacheEntry = Object.freeze({
+  status: "loading",
+  options: Object.freeze([]),
+  error: null,
+}) as CacheEntry;
 
 export function useFilterOptions(
   key: FilterOptionKey,

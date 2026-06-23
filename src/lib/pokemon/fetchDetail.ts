@@ -134,13 +134,13 @@ function extractCryLatest(cries: unknown): string | null {
 
 /**
  * Fallback a la PokeAPI REST para obtener el cry cuando la query
- * GraphQL beta (`v1beta2`) no lo expone.
+ * GraphQL beta (`v1beta`) no lo expone.
  *
  * La beta de GraphQL no incluye los cries de la mayoría de pokemons
- * (devuelve `pokemoncries: []` siempre). Sin embargo, la PokeAPI
- * REST (`/api/v2/pokemon/{name}`) sí expone `cries.latest` para los
- * pokemons que tienen cry disponible. Como fallback, cuando el
- * GraphQL no devuelve cry, hacemos una llamada REST adicional
+ * (devuelve `pokemon_v2_pokemoncries: []` siempre). Sin embargo, la
+ * PokeAPI REST (`/api/v2/pokemon/{name}`) sí expone `cries.latest`
+ * para los pokemons que tienen cry disponible. Como fallback, cuando
+ * el GraphQL no devuelve cry, hacemos una llamada REST adicional
  * ligera para extraerlo. La llamada falla silenciosamente (devuelve
  * `null`) si el pokemon no tiene cry o si la red falla.
  *
@@ -167,43 +167,43 @@ async function fetchCryFromRest(pokemonId: number): Promise<string | null> {
 }
 
 export interface RawPokemonDetailResponse {
-  pokemonspecies: Array<{
+  pokemon_v2_pokemonspecies: Array<{
     id: number;
     name: string;
     is_legendary: boolean;
     is_mythical: boolean;
     capture_rate: number | null;
     base_happiness: number | null;
-    generation: { name: string } | null;
-    pokemonhabitat: { name: string } | null;
-    pokemonspeciesflavortexts: Array<{
+    pokemon_v2_generation: { name: string } | null;
+    pokemon_v2_pokemonhabitat: { name: string } | null;
+    pokemon_v2_pokemonspeciesflavortexts: Array<{
       flavor_text: string;
-      version: { name: string } | null;
+      pokemon_v2_version: { name: string } | null;
     }>;
-    pokemons: Array<{
+    pokemon_v2_pokemons: Array<{
       id: number;
       name: string;
       height: number | null;
       weight: number | null;
       base_experience: number | null;
-      pokemonstats: Array<{
+      pokemon_v2_pokemonstats: Array<{
         base_stat: number;
-        stat: { name: string };
+        pokemon_v2_stat: { name: string };
       }>;
-      pokemonabilities: Array<{
+      pokemon_v2_pokemonabilities: Array<{
         is_hidden: boolean;
         slot: number;
-        ability: { name: string };
+        pokemon_v2_ability: { name: string };
       }>;
-      pokemontypes: Array<{
+      pokemon_v2_pokemontypes: Array<{
         slot: number;
-        type: { name: string };
+        pokemon_v2_type: { name: string };
       }>;
-      pokemonsprites: Array<{ sprites: unknown }>;
-      pokemoncries: Array<{ cries: unknown }>;
+      pokemon_v2_pokemonsprites: Array<{ sprites: unknown }>;
+      pokemon_v2_pokemoncries: Array<{ cries: unknown }>;
     }>;
-    evolutionchain: {
-      pokemonspecies: Array<{
+    pokemon_v2_evolutionchain: {
+      pokemon_v2_pokemonspecies: Array<{
         id: number;
         name: string;
         evolves_from_species_id: number | null;
@@ -303,54 +303,54 @@ export async function fetchPokemonDetail(name: string): Promise<PokemonDetail> {
     { next: detailCache(name) },
   );
 
-  const species = data.pokemonspecies[0];
+  const species = data.pokemon_v2_pokemonspecies[0];
   if (!species) throw new Error(`Pokemon not found: ${name}`);
 
-  const pokemon = species.pokemons[0];
+  const pokemon = species.pokemon_v2_pokemons[0];
   if (!pokemon) throw new Error(`Pokemon default form not found: ${name}`);
 
   const types: PokemonTypeRef[] = [];
-  for (const t of pokemon.pokemontypes) {
-    const typeName = asType(t.type.name);
+  for (const t of pokemon.pokemon_v2_pokemontypes) {
+    const typeName = asType(t.pokemon_v2_type.name);
     if (typeName) types.push({ slot: t.slot, name: typeName });
   }
   types.sort((a, b) => a.slot - b.slot);
 
-  const stats: PokemonStat[] = pokemon.pokemonstats.map((s) => ({
-    name: s.stat.name,
+  const stats: PokemonStat[] = pokemon.pokemon_v2_pokemonstats.map((s) => ({
+    name: s.pokemon_v2_stat.name,
     baseStat: s.base_stat,
   }));
 
-  const abilities: PokemonAbility[] = pokemon.pokemonabilities
+  const abilities: PokemonAbility[] = pokemon.pokemon_v2_pokemonabilities
     .map((a) => ({
-      name: a.ability.name,
+      name: a.pokemon_v2_ability.name,
       isHidden: a.is_hidden,
       slot: a.slot,
     }))
     .sort((a, b) => a.slot - b.slot);
 
-  const sprites = mapSprites(pokemon.pokemonsprites[0]?.sprites);
+  const sprites = mapSprites(pokemon.pokemon_v2_pokemonsprites[0]?.sprites);
 
-  // Cry: la query GraphQL beta (`v1beta2`) no expone los cries
-  // (`pokemoncries: []` siempre). Para que el botón de sonido
-  // funcione, hacemos una llamada adicional a la PokeAPI REST
+  // Cry: la query GraphQL beta (`v1beta`) no expone los cries
+  // (`pokemon_v2_pokemoncries: []` siempre). Para que el botón de
+  // sonido funcione, hacemos una llamada adicional a la PokeAPI REST
   // (`/api/v2/pokemon/{id}`) **en paralelo** al mapeo. La latencia
   // total del detalle es `max(graphql, rest)` en lugar de
   // `graphql + rest` secuencial.
   //
   // Si GraphQL devuelve cry (caso raro), lo usamos y descartamos
   // la promesa REST. Si no, esperamos al REST.
-  const cryGraphql = extractCryLatest(pokemon.pokemoncries[0]?.cries);
+  const cryGraphql = extractCryLatest(pokemon.pokemon_v2_pokemoncries[0]?.cries);
   const restCryPromise: Promise<string | null> = cryGraphql
     ? Promise.resolve(null)
     : fetchCryFromRest(pokemon.id);
   const cryLatestUrl = cryGraphql ?? (await restCryPromise);
 
   // Flavor text: prioridad al primer elemento (ordenado por version_id DESC).
-  const firstFlavor = species.pokemonspeciesflavortexts[0];
+  const firstFlavor = species.pokemon_v2_pokemonspeciesflavortexts[0];
 
   const evolutionChain = buildEvolutionChain(
-    species.evolutionchain?.pokemonspecies ?? [],
+    species.pokemon_v2_evolutionchain?.pokemon_v2_pokemonspecies ?? [],
   );
 
   return {
@@ -363,15 +363,15 @@ export async function fetchPokemonDetail(name: string): Promise<PokemonDetail> {
     isMythical: species.is_mythical,
     captureRate: species.capture_rate,
     baseHappiness: species.base_happiness,
-    generation: asGeneration(species.generation?.name),
-    habitat: asHabitat(species.pokemonhabitat?.name),
+    generation: asGeneration(species.pokemon_v2_generation?.name),
+    habitat: asHabitat(species.pokemon_v2_pokemonhabitat?.name),
     types,
     stats,
     abilities,
     sprites,
     cryLatestUrl,
     flavorText: firstFlavor?.flavor_text ?? null,
-    flavorTextVersion: firstFlavor?.version?.name ?? null,
+    flavorTextVersion: firstFlavor?.pokemon_v2_version?.name ?? null,
     evolutionChain,
   };
 }

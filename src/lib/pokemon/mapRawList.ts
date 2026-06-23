@@ -94,22 +94,22 @@ function extractFrontDefault(sprites: unknown): string | null {
  * (color, flavor_text, abilities) que solo trae la variante
  * filtrable.
  *
- * Endpoint v1beta2 (Plan 06.2): naming sin prefijo `pokemon_v2_`.
+ * Endpoint v1beta: naming CON prefijo `pokemon_v2_`.
  */
 export function mapRawListPokemon(raw: RawListPokemon): PokemonListItem {
-  const spriteRecord = raw.pokemonsprites[0];
+  const spriteRecord = raw.pokemon_v2_pokemonsprites[0];
   const types: PokemonTypeRef[] = [];
-  for (const t of raw.pokemontypes) {
-    const name = asType(t.type.name);
+  for (const t of raw.pokemon_v2_pokemontypes) {
+    const name = asType(t.pokemon_v2_type.name);
     if (name) types.push({ slot: t.slot, name });
   }
   types.sort((a, b) => a.slot - b.slot);
 
   const habitat = asHabitat(
-    raw.pokemonspecy?.pokemonhabitat?.name,
+    raw.pokemon_v2_pokemonspecy?.pokemon_v2_pokemonhabitat?.name,
   );
   const generation = asGeneration(
-    raw.pokemonspecy?.generation?.name,
+    raw.pokemon_v2_pokemonspecy?.pokemon_v2_generation?.name,
   );
 
   return {
