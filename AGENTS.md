@@ -522,3 +522,46 @@ de pokemons** como base. Cuando hay un pokemon seleccionado
 era "lista o carrusel, según haya pokemon". Eso rompía la sensación
 de continuidad al explorar la Pokédex y obligaba a recargar. La
 lista debe quedarse SIEMPRE detrás.
+
+## `scrollIntoView` dentro de la Pokédex precargada — PROHIBIDO
+
+> **REGRESIÓN del 23-jun-2026:** al cargar la home (`/`), la página
+> se desplazaba hacia arriba y los elementos quedaban centrados en
+> lugar de verse desde la parte superior. El causante era
+> `FilterConsole.tsx` → `useEffect` de auto-scroll → `scrollIntoView()`.
+
+### Por qué rompe el layout
+
+La Pokédex está **siempre montada** en el DOM dentro de
+`.pokedex-view`, que tiene `transform: translateY(100%)` para
+mantenerse oculta bajo la pantalla mientras la home está activa
+(`data-view="home"`).
+
+`element.scrollIntoView()` **sí tiene en cuenta los `transform` CSS**
+(usa el bounding box transformado). Por tanto, llamar a
+`scrollIntoView()` sobre cualquier elemento dentro de la Pokédex
+mientras está oculta **fuerza al navegador a hacer scroll del
+documento entero** para traer ese elemento al viewport. Esto desplaza
+toda la página hacia arriba y descuadra el posicionamiento.
+
+### Qué SÍ usar
+
+- `el.scrollTop = el.scrollHeight` para scroll interno del contenedor
+  (solo afecta a ese elemento, no a ancestros).
+- `requestAnimationFrame` para reintentos si el layout aún no está
+  calculado.
+
+### Qué NO usar NUNCA dentro de la Pokédex
+
+- `scrollIntoView()` — desplaza TODOS los ancestros scrollables.
+- `scrollTo()` / `scrollBy()` sobre `window` o `document` — mismo
+  problema.
+- Cualquier API que modifique la posición de scroll de un ancestro
+  fuera del propio contenedor.
+
+### Dónde se aplicó el fix
+
+`src/components/pokedex/console/FilterConsole.tsx:135-163` — se
+eliminó el fallback `lastLine.scrollIntoView({ block: "end" })` y
+se simplificó el efecto a solo `el.scrollTop = el.scrollHeight` +
+`requestAnimationFrame`.

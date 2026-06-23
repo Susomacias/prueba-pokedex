@@ -207,6 +207,11 @@ export interface RawPokemonDetailResponse {
         id: number;
         name: string;
         evolves_from_species_id: number | null;
+        pokemon_v2_pokemonevolutions?: Array<{
+          min_level: number | null;
+          pokemon_v2_evolutiontrigger: { name: string } | null;
+          pokemon_v2_item: { name: string } | null;
+        }>;
       }>;
     } | null;
   }>;
@@ -227,15 +232,35 @@ export function buildEvolutionChain(
     id: number;
     name: string;
     evolves_from_species_id: number | null;
+    pokemon_v2_pokemonevolutions?: Array<{
+      min_level: number | null;
+      pokemon_v2_evolutiontrigger: { name: string } | null;
+      pokemon_v2_item: { name: string } | null;
+    }>;
   }>,
 ): ReadonlyArray<EvolutionNode> {
   if (raw.length === 0) return [];
 
-  const nodes: EvolutionNode[] = raw.map((n) => ({
-    id: n.id,
-    name: n.name,
-    evolvesFromSpeciesId: n.evolves_from_species_id,
-  }));
+  const nodes: EvolutionNode[] = raw.map((n) => {
+    const evolutions = (n as Record<string, unknown>).pokemon_v2_pokemonevolutions as Array<{
+      min_level: number | null;
+      pokemon_v2_evolutiontrigger: { name: string } | null;
+      pokemon_v2_item: { name: string } | null;
+    }> | undefined;
+    const evoDetail = evolutions?.[0];
+    return {
+      id: n.id,
+      name: n.name,
+      evolvesFromSpeciesId: n.evolves_from_species_id,
+      evolutionDetail: evoDetail
+        ? {
+            minLevel: evoDetail.min_level,
+            trigger: evoDetail.pokemon_v2_evolutiontrigger?.name ?? null,
+            item: evoDetail.pokemon_v2_item?.name ?? null,
+          }
+        : null,
+    };
+  });
 
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const childIdsByParent = new Map<number, number[]>();

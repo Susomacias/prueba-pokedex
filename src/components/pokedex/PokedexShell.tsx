@@ -63,7 +63,6 @@ export function PokedexShell(): ReactElement {
   const {
     selectedName,
     mode3D,
-    has3DModel,
     toggleStatsAbilities,
     filtersActive,
   } = usePokedexPage();
@@ -89,8 +88,8 @@ export function PokedexShell(): ReactElement {
 
   const slots: SlotMap = useMemo(() => {
     const map = createEmptySlots();
-    // El botón 3D sólo se inyecta si el pokemon tiene modelo 3D.
-    map.BOTON_3D = has3DModel ? <Button3DSlot mode3D={mode3D} /> : null;
+    // El botón 3D siempre visible (sin funcionalidad hasta Plan 09).
+    map.BOTON_3D = <Button3DSlot mode3D={mode3D} />;
     map.TIPO1_TIPO2_GENERACION = <ChipsSlot pokemonName={selectedName} />;
     map.PUNTOS_CARRUSEL = <CarouselDotsSlot pokemonName={selectedName} />;
     map.CARRUSEL_IMAGENES_DESCRIPCION = (
@@ -112,7 +111,7 @@ export function PokedexShell(): ReactElement {
     map.DROPDOWNS_FILTROS = <FilterDropdownsSlot />;
     map.BUSCAR_RESET_FILTRAR = <SearchResetFilterSlot />;
     return map;
-  }, [selectedName, mode3D, has3DModel, toggleStatsAbilities, filtersActive]);
+  }, [selectedName, mode3D, toggleStatsAbilities, filtersActive]);
 
   const carcasa = (
     <CarouselProvider pokemonName={selectedName}>

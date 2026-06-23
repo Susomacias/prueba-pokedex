@@ -1,0 +1,453 @@
+/* ========================================================================= *
+ * Controles de filtros — Plan 07 (dropdowns, buscador, botones).
+ *
+ * Estética arcade/sci-fi consistente con la Pokédex:
+ *  - Profundidad 3D vía box-shadow offset (no blur)
+ *  - Hover: levanta el botón (translateY negativo + shadow expande)
+ *  - Active: hunde el botón (translateY positivo + shadow encoge)
+ *  - Tipografía PressStart2P legible
+ *  - Paleta: cyan #126CA3, naranja #FF9203, negro #0a0e1a
+ *  - Dropdown via portal (position:fixed) para overlay sin recorte
+ * ========================================================================= */
+
+/* ------------------------------------------------------------------------- *
+ * FilterDropdowns — grid 4x2, botones cuadrados 2-lineas
+ * ------------------------------------------------------------------------- */
+
+.filter-dropdowns-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 3px;
+  width: 100%;
+  height: 100%;
+  padding: 3px;
+  box-sizing: border-box;
+}
+
+.filter-dropdown-cell {
+  position: relative;
+  min-height: 0;
+}
+
+.filter-dropdown-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+  padding: 3px 2px;
+  font-family: var(--font-press-start-2p), "Courier New", monospace;
+  background: linear-gradient(180deg, #1a8acf 0%, #126CA3 40%, #0d4f7a 100%);
+  color: #ffffff;
+  border: 2px solid #0a4a78;
+  border-radius: 4px;
+  cursor: pointer;
+  box-shadow:
+    0 3px 0 #083452,
+    0 4px 6px rgba(0, 0, 0, 0.4);
+  transition:
+    transform 100ms ease-out,
+    box-shadow 100ms ease-out,
+    background 100ms ease-out;
+  letter-spacing: 0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-sizing: border-box;
+}
+
+.filter-dropdown-btn__name {
+  font-size: 7px;
+  font-weight: 600;
+  text-transform: uppercase;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.filter-dropdown-btn__value {
+  font-size: 6px;
+  font-weight: 400;
+  text-transform: uppercase;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  opacity: 0.9;
+}
+
+.filter-dropdown-btn:hover {
+  background: linear-gradient(180deg, #2da8e8 0%, #1682c7 40%, #126CA3 100%);
+  transform: translateY(-1px);
+  box-shadow:
+    0 4px 0 #083452,
+    0 6px 10px rgba(0, 0, 0, 0.5);
+}
+
+.filter-dropdown-btn:focus-visible {
+  outline: 2px solid #FF9203;
+  outline-offset: 1px;
+}
+
+.filter-dropdown-btn:active {
+  transform: translateY(2px);
+  box-shadow:
+    0 1px 0 #083452,
+    0 2px 3px rgba(0, 0, 0, 0.4);
+}
+
+.filter-dropdown-btn[data-active="true"] {
+  background: linear-gradient(180deg, #FF9203 0%, #e07800 40%, #b85f00 100%);
+  border-color: #FF9203;
+  box-shadow:
+    0 3px 0 #8a4400,
+    0 4px 8px rgba(255, 146, 3, 0.35);
+  color: #1a1a1a;
+}
+
+.filter-dropdown-btn[data-active="true"]:hover {
+  background: linear-gradient(180deg, #FFB340 0%, #FF9203 40%, #c96b00 100%);
+  box-shadow:
+    0 4px 0 #8a4400,
+    0 6px 12px rgba(255, 146, 3, 0.45);
+}
+
+/* ------------------------------------------------------------------------- *
+ * Panel dropdown — vía portal, position:fixed
+ * ------------------------------------------------------------------------- */
+
+.filter-dropdown-panel {
+  position: fixed;
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: linear-gradient(180deg, #0f1a2e 0%, #0a0e1a 100%);
+  border: 2px solid #126CA3;
+  border-radius: 5px;
+  box-shadow:
+    0 -4px 0 #083452,
+    0 -8px 24px rgba(0, 0, 0, 0.7);
+}
+
+.filter-dropdown-panel__search {
+  width: 100%;
+  padding: 6px 8px;
+  font-size: 9px;
+  font-family: var(--font-press-start-2p), "Courier New", monospace;
+  background: #020812;
+  color: #8DF0FF;
+  border: none;
+  border-bottom: 2px solid #126CA3;
+  outline: none;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.filter-dropdown-panel__search::placeholder {
+  color: rgba(141, 240, 255, 0.35);
+}
+
+.filter-dropdown-panel__list {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #126CA3 transparent;
+  padding: 3px 0;
+}
+
+.filter-dropdown-panel__list::-webkit-scrollbar {
+  width: 5px;
+}
+
+.filter-dropdown-panel__list::-webkit-scrollbar-thumb {
+  background: #126CA3;
+  border-radius: 3px;
+}
+
+.filter-dropdown-panel__option {
+  display: block;
+  width: 100%;
+  padding: 5px 8px;
+  font-size: 9px;
+  font-family: var(--font-press-start-2p), "Courier New", monospace;
+  color: #8DF0FF;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+  line-height: 1.5;
+}
+
+.filter-dropdown-panel__option:hover {
+  background: rgba(18, 108, 163, 0.45);
+}
+
+.filter-dropdown-panel__option:focus-visible {
+  background: rgba(18, 108, 163, 0.55);
+  outline: none;
+}
+
+.filter-dropdown-panel__status {
+  padding: 8px;
+  font-size: 8px;
+  font-family: var(--font-press-start-2p), "Courier New", monospace;
+  color: #8DF0FF;
+  text-align: center;
+  opacity: 0.7;
+}
+
+.filter-dropdown-panel__status--error {
+  color: #FF6363;
+  opacity: 1;
+}
+
+/* ------------------------------------------------------------------------- *
+ * SearchInput — LCD + pokeball-lupa
+ * ------------------------------------------------------------------------- */
+
+.search-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.search-input-field {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: #020812;
+  border: 2px solid #0a4a78;
+  border-radius: 4px;
+  padding: 2px 6px;
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.5),
+    0 2px 0 #05142a,
+    0 3px 4px rgba(0, 0, 0, 0.3);
+}
+
+.search-input-field:focus-within {
+  border-color: #126CA3;
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.5),
+    0 2px 0 #05142a,
+    0 0 6px rgba(18, 108, 163, 0.4);
+}
+
+.search-input-field__input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #8DF0FF;
+  font-size: 8px;
+  font-family: var(--font-press-start-2p), "Courier New", monospace;
+  padding: 3px 0;
+  letter-spacing: 0.02em;
+  line-height: 1.3;
+}
+
+.search-input-field__input::placeholder {
+  color: rgba(141, 240, 255, 0.3);
+}
+
+.search-input-field__loading {
+  font-size: 7px;
+  color: #8DF0FF;
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+.search-suggestions {
+  position: fixed;
+  z-index: 99998;
+  background: linear-gradient(180deg, #0f1a2e 0%, #0a0e1a 100%);
+  border: 2px solid #126CA3;
+  border-radius: 5px;
+  box-shadow:
+    0 4px 0 #083452,
+    0 8px 24px rgba(0, 0, 0, 0.7);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #126CA3 transparent;
+}
+
+.search-suggestions::-webkit-scrollbar {
+  width: 5px;
+}
+
+.search-suggestions::-webkit-scrollbar-thumb {
+  background: #126CA3;
+  border-radius: 3px;
+}
+
+.search-suggestions__option {
+  display: block;
+  width: 100%;
+  padding: 5px 10px;
+  font-size: 9px;
+  font-family: var(--font-press-start-2p), "Courier New", monospace;
+  color: #8DF0FF;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+  line-height: 1.5;
+}
+
+.search-suggestions__option:hover {
+  background: rgba(18, 108, 163, 0.45);
+}
+
+.search-suggestions__option:focus-visible {
+  background: rgba(18, 108, 163, 0.55);
+  outline: none;
+}
+
+.search-suggestions__option-id {
+  opacity: 0.5;
+  margin-right: 4px;
+}
+
+/* ------------------------------------------------------------------------- *
+ * ResetFilterButtons
+ * ------------------------------------------------------------------------- */
+
+.reset-filter-row {
+  display: flex;
+  gap: 3px;
+  width: 100%;
+  align-items: stretch;
+}
+
+.reset-btn {
+  flex: 1;
+  padding: 3px 6px;
+  font-size: 7px;
+  font-weight: 600;
+  font-family: var(--font-press-start-2p), "Courier New", monospace;
+  background: linear-gradient(180deg, #333333 0%, #1a1a1a 40%, #0d0d0d 100%);
+  color: #cccccc;
+  border: 2px solid #333;
+  border-radius: 4px;
+  cursor: pointer;
+  text-transform: uppercase;
+  text-align: center;
+  box-shadow:
+    0 3px 0 #0a0a0a,
+    0 4px 6px rgba(0, 0, 0, 0.4);
+  transition:
+    transform 100ms ease-out,
+    box-shadow 100ms ease-out;
+  letter-spacing: 0.02em;
+  line-height: 1.3;
+}
+
+.reset-btn:hover {
+  background: linear-gradient(180deg, #4a4a4a 0%, #2a2a2a 40%, #1a1a1a 100%);
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow:
+    0 4px 0 #0a0a0a,
+    0 6px 10px rgba(0, 0, 0, 0.5);
+}
+
+.reset-btn:focus-visible {
+  outline: 2px solid #FF9203;
+  outline-offset: 1px;
+}
+
+.reset-btn:active {
+  transform: translateY(2px);
+  box-shadow:
+    0 1px 0 #0a0a0a,
+    0 2px 3px rgba(0, 0, 0, 0.4);
+}
+
+.filter-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 3px 6px;
+  font-size: 7px;
+  font-weight: 600;
+  font-family: var(--font-press-start-2p), "Courier New", monospace;
+  background: linear-gradient(180deg, #FFB340 0%, #FF9203 40%, #c96b00 100%);
+  color: #1a1a1a;
+  border: 2px solid #e07800;
+  border-radius: 4px;
+  cursor: pointer;
+  text-transform: uppercase;
+  text-align: center;
+  box-shadow:
+    0 3px 0 #8a4400,
+    0 4px 6px rgba(0, 0, 0, 0.4);
+  transition:
+    transform 100ms ease-out,
+    box-shadow 100ms ease-out;
+  letter-spacing: 0.02em;
+  line-height: 1.3;
+}
+
+.filter-btn:hover {
+  background: linear-gradient(180deg, #ffce70 0%, #FFB340 40%, #FF9203 100%);
+  transform: translateY(-1px);
+  box-shadow:
+    0 4px 0 #8a4400,
+    0 6px 10px rgba(0, 0, 0, 0.5);
+}
+
+.filter-btn:focus-visible {
+  outline: 2px solid #1a1a1a;
+  outline-offset: 1px;
+}
+
+.filter-btn:active {
+  transform: translateY(2px);
+  box-shadow:
+    0 1px 0 #8a4400,
+    0 2px 3px rgba(0, 0, 0, 0.4);
+}
+
+.filter-btn__arrow {
+  width: 0;
+  height: 0;
+  border-left: 5px solid currentColor;
+  border-top: 3.5px solid transparent;
+  border-bottom: 3.5px solid transparent;
+  flex-shrink: 0;
+}
+
+/* ------------------------------------------------------------------------- *
+ * Ajustes de size en el slot (foreignObject)
+ * ------------------------------------------------------------------------- */
+
+[data-stub="filter-dropdowns"] {
+  width: 100%;
+  height: 100%;
+}
+
+[data-stub="search-reset-filter"] {
+  width: 100%;
+  height: 100%;
+}
+
+/* ------------------------------------------------------------------------- *
+ * Reduced motion
+ * ------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .filter-dropdown-btn,
+  .reset-btn,
+  .filter-btn {
+    transition: none !important;
+  }
+}

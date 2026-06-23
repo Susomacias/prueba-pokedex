@@ -136,28 +136,9 @@ export function FilterConsole() {
     const scrollToBottom = () => {
       const el = screenRef.current;
       if (!el) return;
-      // 1) Ajuste directo.
       el.scrollTop = el.scrollHeight;
-      // 2) Fallback sobre la última línea.
-      const lastLine = el.lastElementChild as (HTMLElement & {
-        scrollIntoView?: (options?: ScrollIntoViewOptions) => void;
-      }) | null;
-      if (lastLine && typeof lastLine.scrollIntoView === "function") {
-        lastLine.scrollIntoView({ block: "end", behavior: "auto" });
-      }
-      // 3) Si no había overflow (contenido más pequeño que el
-      // viewport), nada que hacer. Si lo había y aún no se ha
-      // actualizado, reintentar en el siguiente frame.
-      if (el.scrollHeight > el.clientHeight + 1) {
-        requestAnimationFrame(() => {
-          el.scrollTop = el.scrollHeight;
-        });
-      }
     };
     scrollToBottom();
-    // Reintento adicional por si el navegador aún no había calculado
-    // el alto del contenedor en este commit (caso típico de
-    // `<foreignObject>` SVG con cambio de contenido).
     const raf = requestAnimationFrame(scrollToBottom);
     return () => cancelAnimationFrame(raf);
   }, [lines.length]);

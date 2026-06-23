@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { useEffect } from "react";
 import { readFileSync } from "node:fs";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { PokedexShell } from "@/src/components/pokedex/PokedexShell";
 import {
   PokedexPageProvider,
@@ -47,8 +47,13 @@ vi.mock("next/navigation", () => ({
 
 // Plan 11: la lista se monta SIEMPRE dentro del slot
 // `CARRUSEL_IMAGENES_DESCRIPCION`, así que necesitamos mockear la
-// API para evitar fetches reales en los tests de shell. Devolvemos
-// un resultado vacío.
+// API para evitar fetches reales en los tests de shell.
+//
+// `fetchPokemonDetail` por defecto devuelve `null` para tests que
+// verifican slots vacíos; los tests que necesitan slots poblados
+// (evoluciones, stats, chips con datos) lo sobreescriben con
+// `mockFetchDetailReturn`.
+let mockFetchDetailReturn: unknown = null;
 vi.mock("@/src/lib/pokemon/cachedPokemonApi", () => ({
   applyFiltersToList: vi.fn().mockResolvedValue({
     items: [],
@@ -56,7 +61,9 @@ vi.mock("@/src/lib/pokemon/cachedPokemonApi", () => ({
     total: 0,
     single: false,
   }),
-  fetchPokemonDetail: vi.fn(),
+  fetchPokemonDetail: vi.fn().mockImplementation(() =>
+    Promise.resolve(mockFetchDetailReturn),
+  ),
 }));
 
 // `AppShellProvider` lee `window.location.pathname` directamente
@@ -119,6 +126,47 @@ function resetWindowPathname(): void {
  * un harness con `PokedexPageProvider` y un `HarnessSetter` que ajusta
  * el estado desde dentro.
  */
+
+/** Detalle mínimo para tests que necesitan slots poblados (Plan 08). */
+function minimalDetail(name: string) {
+  return {
+    id: 25,
+    name,
+    height: 4,
+    weight: 60,
+    baseExperience: 112,
+    isLegendary: false,
+    isMythical: false,
+    captureRate: 190,
+    baseHappiness: 50,
+    generation: "generation-i",
+    habitat: "bosque",
+    types: [{ slot: 1, name: "electric" }],
+    stats: [
+      { name: "hp", baseStat: 35 },
+      { name: "attack", baseStat: 55 },
+      { name: "defense", baseStat: 40 },
+      { name: "special-attack", baseStat: 50 },
+      { name: "special-defense", baseStat: 50 },
+      { name: "speed", baseStat: 90 },
+    ],
+    abilities: [
+      { name: "static", isHidden: false, slot: 1 },
+    ],
+    sprites: {
+      frontDefault: null, frontShiny: null, backDefault: null, backShiny: null,
+      officialArtwork: null, homeFront: null, homeShiny: null, officialArtworkShiny: null,
+    },
+    cryLatestUrl: null,
+    flavorText: null,
+    flavorTextVersion: null,
+    evolutionChain: [
+      { id: 172, name: "pichu", evolvesFromSpeciesId: null },
+      { id: 25, name: "pikachu", evolvesFromSpeciesId: 172 },
+      { id: 26, name: "raichu", evolvesFromSpeciesId: 25 },
+    ],
+  };
+}
 
 /** Helper: lee el `data-stub` del nodo hijo dentro de un `<g data-slot>`. */
 function stubOf(slotGroup: Element | null): string | null {
@@ -235,23 +283,28 @@ describe("PokedexShell (Plan 05.3)", () => {
 
   it("sin pokemon seleccionado: los slots de datos quedan SIN contenido (sin [data-stub] hijo)", () => {
     renderShell();
-    // El slot `CARRUSEL_IMAGENES_DESCRIPCION` ya NO está vacío sin
-    // pokemon: aloja la `PokemonList` (Plan 06.1). Se omite de esta
-    // aserción y se cubre por el test "renderiza la lista virtualizada
-    // cuando no hay pokemon seleccionado" más abajo.
+    // Plan 08: Todos los slots muestran contenido UI incluso sin pokemon:
+    //   - TIPO1_TIPO2_GENERACION: chips placeholder (Plan 08.1).
+    //   - EVOLUCIONES, STATS: panel LCD vacío (Plan 08.2/08.3).
+    //   - VER_HABILIDADES_VER_STATS: botón disabled (Plan 08.4).
+    //   - CARRUSEL_IMAGENES_DESCRIPCION: PokemonList (Plan 06.1).
+    //   - Filtros: UI de filtros vacíos (Plan 07).
+    // Sólo los slots PUNTOS_CARRUSEL/BOTONES_CARRUSEL/SONIDO_POKEMON
+    // dependen del detalle del pokémon para mostrar contenido.
     for (const slot of [
-      "TIPO1_TIPO2_GENERACION",
       "PUNTOS_CARRUSEL",
       "BOTONES_CARRUSEL",
       "SONIDO_POKEMON",
-      "EVOLUCIONES",
-      "STATS",
-      "VER_HABILIDADES_VER_STATS",
     ]) {
       const group = document.querySelector(`[data-slot="${slot}"]`);
       expect(group).not.toBeNull();
       expect(group?.querySelector("[data-stub]")).toBeNull();
     }
+    // Los slots de datos siempre visibles
+    expect(stubOf(document.querySelector('[data-slot="TIPO1_TIPO2_GENERACION"]'))).toBe("chips");
+    expect(stubOf(document.querySelector('[data-slot="EVOLUCIONES"]'))).toBe("evolutions");
+    expect(stubOf(document.querySelector('[data-slot="STATS"]'))).toBe("stats");
+    expect(stubOf(document.querySelector('[data-slot="VER_HABILIDADES_VER_STATS"]'))).toBe("toggle");
   });
 
   it("sin pokemon seleccionado: filtros y consola siguen visibles (placeholders)", () => {
@@ -267,8 +320,16 @@ describe("PokedexShell (Plan 05.3)", () => {
     ).toBe("search-reset-filter");
   });
 
-  it("con pokemon seleccionado: activa los slots de datos con un stub identificable", () => {
+  it("con pokemon seleccionado: activa los slots de datos con un stub identificable", async () => {
+    mockFetchDetailReturn = minimalDetail("pikachu");
     renderShell(undefined, { pathname: "/pokemon/pikachu" });
+
+    // Los slots EVOLUCIONES y STATS dependen del detalle asíncrono de
+    // CarouselProvider — esperamos a que se resuelva.
+    await waitFor(() => {
+      const evos = document.querySelector('[data-slot="EVOLUCIONES"]');
+      expect(stubOf(evos)).toBe("evolutions");
+    });
 
     const chips = document.querySelector('[data-slot="TIPO1_TIPO2_GENERACION"]');
     expect(stubOf(chips)).toBe("chips");
@@ -280,15 +341,6 @@ describe("PokedexShell (Plan 05.3)", () => {
     expect(stubOf(carousel)).toBe("carousel");
     expect(pokemonOf(carousel)).toBe("pikachu");
 
-    // `PUNTOS_CARRUSEL` (LEDs) depende del detalle del pokemon para
-    // saber cuántas slides renderizar — sin detalle cargado devuelve
-    // `null` y el slot queda oculto. `BOTONES_CARRUSEL` y
-    // `SONIDO_POKEMON` siempre exponen su `data-stub` cuando hay
-    // pokemon seleccionado (los botones pueden quedar disabled y el
-    // botón de sonido se renderiza vacío hasta que llegue el cry).
-    expect(
-      stubOf(document.querySelector('[data-slot="PUNTOS_CARRUSEL"]')),
-    ).toBeNull();
     expect(
       stubOf(document.querySelector('[data-slot="BOTONES_CARRUSEL"]')),
     ).toBe("buttons");
@@ -297,7 +349,6 @@ describe("PokedexShell (Plan 05.3)", () => {
     );
 
     const evos = document.querySelector('[data-slot="EVOLUCIONES"]');
-    expect(stubOf(evos)).toBe("evolutions");
     expect(pokemonOf(evos)).toBe("pikachu");
 
     // toggleStatsAbilities="stats" por defecto
@@ -308,22 +359,29 @@ describe("PokedexShell (Plan 05.3)", () => {
     );
     expect(stubOf(toggle)).toBe("toggle");
     expect(modeOf(toggle)).toBe("stats");
+    mockFetchDetailReturn = null;
   });
 
-  it("en modo abilities, el slot STATS muestra el stub de abilities", () => {
+  it("en modo abilities, el slot STATS muestra el stub de abilities", async () => {
+    mockFetchDetailReturn = minimalDetail("pikachu");
     renderShell(
       (api) => {
         api.setToggleStatsAbilities("abilities");
       },
       { pathname: "/pokemon/pikachu" },
     );
-    expect(stubOf(document.querySelector('[data-slot="STATS"]'))).toBe(
-      "abilities",
-    );
+
+    await waitFor(() => {
+      expect(stubOf(document.querySelector('[data-slot="STATS"]'))).toBe(
+        "abilities",
+      );
+    });
+
     const toggle = document.querySelector(
       '[data-slot="VER_HABILIDADES_VER_STATS"]',
     );
     expect(modeOf(toggle)).toBe("abilities");
+    mockFetchDetailReturn = null;
   });
 
   it("en modo 3D: el slot CARRUSEL marca data-mode='3d' y el botón 3D aparece como activo", () => {
@@ -344,7 +402,7 @@ describe("PokedexShell (Plan 05.3)", () => {
     expect(activeOf(btn)).toBe("true");
   });
 
-  it("el botón 3D no inyecta contenido si el pokemon no tiene modelo 3D", () => {
+  it("el botón 3D siempre está visible (Plan 08.5)", () => {
     renderShell(
       (api) => {
         api.setHas3DModel(false);
@@ -353,8 +411,9 @@ describe("PokedexShell (Plan 05.3)", () => {
     );
     const group = document.querySelector('[data-slot="BOTON_3D"]');
     expect(group).not.toBeNull();
-    // El `<g data-slot>` permanece pero sin `[data-stub]`.
-    expect(group?.querySelector("[data-stub]")).toBeNull();
+    // El botón 3D ahora se inyecta siempre (sin funcionalidad).
+    expect(group?.querySelector("[data-stub]")).not.toBeNull();
+    expect(stubOf(group)).toBe("button-3d");
   });
 
   it("el shell delega la elección de carcasa en useViewportLayout (no decide él)", () => {

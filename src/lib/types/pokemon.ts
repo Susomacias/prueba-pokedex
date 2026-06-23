@@ -146,11 +146,19 @@ export interface PokemonSprites {
   officialArtworkShiny: string | null;
 }
 
+/** Detalle de evolución (cómo evoluciona a esta especie). */
+export interface EvolutionDetail {
+  minLevel: number | null;
+  trigger: string | null;
+  item: string | null;
+}
+
 /** Nodo dentro de la cadena evolutiva. */
 export interface EvolutionNode {
   id: number;
   name: string;
   evolvesFromSpeciesId: number | null;
+  evolutionDetail: EvolutionDetail | null;
 }
 
 /** Forma normalizada del detalle de un pokemon. */

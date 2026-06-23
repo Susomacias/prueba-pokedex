@@ -295,7 +295,7 @@ describe("useFilteredPokemonList", () => {
     // (ver `POKEMON_TYPE_LABELS`); `useFilters` parsea de vuelta al
     // value canónico antes de pasar a la API.
     expect(api.applyFiltersToList).toHaveBeenLastCalledWith(
-      expect.objectContaining({ type1: "Fuego" }),
+      expect.objectContaining({ type1: "fire" }),
       0,
       { search: "char" },
     );
@@ -306,7 +306,7 @@ describe("useFilteredPokemonList", () => {
 
     await waitFor(() => expect(result.current.items).toHaveLength(2));
     expect(api.applyFiltersToList).toHaveBeenLastCalledWith(
-      expect.objectContaining({ type1: "Fuego" }),
+      expect.objectContaining({ type1: "fire" }),
       30,
       { search: "char" },
     );

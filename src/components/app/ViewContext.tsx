@@ -182,15 +182,18 @@ export function AppShellProvider({
 
   const goToPokedex = useCallback(() => {
     const current = readPathname();
+    const search = typeof window !== "undefined" ? window.location.search : "";
+    const url = `/pokedex${search}`;
     if (current === "/pokedex") return;
-    pushPath("/pokedex");
+    pushPath(url);
     setPathname("/pokedex");
     setView("pokedex");
   }, []);
 
   const goToPokemon = useCallback((name: string) => {
     if (!name) return;
-    const url = `/pokemon/${encodeURIComponent(name)}`;
+    const search = typeof window !== "undefined" ? window.location.search : "";
+    const url = `/pokemon/${encodeURIComponent(name)}${search}`;
     const current = readPathname();
     if (current === url) return;
     pushPath(url);

@@ -11,14 +11,11 @@ Cerrar el ciclo visual: fondo animado en la pokedex (body gradient + tile), imag
 - La imagen del hábitat **no aparece de golpe**: animación rápida en la que sale en pequeño desde la derecha y se agranda hasta ocupar el ancho.
 - El hábitat lleva un degradado de transición en la parte inferior para fundir con el fondo.
 
-## Aclaración importante (comportamiento)
+## Aclaración importante (comportamiento revisado junio 2026)
 
-El hábitat tiene un **doble propósito visual** que hay que distinguir bien:
+El hábitat 2D aparece como **fondo ambientador** detrás de la pokedex al seleccionar un pokemon. La pokedex **permanece en su sitio** (NO baja). Es puramente estético, para dar ambientación al pokemon mientras se consulta su ficha.
 
-1. **Al seleccionar un pokemon (ficha 2D)**: el hábitat aparece como **fondo ambientador** detrás de la pokedex. La pokedex **permanece en su sitio** (NO baja). Es puramente estético, para dar ambientación al pokemon mientras se consulta su ficha.
-2. **Al activar la vista 3D** (Plan 09.5): aquí sí la pokedex transiciona hacia abajo y el hábitat queda como fondo a pantalla completa tras el modelo 3D.
-
-Es decir: la presencia del hábitat **no** implica bajar la pokedex. La pokedex solo baja cuando se pulsa el botón 3D.
+El overlay de hábitat para el modo 3D (`Mode3DHabitatOverlay`) pertenece al Plan 09 (Fase 09.0) — es un componente distinto que se monta cuando la pokédex baja parcialmente. El hábitat 2D de este plan es independiente: su ciclo de vida solo depende de si hay pokemon seleccionado, no del modo 3D.
 
 ## Recursos
 
@@ -26,8 +23,9 @@ Es decir: la presencia del hábitat **no** implica bajar la pokedex. La pokedex 
 
 ## Contexto / Dependencias
 
-- **Requiere**: Plan 03 (tile de fondo), Plan 06 (carrusel que dispara "pokemon seleccionado"), Plan 08 (detalle con habitat), Plan 09 (3D que también muestra el hábitat).
-- **Habilita**: entrega final.
+- **Requiere**: Plan 03 (tile de fondo), Plan 06 (carrusel que dispara "pokemon seleccionado"), Plan 08 (detalle con habitat).
+- **Depende de**: Plan 09 (el overlay de hábitat para modo 3D ya está implementado en la Fase 09.0).
+- **Resultado**: entrega final.
 
 ## Fases
 
@@ -65,7 +63,7 @@ Es decir: la presencia del hábitat **no** implica bajar la pokedex. La pokedex 
 
 ---
 
-### Fase 10.2 — Imagen del hábitat con animación de entrada
+### Fase 10.2 — Imagen del hábitat 2D con animación de entrada
 
 **Objetivo:** mostrar el hábitat del pokemon seleccionado como fondo ambientador detrás de la pokedex (que **NO** baja), con la animación "pequeño desde la derecha → grande hasta ocupar el ancho".
 
@@ -80,7 +78,7 @@ Es decir: la presencia del hábitat **no** implica bajar la pokedex. La pokedex 
 - Se renderiza por encima del degradado+tile pero **por debajo de la pokedex**. La pokedex permanece visible y operativa en todo momento.
 - Al cambiar de pokemon, animar salida (fade out rápido) y entrada del nuevo.
 - Al deseleccionar pokemon (volver a lista), animar salida.
-- **Independencia respecto al 3D**: el ciclo de vida del hábitat no depende de la vista 3D. Al activar 3D la pokedex baja (Plan 09.5) y el hábitat ya está visible; al desactivar 3D la pokedex vuelve a subir y el hábitat sigue donde estaba. El hábitat solo se oculta al deseleccionar el pokemon.
+- **Independencia respecto al 3D**: el ciclo de vida del hábitat 2D no depende de la vista 3D. Al activar 3D (Plan 09.5), el overlay `Mode3DHabitatOverlay` (Fase 09.0) toma el relevo visual; el hábitat 2D puede ocultarse o mantenerse detrás.
 
 **Skills recomendadas:**
 - `frontend-design`.
@@ -90,22 +88,21 @@ Es decir: la presencia del hábitat **no** implica bajar la pokedex. La pokedex 
 - Test: renderiza la imagen correcta según el habitat.
 - Test: habitat desconocido → `generico.webp`.
 - Test: la animación aplica las clases correctas al montar.
-- Test: al activar/desactivar la vista 3D, el hábitat no se desmonta ni re-anima (solo cambia la pokedex).
-- Test: al volver a la lista (sin pokemon seleccionado), el hábitat se desmonta con animación de salida.
+- Test: al activar/desactivar la vista 3D, el hábitat 2D no se desmonta ni re-anima (solo cambia la pokédex).
+- Test: al volver a la lista (sin pokemon seleccionado), el hábitat 2D se desmonta con animación de salida.
 
-**Fixtures (obligatorio):** el `habitat.name` que recibe `HabitatBackground` debe venir del detalle **real de PokeAPI** capturado en `__tests__/fixtures/pokeapi/<name>.json` (con `scripts/capture-pokeapi-fixture.ts` ejecutando `POKEMON_DETAIL_QUERY` contra `https://graphql.pokeapi.co/v1beta2`). La lista canónica de hábitats en PokeAPI es fija (`cave`, `forest`, `grassland`, `mountain`, `rare`, `rough-terrain`, `sea`, `urban`, `waters-edge`, `unknown` — total 9 + `unknown`), y el mapeo a `public/habitats/<name>.webp` debe validarse con `habitat.name` real, NO con strings inventados. Mínimo cubrir:
+**Fixtures (obligatorio):** el `habitat.name` que recibe `HabitatBackground` debe venir del detalle **real de PokeAPI** capturado en `__tests__/fixtures/pokeapi/<name>.json` (con `scripts/capture-pokeapi-fixture.ts` ejecutando `POKEMON_DETAIL_QUERY` contra `https://beta.pokeapi.co/graphql/v1beta`). La lista canónica de hábitats en PokeAPI es fija (`cave`, `forest`, `grassland`, `mountain`, `rare`, `rough-terrain`, `sea`, `urban`, `waters-edge`, `unknown` — total 9 + `unknown`), y el mapeo a `public/habitats/<name>.webp` debe validarse con `habitat.name` real, NO con strings inventados. Mínimo cubrir:
 
 - **Habitat conocido con `.webp` propio**: `pikachu` (`forest`) → valida el mapeo directo.
 - **Habitat distinto conocido**: `magikarp` (`waters-edge`) → valida que no todos van a `forest.webp`.
 - **Habitat `unknown`**: capturar el fixture de un pokemon cuyo `pokemonspecy.pokemonhabitat.name === "unknown"` (p.ej. algunos legendarios o de generaciones nuevas) → debe ir a `generico.webp`. NO usar `habitat: null` o `habitat: "no-existe"` inventado — el componente debe poder distinguir `null` (sin `pokemonhabitat`) de `"unknown"` (valor explícito de PokeAPI).
-- Para el test "al activar/desactivar la vista 3D, el hábitat no se desmonta" usar un pokemon con `.glb` (p.ej. `pikachu`) capturado de PokeAPI real.
 
 **Tests a ejecutar (después):**
 - `npm run test:run`
 
 **Criterios de aceptación:**
-- La entrada del hábitat es fluida y rápida.
-- La pokedex permanece visible y operativa durante todo el ciclo del hábitat.
+- La entrada del hábitat 2D es fluida y rápida.
+- La pokédex permanece visible y operativa durante todo el ciclo del hábitat.
 
 **Documentación:** No.
 

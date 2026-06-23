@@ -385,6 +385,18 @@ body {
   pointer-events: none;
 }
 
+/* ===== Modo 3D (Plan 09) =====
+   Cuando el usuario activa el modo 3D, la Pokédex se desplaza hacia
+   abajo para dejar espacio en la parte superior al overlay del habitat
+   y al objeto 3D. La transición reutiliza la misma curva que la
+   entrada de la Pokédex. */
+
+[data-view="pokedex"] .pokedex-view[data-mode-3d="true"] {
+  transform: translateY(45vh);
+}
+
+/* ===== prefers-reduced-motion (extensión modo 3D) ===== */
+
 /* El PRESS START debe ser no-clickable mientras la Pokédex está
    activa para evitar dobles disparos. El componente ya controla el
    atributo `disabled`, pero el CSS refuerza el aspecto visual. */

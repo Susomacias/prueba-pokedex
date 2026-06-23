@@ -275,10 +275,10 @@ export function PokedexVerticalSvg({ slots }: { slots: SlotMap }) {
 
       <SlotLayer
         slot="TIPO1_TIPO2_GENERACION"
-        x={201.58}
-        y={318.27}
-        width={383.01}
-        height={73.53}
+        x={730}
+        y={160}
+        width={80}
+        height={380}
         content={slots.TIPO1_TIPO2_GENERACION}
       />
 
@@ -320,8 +320,8 @@ export function PokedexVerticalSvg({ slots }: { slots: SlotMap }) {
 
       <SlotLayer
         slot="EVOLUCIONES"
-        x={73.21}
-        y={154.93}
+        x={60}
+        y={45}
         width={179.77}
         height={238.34}
         content={slots.EVOLUCIONES}
@@ -329,8 +329,8 @@ export function PokedexVerticalSvg({ slots }: { slots: SlotMap }) {
 
       <SlotLayer
         slot="STATS"
-        x={154.76}
-        y={280.76}
+        x={60}
+        y={290}
         width={179.77}
         height={156.56}
         content={slots.STATS}

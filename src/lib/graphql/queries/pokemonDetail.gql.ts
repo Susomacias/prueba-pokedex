@@ -76,6 +76,11 @@ export const POKEMON_DETAIL_QUERY = /* GraphQL */ `
           id
           name
           evolves_from_species_id
+          pokemon_v2_pokemonevolutions {
+            min_level
+            pokemon_v2_evolutiontrigger { name }
+            pokemon_v2_item { name }
+          }
         }
       }
     }

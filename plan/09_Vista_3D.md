@@ -18,23 +18,115 @@ El número final es el **id** del pokemon. Algunos no existen o dan error → el
 - Cámara: vista desde arriba en plano inclinado (no top-down puro).
 - Rotación lenta automática.
 - Usuario puede rotar horizontalmente arrastrando mouse o dedo.
+
+### Flujo de activación 3D (revisado junio 2026)
+
 - Al pulsar "Ver en 3D":
-  1. La pokédex transiciona hacia abajo (visible el hábitat del fondo). Aquí SÍ hay scroll vertical.
-  2. Transición del pokemon 3D de `opacity: 0 → 1`.
-  3. Animación del modelo.
-- Pulsar de nuevo con el objeto visible → transición inversa.
+  1. La pokédex transiciona hacia abajo **parcialmente** (~45vh) dejando espacio libre en la parte superior para presentar el modelo 3D sobre el fondo del hábitat. La pokédex **sigue visible** (el botón 3D y la parte superior de la carcasa permanecen en pantalla).
+  2. El botón "Ver en 3D" (icono Box + texto "3D") se **sustituye** por una flecha hacia abajo (ChevronDown). Su `aria-label` cambia a "Cerrar 3D".
+  3. El overlay del hábitat (Fase 09.0) ocupa el espacio superior liberado, con la imagen del hábitat como fondo.
+  4. Transición del pokemon 3D de `opacity: 0 → 1` sobre el hábitat.
+  5. Animación del modelo (rotación lenta automática).
+
+### Flujo de desactivación 3D (dos vías)
+
+- **Vía botón**: pulsar la flecha hacia abajo (el botón que sustituyó al de "Ver en 3D") → transición inversa: overlay 3D + hábitat desaparecen, pokédex vuelve a `translateY(0)`, el botón vuelve a mostrar "3D".
+- **Vía gesto swipe-up**: deslizar el dedo de abajo hacia arriba sobre el área del overlay 3D/hábitat → misma transición inversa. El umbral mínimo es ~40px de desplazamiento hacia arriba.
 - Si se aplica un filtro o se llama a un nuevo pokemon → destruir el elemento 3D tras transición inversa.
 
 ## Nota importante sobre el hábitat
 
-El hábitat **ya está visible** desde que el pokemon fue seleccionado (Plan 10.2 lo muestra como fondo ambientador detrás de la pokedex, sin bajarla). Al activar la vista 3D, la pokedex baja y el hábitat queda a la vista a pantalla completa detrás del modelo. La transición 3D **no** monta ni anima el hábitat: simplemente oculta la pokedex. Al desactivar 3D la pokedex vuelve a su posición y el hábitat sigue donde estaba (su ciclo de vida depende solo de si hay pokemon seleccionado, no del modo 3D).
+El hábitat del modo 3D se implementa como **overlay independiente** (vía `createPortal` a `document.body`) en la Fase 09.0. Se desarrolla **primero** porque el objeto 3D se monta sobre él como capa superior. La imagen del hábitat cubre el área superior (`height: 45vh`) con un degradado inferior que funde con el fondo del body. El overlay incluye:
+
+- Imagen del hábitat con `object-fit: cover` y transición suave de opacidad.
+- Degradado sutil hacia el borde inferior (transición con el fondo `#1a1a2e` del body).
+- Botón de flecha hacia abajo (cierre) con pulso luminoso, centrado en el borde inferior del overlay.
+- Texto indicador "Desliza hacia arriba para cerrar".
+
+El hábitat **no se desmonta al cambiar de pokemon** estando en modo 3D: solo se actualiza la imagen. Al desactivar el modo 3D, el overlay se desmonta completamente y la pokédex recupera su posición original. Al deseleccionar el pokemon (volver a la lista), el modo 3D se desactiva automáticamente.
 
 ## Contexto / Dependencias
 
 - **Requiere**: Plan 08 (botón 3D + ficha del pokemon), Plan 01.3 (id del pokemon para la URL).
-- **Habilita**: Plan 10 (fondo hábitat que acompaña la vista 3D).
+- **Habilita**: Plan 10 (fondo hábitat 2D ambientador + pulido final).
 
 ## Fases
+
+---
+
+### Fase 09.0 — Overlay de hábitat + botón 3D revisado + bridge CSS
+
+**Objetivo:** construir la capa base del modo 3D: el overlay que muestra el hábitat en el espacio superior, el bridge que sincroniza el estado con el DOM, y la revisión del botón 3D para que cambie a flecha al activarse. Esta fase se desarrolla **primero** porque el visor Three.js (fases siguientes) se monta sobre este overlay.
+
+**Tareas:**
+
+#### 09.0a — Bridge CSS (`Mode3DViewBinder`)
+
+- Componente `Mode3DViewBinder` (client) en `src/components/pokedex/3d/`.
+- Lee `mode3D` de `usePokedexPage()`.
+- En `useEffect`, busca el ancestro `.pokedex-view` y establece el atributo `data-mode-3d="true" | "false"`.
+- Al desmontar, elimina el atributo.
+- El componente renderiza `null` (solo efecto secundario).
+
+#### 09.0b — CSS `data-mode-3d`
+
+- En `globals.css`, regla `[data-view="pokedex"] .pokedex-view[data-mode-3d="true"]` con `transform: translateY(45vh)`.
+- La transición reutiliza la misma curva `cubic-bezier(0.16, 1, 0.3, 1)` y duración (~600ms) que la entrada de la pokédex.
+- Respetar `prefers-reduced-motion`: duración 0ms.
+
+#### 09.0c — Overlay del hábitat (`Mode3DHabitatOverlay`)
+
+- Componente `Mode3DHabitatOverlay` (client) en `src/components/pokedex/3d/`.
+- Se monta dentro de `PokedexOverlay` (tiene acceso a `usePokedexPage()`).
+- Se renderiza mediante `createPortal` a `document.body` para evitar que el stacking context de `.pokedex-view` (que tiene `transform`) interfiera con `position: fixed`.
+- **Disparador**: se activa cuando `mode3D=true`. Se desmonta cuando `mode3D=false`.
+- Fetch del detalle del pokemon (`fetchPokemonDetail`) para obtener el `habitat`. Si no hay pokemon seleccionado, usa `generico.webp`. Usar patrón "store previous value" para limpiar estado en render, no en efecto.
+- Estructura del overlay:
+  - `position: fixed; top: 0; left: 0; width: 100vw; height: 45vh; z-index: 25`.
+  - `<img>` con el habitat (`object-fit: cover`, `opacity: 0.85`, transición suave `600ms` al cargar).
+  - Degradado inferior: `linear-gradient(to bottom, rgba(26,26,46,0.1) 0%, rgba(26,26,46,0.4) 80%, rgba(26,26,46,0.85) 100%)`.
+  - Botón circular con `ChevronDown` (pulso luminoso `box-shadow`) en el borde inferior centrado. `aria-label="Cerrar vista 3D"`. Click → `setMode3D(false)`.
+  - Texto "Desliza hacia arriba para cerrar" sobre el botón.
+  - Gesto swipe-up: `onTouchStart`/`onTouchEnd` — si `deltaY < -40px` → `setMode3D(false)`.
+- **Persistencia entre pokemons**: al cambiar de pokemon estando en modo 3D, el overlay se mantiene montado y solo se actualiza la imagen (nueva fetch). No se desmonta ni re-anima.
+- Al deseleccionar el pokemon, `mode3D` se pone a `false` automáticamente.
+
+#### 09.0d — Botón 3D revisado (`Button3DSlot`)
+
+- Modificar el slot existente (`src/components/pokedex/slots/Button3DSlot.tsx`, Plan 08.5):
+  - **Inactivo** (`mode3D=false`): icono `Box` + texto "3D", `aria-label="Ver en 3D"`, click → `setMode3D(true)`.
+  - **Activo** (`mode3D=true`): icono `ChevronDown` (sin texto "3D"), `aria-label="Cerrar 3D"`, click → `setMode3D(false)`.
+- Mantener la animación de entrada (`opacity 0→1`, 3s) y el pulso existentes.
+
+**Skills recomendadas:**
+- `vercel-react-best-practices` (portal, cleanup, "store previous value").
+- `frontend-design` (overlay, degradados, botón circular con pulso).
+- `tailwind-css-patterns` (transiciones CSS, keyframes).
+
+**Tests a diseñar (antes):**
+- `Mode3DViewBinder`: montar con `mode3D=false` → `data-mode-3d="false"`; desmontar → atributo eliminado.
+- `Mode3DHabitatOverlay`: no renderiza nada con `mode3D=false`; renderiza portal con `data-testid` cuando `mode3D=true`.
+- Overlay: botón de flecha llama a `setMode3D(false)`; swipe-up de ≥40px llama a `setMode3D(false)`.
+- Overlay: imagen del hábitat usa `src` correcto según el `habitat` del pokemon; sin pokemon → `generico.webp`.
+- Overlay: `z-index: 25` para estar por encima de la pokédex (`z-20`).
+- `Button3DSlot`: muestra `ChevronDown` cuando activo, `Box` + "3D" cuando inactivo.
+- `Button3DSlot`: `aria-label` cambia entre "Ver en 3D" y "Cerrar 3D".
+
+**Fixtures (obligatorio):** el `habitat` debe venir del detalle real de PokeAPI capturado en `__tests__/fixtures/pokeapi/<name>.json`. Mínimo cubrir: pikachu (`forest`), magikarp (`waters-edge`), y un pokemon con habitat `null` → `generico.webp`.
+
+**Tests a ejecutar (después):**
+- `npm run test:run`
+- `npm run lint`
+
+**Criterios de aceptación:**
+- El overlay de hábitat se monta/desmonta correctamente con el toggle de modo 3D.
+- El botón 3D cambia de icono y comportamiento al activarse/desactivarse.
+- El atributo `data-mode-3d` se sincroniza correctamente con el estado.
+- La pokédex se desplaza suavemente al activar/desactivar 3D.
+
+**Documentación:** No.
+
+**Revisión humana:** Sí.
 
 ---
 
@@ -178,44 +270,49 @@ El hábitat **ya está visible** desde que el pokemon fue seleccionado (Plan 10.
 
 ---
 
-### Fase 09.5 — Transición 2D ↔ 3D coordinada
+### Fase 09.5 — Transición 2D ↔ 3D coordinada (integración)
 
-**Objetivo:** animar la entrada/salida de la vista 3D moviendo la pokedex y opacidad del modelo.
+**Objetivo:** integrar el visor 3D (`PokemonViewer3D`) con el overlay de hábitat (Fase 09.0) y el bridge CSS, coordinando las transiciones de entrada/salida del modo 3D.
 
 **Tareas:**
-- Hook `use3DView()` (client) con estado `is3DActive`.
-- Entrada (pulsar "Ver en 3D" con vista 2D activa):
-  1. La pokedex transiciona hacia abajo (translateY 0 → 100%).
-  2. El body permite scroll vertical (cambiar clase/overflow).
-  3. El `PokemonViewer3D` transiciona `opacity 0 → 1` (ya estaba montado invisible).
-  4. Auto-rotación arranca.
-- Salida (pulsar de nuevo, o aplicar filtro, o cambiar pokemon):
-  1. Transición inversa.
-  2. El body vuelve a no-scroll.
-  3. Al terminar, si es cambio de pokemon, **destruir** el viewer y el modelo (`usePokemonModel` se resetea con el nuevo id).
-- El botón 3D refleja el estado activo (Plan 08.5).
-- `prefers-reduced-motion`: transición instantánea o muy corta.
+- Montar `PokemonViewer3D` como hijo del `Mode3DHabitatOverlay` (Fase 09.0c), sobre la capa del hábitat.
+- El visor se precarga en segundo plano cuando el modelo está listo (`usePokemonModel` → `ready`), pero permanece invisible (`opacity: 0`) hasta que se activa el modo 3D.
+- Entrada (pulsar "Ver en 3D"):
+  1. `setMode3D(true)` → `Mode3DViewBinder` añade `data-mode-3d="true"`.
+  2. CSS anima `translateY(0) → translateY(45vh)` (la transición ya está definida en 09.0b).
+  3. El overlay del hábitat (09.0c) ya está montado y visible.
+  4. El `PokemonViewer3D` transiciona `opacity 0 → 1` (~400ms).
+  5. Auto-rotación arranca.
+- Salida (flecha hacia abajo, swipe-up, cambio de pokemon, o filtro):
+  1. `setMode3D(false)` → `Mode3DViewBinder` pone `data-mode-3d="false"`.
+  2. CSS anima `translateY(45vh) → translateY(0)`.
+  3. El overlay del hábitat se desmonta (09.0c).
+  4. El `PokemonViewer3D` transiciona `opacity 1 → 0`.
+  5. El botón 3D vuelve a estado inactivo (09.0d).
+- Al cambiar de pokemon con 3D activo: destruir el viewer actual, precargar el nuevo modelo, y si está listo montar el nuevo viewer con fade-in.
+- `prefers-reduced-motion`: duraciones a 0ms.
 
 **Skills recomendadas:**
 - `vercel-react-best-practices` (orchestration, transitions).
 - `frontend-design`.
 
 **Tests a diseñar (antes):**
-- Unit test: activar 3D mueve la pokedex fuera de pantalla.
-- Unit test: desactivar la restaura.
-- Unit test: cambiar pokemon con 3D activo → desactiva y destruye.
+- Unit test: activar 3D → el visor aparece con `opacity: 1`.
+- Unit test: desactivar 3D → el visor desaparece y el overlay se desmonta.
+- Unit test: cambiar pokemon con 3D activo → destruye viewer anterior y monta nuevo.
 - Unit test del visor 3D: mockear `three.js` y verificar que se carga el `.glb` desde la URL correcta.
-- **NO** e2e dedicado para la vista 3D: WebGL en Playwright es muy frágil (`--use-gl=swiftshader` o GPU real), la integración se valida mejor con `react-three-test-renderer` o inspección visual manual. Si tras un bug persistente se necesita un e2e de regresión, se añade con `// REGRESIÓN:` y se mantiene mínimo.
+- **NO** e2e dedicado para la vista 3D: WebGL en Playwright es muy frágil.
 
-**Fixtures (obligatorio):** los unit tests de esta fase deben usar el `id` REAL del pokemon capturado de PokeAPI (`__tests__/fixtures/pokeapi/<name>.json`).
+**Fixtures (obligatorio):** los unit tests deben usar el `id` REAL del pokemon capturado de PokeAPI (`__tests__/fixtures/pokeapi/<name>.json`).
 
 **Tests a ejecutar (después):**
 - `npm run test:run`
 - `npm run lint`
 
 **Criterios de aceptación:**
-- Transiciones fluidas y sin glitches.
-- Limpieza de recursos al cambiar de pokemon.
+- Transiciones fluidas y sin glitches entre el visor 3D y el overlay.
+- La pokédex permanece parcialmente visible en modo 3D.
+- Limpieza de recursos (three.js) al cambiar de pokemon.
 
 **Documentación:** No.
 

@@ -1,21 +1,52 @@
 "use client";
 
-import {
-  usePathname as nextUsePathname,
-  useRouter as nextUseRouter,
-  useSearchParams as nextUseSearchParams,
-} from "next/navigation";
+import { useEffect, useReducer } from "react";
 
 /**
  * Adaptador sobre `next/navigation` (Plan 02.2).
  *
- * En producción, Next ya re-renderiza los Client Components cuando
- * cambian `usePathname`/`useSearchParams`/`useRouter`. Este hook
- * devuelve un objeto estable que envuelve esas APIs.
+ * NOTA: NO se usa `usePathname`, `useRouter` ni `useSearchParams` de
+ * Next.js para escribir la URL porque estos métodos disparan un RSC
+ * fetch aunque solo cambien los search params, lo que provoca que los
+ * <Suspense> boundaries muestren su fallback (parpadeo visual).
+ * Además, el `AppShellProvider` navega entre home y pokédex vía
+ * `history.pushState` (para mantener la SPA), y el router de Next.js
+ * no detecta esos cambios, causando que `nextUsePathname` devuelva
+ * un pathname desincronizado con la URL real del navegador.
+ *
+ * En su lugar, todo el manejo de URL se hace mediante
+ * `window.history.replaceState`/`pushState` + evento `popstate`,
+ * que actualiza la barra del navegador SIN provocar viajes al
+ * servidor. Es el mismo mecanismo que usa `AppShellProvider` para
+ * la navegación home↔pokedex.
  *
  * El módulo se mockea en `__tests__/hooks/useFilters.test.tsx` para
  * inyectar un harness determinista que dispara re-renders manualmente.
  */
+
+function getPathname(): string {
+  if (typeof window === "undefined") return "/";
+  return window.location.pathname || "/";
+}
+
+function getSearch(): string {
+  if (typeof window === "undefined") return "";
+  return window.location.search || "";
+}
+
+/* ------------------------------------------------------------------ *
+ * Suscriptores globales para notificar cambios de URL
+ * ------------------------------------------------------------------ */
+
+const listeners = new Set<() => void>();
+
+function notifyListeners(): void {
+  for (const fn of listeners) fn();
+}
+
+/* ------------------------------------------------------------------ *
+ * API pública
+ * ------------------------------------------------------------------ */
 
 export interface NavigationRouter {
   replace(url: string): void;
@@ -33,21 +64,51 @@ export interface NavigationSnapshot {
 }
 
 export function useNavigation(): NavigationSnapshot {
-  const pathname = nextUsePathname();
-  const router = nextUseRouter();
-  const searchParams = nextUseSearchParams();
-  const searchString = searchParams?.toString() ?? "";
+  const [, forceUpdate] = useReducer((n: number) => n + 1, 0);
+
+  // Suscribirse a `popstate` para que el botón atrás/adelante del
+  // navegador mantenga `pathname` y `searchParams` sincronizados
+  // con la URL real.
+  useEffect(() => {
+    const onPop = () => forceUpdate();
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [forceUpdate]);
+
+  const pathname = getPathname();
+  const searchParams = new URLSearchParams(getSearch());
 
   return {
     pathname,
-    searchParams: new URLSearchParams(searchString),
+    searchParams,
     router: {
-      replace: (url) => router.replace(url, { scroll: false }),
-      push: (url) => router.push(url, { scroll: false }),
-      back: () => router.back(),
-      forward: () => router.forward(),
-      refresh: () => router.refresh(),
+      replace: (url: string) => {
+        if (typeof window === "undefined") return;
+        window.history.replaceState({}, "", url);
+        notifyListeners();
+        // Disparamos `popstate` para que otros listeners (AppShell,
+        // React state) se sincronicen.
+        window.dispatchEvent(new PopStateEvent("popstate"));
+      },
+      push: (url: string) => {
+        if (typeof window === "undefined") return;
+        window.history.pushState({}, "", url);
+        notifyListeners();
+        window.dispatchEvent(new PopStateEvent("popstate"));
+      },
+      back: () => {
+        window.history.back();
+      },
+      forward: () => {
+        window.history.forward();
+      },
+      refresh: () => {
+        window.location.reload();
+      },
     },
-    subscribe: () => () => undefined,
+    subscribe: (fn: () => void) => {
+      listeners.add(fn);
+      return () => listeners.delete(fn);
+    },
   };
 }

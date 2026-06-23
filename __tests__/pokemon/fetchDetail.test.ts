@@ -55,6 +55,11 @@ interface RawSpecies {
       id: number;
       name: string;
       evolves_from_species_id: number | null;
+      pokemon_v2_pokemonevolutions?: Array<{
+        min_level: number | null;
+        pokemon_v2_evolutiontrigger: { name: string } | null;
+        pokemon_v2_item: { name: string } | null;
+      }>;
     }>;
   } | null;
 }

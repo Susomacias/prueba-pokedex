@@ -6,6 +6,22 @@ import type {
 } from "@/src/lib/types/pokemon";
 import { POKEMON_TYPE_LABELS } from "@/src/lib/constants/pokemonTypes";
 
+const TYPE_LABEL_TO_VALUE: ReadonlyMap<string, PokemonType> = (() => {
+  const map = new Map<string, PokemonType>();
+  for (const [value, label] of Object.entries(POKEMON_TYPE_LABELS)) {
+    map.set(normalize(label), value as PokemonType);
+    map.set(normalize(value), value as PokemonType);
+  }
+  return map;
+})();
+
+function normalize(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
 /**
  * Filtros activos — Plan 02.2.
  *
@@ -44,16 +60,20 @@ export const FILTERS = [
     key: "type1",
     kind: "single" as const,
     label: "Tipo 1",
-    parse: (raw: string): PokemonType | undefined =>
-      raw === "" ? undefined : (raw as PokemonType),
+    parse: (raw: string): PokemonType | undefined => {
+      if (raw === "") return undefined;
+      return TYPE_LABEL_TO_VALUE.get(normalize(raw));
+    },
     format: (value: PokemonType): string => POKEMON_TYPE_LABELS[value] ?? value,
   },
   {
     key: "type2",
     kind: "single" as const,
     label: "Tipo 2",
-    parse: (raw: string): PokemonType | undefined =>
-      raw === "" ? undefined : (raw as PokemonType),
+    parse: (raw: string): PokemonType | undefined => {
+      if (raw === "") return undefined;
+      return TYPE_LABEL_TO_VALUE.get(normalize(raw));
+    },
     format: (value: PokemonType): string => POKEMON_TYPE_LABELS[value] ?? value,
   },
   {
