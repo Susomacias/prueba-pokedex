@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { useEffect } from "react";
 import { readFileSync } from "node:fs";
-import { act, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { PokedexShell } from "@/src/components/pokedex/PokedexShell";
 import {
   PokedexPageProvider,
@@ -9,7 +9,7 @@ import {
   type PokedexPageApi,
 } from "@/src/components/pokedex/PokedexPageProvider";
 import { FiltersProvider } from "@/src/components/filters/FiltersProvider";
-import { ViewProvider } from "@/src/components/app/ViewContext";
+import { AppShellProvider } from "@/src/components/app/ViewContext";
 import { createEmptySlots } from "@/src/components/pokedex/carcases/slots";
 
 // Mock de `useNavigation` para evitar que `useRouter` (de next/navigation)
@@ -31,6 +31,52 @@ vi.mock("@/src/hooks/useNavigation", () => ({
     subscribe: () => () => undefined,
   }),
 }));
+
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/pokedex",
+  useRouter: () => ({
+    push: () => undefined,
+    replace: () => undefined,
+    back: () => undefined,
+    forward: () => undefined,
+    refresh: () => undefined,
+    prefetch: () => undefined,
+  }),
+  useSearchParams: () => new URLSearchParams(),
+}));
+
+// `AppShellProvider` lee `window.location.pathname` directamente
+// (no usa `usePathname`), por eso mockeamos esa propiedad por test.
+// El mock se aplica y restaura en `mockWindowPathname`/`resetWindowPathname`.
+let originalLocation: Location | null = null;
+
+function mockWindowPathname(pathname: string): void {
+  if (originalLocation === null) {
+    originalLocation = window.location;
+  }
+  // `window.location` es de sólo lectura en jsdom, así que redefinimos
+  // `pathname` vía `Object.defineProperty`. El resto de campos
+  // (origin, etc.) los preservamos.
+  Object.defineProperty(window, "location", {
+    configurable: true,
+    writable: true,
+    value: {
+      ...originalLocation,
+      pathname,
+    },
+  });
+}
+
+function resetWindowPathname(): void {
+  if (originalLocation !== null) {
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      writable: true,
+      value: originalLocation,
+    });
+    originalLocation = null;
+  }
+}
 
 /**
  * Plan 05.3 — TDD del ensamblador de slots.
@@ -89,6 +135,17 @@ function activeOf(slotGroup: Element | null): string | null {
  * recibe el API del provider para que el test modifique el estado
  * desde fuera (en un `act()`) antes de que el shell se monte.
  *
+ * El pokemon seleccionado se controla vía `pathname` (`/pokemon/<name>`),
+ * NO vía `setSelectedName`: el provider lo deriva de
+ * `window.location.pathname` (Plan 02 — routing ligero con
+ * `history.pushState`). Por defecto el pathname mockeado es
+ * `/pokedex`.
+ *
+ * `initialView` por defecto es `"pokedex"` para que el shell se
+ * monte directamente en la vista de Pokédex sin esperar a una
+ * transición; los tests que quieran validar la transición de
+ * entrada pueden pasar `initialView: "home"`.
+ *
  * Importante: el callback se ejecuta en un `useEffect` para evitar
  * renders infinitos (un setter dentro del cuerpo del componente
  * forzaría un re-render por cada cambio, y como el callback se
@@ -96,7 +153,9 @@ function activeOf(slotGroup: Element | null): string | null {
  */
 function renderShell(
   configure?: (api: PokedexPageApi) => void,
+  options: { pathname?: string; initialView?: "home" | "pokedex" } = {},
 ): ReturnType<typeof render> {
+  mockWindowPathname(options.pathname ?? "/pokedex");
   function Harness() {
     const api = usePokedexPage();
     useEffect(() => {
@@ -110,17 +169,19 @@ function renderShell(
   }
   // Envoltorio en `FiltersProvider` para que `CarouselSlot` →
   // `PokemonList` pueda consumir `useFiltersContext` (Plan 06.1).
-  // `ViewProvider` lo necesita `PokedexShell` desde la SPA de una
-  // sola URL: lee `useView()` para marcar `data-active-view`.
-  return render(
-    <ViewProvider initial="pokedex">
+  // `AppShellProvider` lo necesita `PokedexShell` para exponer
+  // `data-active-view` y el `selectedName`.
+  const result = render(
+    <AppShellProvider initialView={options.initialView ?? "pokedex"}>
       <FiltersProvider>
         <PokedexPageProvider>
           <Harness />
         </PokedexPageProvider>
       </FiltersProvider>
-    </ViewProvider>,
+    </AppShellProvider>,
   );
+  resetWindowPathname();
+  return result;
 }
 
 describe("PokedexShell (Plan 05.3)", () => {
@@ -193,7 +254,7 @@ describe("PokedexShell (Plan 05.3)", () => {
   });
 
   it("con pokemon seleccionado: activa los slots de datos con un stub identificable", () => {
-    renderShell((api) => api.setSelectedName("pikachu"));
+    renderShell(undefined, { pathname: "/pokemon/pikachu" });
 
     const chips = document.querySelector('[data-slot="TIPO1_TIPO2_GENERACION"]');
     expect(stubOf(chips)).toBe("chips");
@@ -236,10 +297,12 @@ describe("PokedexShell (Plan 05.3)", () => {
   });
 
   it("en modo abilities, el slot STATS muestra el stub de abilities", () => {
-    renderShell((api) => {
-      api.setSelectedName("pikachu");
-      api.setToggleStatsAbilities("abilities");
-    });
+    renderShell(
+      (api) => {
+        api.setToggleStatsAbilities("abilities");
+      },
+      { pathname: "/pokemon/pikachu" },
+    );
     expect(stubOf(document.querySelector('[data-slot="STATS"]'))).toBe(
       "abilities",
     );
@@ -250,11 +313,13 @@ describe("PokedexShell (Plan 05.3)", () => {
   });
 
   it("en modo 3D: el slot CARRUSEL marca data-mode='3d' y el botón 3D aparece como activo", () => {
-    renderShell((api) => {
-      api.setSelectedName("pikachu");
-      api.setHas3DModel(true);
-      api.setMode3D(true);
-    });
+    renderShell(
+      (api) => {
+        api.setHas3DModel(true);
+        api.setMode3D(true);
+      },
+      { pathname: "/pokemon/pikachu" },
+    );
     const carousel = document.querySelector(
       '[data-slot="CARRUSEL_IMAGENES_DESCRIPCION"]',
     );
@@ -266,10 +331,12 @@ describe("PokedexShell (Plan 05.3)", () => {
   });
 
   it("el botón 3D no inyecta contenido si el pokemon no tiene modelo 3D", () => {
-    renderShell((api) => {
-      api.setSelectedName("pikachu");
-      api.setHas3DModel(false);
-    });
+    renderShell(
+      (api) => {
+        api.setHas3DModel(false);
+      },
+      { pathname: "/pokemon/pikachu" },
+    );
     const group = document.querySelector('[data-slot="BOTON_3D"]');
     expect(group).not.toBeNull();
     // El `<g data-slot>` permanece pero sin `[data-stub]`.
@@ -285,7 +352,7 @@ describe("PokedexShell (Plan 05.3)", () => {
   it("los stubs son componentes presentacionales simples (no llaman hooks pesados)", () => {
     const slots = createEmptySlots();
     expect(typeof slots).toBe("object");
-    renderShell((api) => api.setSelectedName("pikachu"));
+    renderShell(undefined, { pathname: "/pokemon/pikachu" });
     expect(screen.getByTestId("pokedex-shell")).toBeInTheDocument();
   });
 
@@ -363,6 +430,11 @@ describe("PokedexShell API", () => {
   it("PokedexPageProvider expone el API documentado", () => {
     // Si las props del API cambian, este test falla y obliga a
     // actualizar tests + consumidores.
+    //
+    // Nota: `setSelectedName` se eliminó al migrar el routing a App
+    // Router (Plan 02). El pokemon seleccionado se deriva ahora del
+    // pathname (`/pokemon/<name>`); para cambiarlo se navega con
+    // `router.push`. Ver `src/components/pokedex/PokedexPageProvider.tsx`.
     type Api = PokedexPageApi;
     const apiKeys: ReadonlyArray<keyof Api> = [
       "selectedName",
@@ -370,7 +442,6 @@ describe("PokedexShell API", () => {
       "has3DModel",
       "toggleStatsAbilities",
       "filtersActive",
-      "setSelectedName",
       "setMode3D",
       "setHas3DModel",
       "setToggleStatsAbilities",
@@ -383,7 +454,6 @@ describe("PokedexShell API", () => {
       has3DModel: false,
       toggleStatsAbilities: "stats",
       filtersActive: false,
-      setSelectedName: () => undefined,
       setMode3D: () => undefined,
       setHas3DModel: () => undefined,
       setToggleStatsAbilities: () => undefined,

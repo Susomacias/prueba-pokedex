@@ -1,38 +1,40 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
-import { useView } from "@/src/components/app/ViewContext";
+import {
+  AppShellProvider,
+  useAppShell,
+} from "@/src/components/app/ViewContext";
 import { SoundMusicProvider } from "@/src/components/home/SoundMusicContext";
-import { ViewProvider } from "@/src/components/app/ViewContext";
 import { MusicViewBinder } from "@/src/components/app/musicViewBinder";
-import { HomeShell } from "@/src/components/home/HomeShell";
 import { PokedexOverlay } from "@/src/components/app/PokedexOverlay";
+import { AnimatedBackground } from "@/src/components/home/AnimatedBackground";
 
 /**
- * Shell raíz de la SPA.
+ * Shell raíz de la SPA (montado en la ruta `/`).
  *
  * Responsabilidades:
- *   1. Montar los providers globales (música, vista).
- *   2. Renderizar SIEMPRE la Home y SIEMPRE la Pokédex (esta última
- *      offscreen con `translateY(100%)` cuando la vista activa es
- *      "home", y al centro cuando es "pokedex"). El cambio de vista
- *      dispara una transición puramente CSS: no hay navegación entre
- *      rutas, no hay desmontaje de árboles.
+ *   1. Montar los providers globales (música + estado de shell).
+ *   2. Renderizar SIEMPRE la Pokédex pre-renderizada (offscreen
+ *      cuando `view="home"`, al centro cuando `view="pokedex"`).
+ *      El cambio de vista es una transición puramente CSS, sin
+ *      remontaje del árbol.
  *   3. Aplicar `data-view="home" | "pokedex"` al contenedor raíz
  *      para que `globals.css` ejecute la coreografía correcta.
  *   4. Sincronizar el volumen de la música con la vista activa
  *      (`MusicViewBinder`).
  *
- * El árbol que devuelve el Server Component `app/page.tsx` es:
- *   <AppShell>
- *     <HomeShell>
- *       ...home content (logo, ash, slider, pokedex cerrada, botones)
- *     </HomeShell>
- *   </AppShell>
+ * La Pokédex la monta `AppShell` directamente (no la aporta el
+ * caller) porque debe estar en el árbol desde el primer render
+ * para que la precarga sea invisible y la animación no sufra
+ * parpadeos.
  *
- * La Pokédex la monta `AppShell` directamente (no la aporta el caller)
- * porque debe estar en el árbol desde el primer render para que la
- * precarga sea invisible y la animación no sufra parpadeos.
+ * El subtree de la home lo aporta el caller (`children`). La
+ * navegación entre `/` y `/pokedex` NO se hace con
+ * `router.push` (eso remontaría el árbol): se hace vía
+ * `history.pushState` desde el `AppShellProvider`, lo que
+ * mantiene la Pokédex y la home siempre montadas y permite
+ * que el CSS anime las transiciones sin parpadeos.
  */
 export interface AppShellProps {
   children: ReactNode;
@@ -41,16 +43,16 @@ export interface AppShellProps {
 export function AppShell({ children }: AppShellProps) {
   return (
     <SoundMusicProvider>
-      <ViewProvider initial="home">
+      <AppShellProvider initialView="home">
         <MusicViewBinder />
         <AppShellInner>{children}</AppShellInner>
-      </ViewProvider>
+      </AppShellProvider>
     </SoundMusicProvider>
   );
 }
 
 function AppShellInner({ children }: { children: ReactNode }) {
-  const { view } = useView();
+  const { view } = useAppShell();
   const rootRef = useRef<HTMLDivElement | null>(null);
 
   // Atributos accesibles: cuando la Pokédex está activa marcamos el
@@ -69,6 +71,14 @@ function AppShellInner({ children }: { children: ReactNode }) {
       data-testid="app-shell"
       className="relative h-dvh w-screen overflow-hidden"
     >
+      {/* Fondo animado (mosaico diagonal de tiles) presente SIEMPRE:
+          tanto en la home como en la Pokédex. Va en `z-0` para que la
+          home y la Pokédex se pinten por encima. El degradado azul
+          del `body` queda por debajo (Plan 10) y los tiles son
+          semitransparentes, así que el efecto "degradado azul +
+          mosaico en movimiento" se mantiene en ambas vistas. */}
+      <AnimatedBackground />
+
       {/* Home: pre-renderizada SIEMPRE. Su visibilidad la controla el
           CSS según `data-view` del padre. Cuando view=pokedex, las
           animaciones de salida (logo arriba-izq, ash izda, slider
@@ -79,7 +89,7 @@ function AppShellInner({ children }: { children: ReactNode }) {
       <div
         data-view-target="home"
         aria-hidden={view === "pokedex" ? "true" : undefined}
-        className="home-view absolute inset-0"
+        className="home-view absolute inset-0 z-10"
       >
         {children}
       </div>
@@ -91,14 +101,10 @@ function AppShellInner({ children }: { children: ReactNode }) {
       <div
         data-view-target="pokedex"
         aria-hidden={view === "home" ? "true" : undefined}
-        className="pokedex-view absolute inset-0"
+        className="pokedex-view absolute inset-0 z-20"
       >
         <PokedexOverlay />
       </div>
     </div>
   );
 }
-
-// Re-export del alias para que los tests puedan importar el wrapper
-// sin tener que conocer la composición interna de providers.
-export { HomeShell };

@@ -8,20 +8,33 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useAppShell } from "@/src/components/app/ViewContext";
 
 /**
- * Plan 05.3 + 05.4 — Provider de estado de la página `/pokedex`.
+ * Plan 05.3 + 05.4 + Plan 02 (routing ligero) — Provider de estado
+ * de la Pokédex.
  *
- * Mantiene el estado mínimo que el shell necesita (pokemon
- * seleccionado, modo 3D, modo stats/abilities, filtros activos) y lo
- * expone vía Context al `PokedexShell`. La razón de usar Context y no
- * props es que `/pokedex/page.tsx` es un Server Component y no puede
- * pasar callbacks o estado mutable al shell (Client Component)
- * directamente.
+ * Mantiene el estado que el shell necesita (modo 3D, modo
+ * stats/abilities, filtros activos) y lo expone vía Context al
+ * `PokedexShell`. La razón de usar Context y no props es que las
+ * páginas son Server Components y no pueden pasar callbacks o
+ * estado mutable al shell (Client Component) directamente.
  *
- * En esta fase todos los valores son `useState` locales con defaults
- * sensatos. En las fases 06–09 se sustituirán por:
- *   - `selectedName` → derivado de la URL (`/pokemon/[name]`)
+ * **selectedName** se deriva del `pathname` del `AppShellProvider`
+ * (Plan 02 + Plan 08.2):
+ *
+ *   - pathname = `/`                   → selectedName = null
+ *   - pathname = `/pokedex`            → selectedName = null
+ *   - pathname = `/pokemon/pikachu`    → selectedName = "pikachu"
+ *   - pathname = `/pokemon/mr-mime`    → selectedName = "mr-mime"
+ *
+ * Para cambiar el pokemon seleccionado el consumidor debe llamar a
+ * `useAppShell().goToPokemon("<name>")` (lo hace `PokemonList` al
+ * pulsar una card y `EvolutionsSlot` al pulsar una evolución).
+ * NO hay setter local: el estado vive en la URL.
+ *
+ * El resto de campos siguen siendo `useState` locales con defaults
+ * sensatos; en planes futuros se sustituirán por hooks específicos:
  *   - `mode3D` → estado interno del componente 3D (Plan 09)
  *   - `toggleStatsAbilities` → toggle local del shell (Plan 08)
  *   - `filtersActive` → derivado de `useActiveFiltersCount()` (Plan 07)
@@ -40,7 +53,6 @@ export interface PokedexPageState {
 }
 
 export interface PokedexPageApi extends PokedexPageState {
-  setSelectedName(name: string | null): void;
   setMode3D(active: boolean): void;
   setHas3DModel(has: boolean): void;
   setToggleStatsAbilities(mode: "stats" | "abilities"): void;
@@ -50,47 +62,56 @@ export interface PokedexPageApi extends PokedexPageState {
 
 const PokedexPageContext = createContext<PokedexPageApi | null>(null);
 
-const DEFAULTS: PokedexPageState = {
-  selectedName: null,
-  mode3D: false,
-  has3DModel: false,
-  toggleStatsAbilities: "stats",
-  filtersActive: false,
-};
+/**
+ * Regex que captura el nombre del pokemon en `/pokemon/<name>`.
+ * El nombre puede contener letras, números y guiones (los nombres de
+ * PokeAPI usan guiones: `mr-mime`, `nidoran-m`, etc.). No captura
+ * `?query` ni `#hash`.
+ */
+const POKEMON_DETAIL_RE = /^\/pokemon\/([^/?#]+)/;
+
+function deriveSelectedName(pathname: string | null): string | null {
+  if (!pathname) return null;
+  const match = POKEMON_DETAIL_RE.exec(pathname);
+  if (!match) return null;
+  try {
+    return decodeURIComponent(match[1]);
+  } catch {
+    return match[1];
+  }
+}
 
 export interface PokedexPageProviderProps {
   children: ReactNode;
 }
 
 export function PokedexPageProvider({ children }: PokedexPageProviderProps) {
-  const [state, setState] = useState<PokedexPageState>(DEFAULTS);
+  const { pathname } = useAppShell();
+  const selectedName = deriveSelectedName(pathname);
 
-  const setSelectedName = useCallback((name: string | null) => {
-    setState((prev) => ({ ...prev, selectedName: name }));
-  }, []);
-  const setMode3D = useCallback((active: boolean) => {
-    setState((prev) => ({ ...prev, mode3D: active }));
-  }, []);
-  const setHas3DModel = useCallback((has: boolean) => {
-    setState((prev) => ({ ...prev, has3DModel: has }));
-  }, []);
-  const setToggleStatsAbilities = useCallback(
-    (mode: "stats" | "abilities") => {
-      setState((prev) => ({ ...prev, toggleStatsAbilities: mode }));
-    },
-    [],
-  );
-  const setFiltersActive = useCallback((active: boolean) => {
-    setState((prev) => ({ ...prev, filtersActive: active }));
-  }, []);
+  // Estado mutable: 3D, stats/abilities, filtros. Vive en memoria
+  // porque NO debe reflejarse en la URL: son toggles puramente
+  // visuales de la sesión.
+  const [mode3D, setMode3D] = useState(false);
+  const [has3DModel, setHas3DModel] = useState(false);
+  const [toggleStatsAbilities, setToggleStatsAbilities] =
+    useState<"stats" | "abilities">("stats");
+  const [filtersActive, setFiltersActive] = useState(false);
+
   const reset = useCallback(() => {
-    setState(DEFAULTS);
+    setMode3D(false);
+    setHas3DModel(false);
+    setToggleStatsAbilities("stats");
+    setFiltersActive(false);
   }, []);
 
   const value = useMemo<PokedexPageApi>(
     () => ({
-      ...state,
-      setSelectedName,
+      selectedName,
+      mode3D,
+      has3DModel,
+      toggleStatsAbilities,
+      filtersActive,
       setMode3D,
       setHas3DModel,
       setToggleStatsAbilities,
@@ -98,12 +119,11 @@ export function PokedexPageProvider({ children }: PokedexPageProviderProps) {
       reset,
     }),
     [
-      state,
-      setSelectedName,
-      setMode3D,
-      setHas3DModel,
-      setToggleStatsAbilities,
-      setFiltersActive,
+      selectedName,
+      mode3D,
+      has3DModel,
+      toggleStatsAbilities,
+      filtersActive,
       reset,
     ],
   );
@@ -122,9 +142,7 @@ export function PokedexPageProvider({ children }: PokedexPageProviderProps) {
 export function usePokedexPage(): PokedexPageApi {
   const ctx = useContext(PokedexPageContext);
   if (!ctx) {
-    throw new Error(
-      "usePokedexPage debe usarse dentro de <PokedexPageProvider>",
-    );
+    throw new Error("usePokedexPage debe usarse dentro de <PokedexPageProvider>");
   }
   return ctx;
 }
