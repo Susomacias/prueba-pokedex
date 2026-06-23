@@ -215,30 +215,27 @@ Está **prohibido** mockear la respuesta con un array literal de objetos `{ name
   - Cambiar URL manualmente → reflejo en consola + dropdown + buscador.
   - Back/forward del navegador → todo se sincroniza.
 - Caso único: si el resultado de filtros es un solo pokemon, redirigir a `/pokemon/[name]?<filtros>` automáticamente.
-- Test E2E completo que cubra los 4 flujos.
+- Test E2E consolidado (ver "Tests a diseñar").
 
 **Skills recomendadas:**
 - `vercel-react-best-practices` (derived state sin effects).
 - `next-best-practices` (RSC boundaries).
 
 **Tests a diseñar (antes):**
-- E2E: aplicar filtro por dropdown → aparece en consola + URL.
-- E2E: aplicar filtro por consola → aparece en dropdown + URL.
-- E2E: pegar URL con filtros → dropdown y consola los reflejan.
-- E2E: back del navegador restaura filtros previos.
-- E2E: filtro que devuelve 1 pokemon → redirige a ficha.
+- Unit tests: el hook `useFilters` (ya cubierto en el Plan 02) expone filtros/activeCount/setFilter/removeFilter/clearAll/summary. Esta fase añade asserts sobre la **integración** con el provider y los slots, no sobre el hook en sí.
+- Unit tests por slot (consola, dropdowns, buscador): verifican que cada componente llama correctamente a `useFilters` y refleja el estado. NO e2e por slot — los slots individualmente son unit tests.
+- **E2E consolidado único** (`e2e/filters-bidirectional.spec.ts`, marcado `@live-api` si toca red, o mockeando vía `useFilteredPokemonList` con fixtures JSON): un solo spec que cubra los 4 sentidos de la sincronización:
+  1. Aplicar filtro en dropdown → aparece en consola + URL.
+  2. Aplicar filtro en consola → aparece en dropdown + URL.
+  3. Pegar URL con filtros → dropdown y consola los reflejan.
+  4. Back/forward del navegador restaura filtros previos.
+- **NO** un e2e por filtro, dropdown o comando de consola. El spec consolidado cubre el flujo bidireccional; los detalles de cada filtro se prueban como unit tests del slot.
 
-**Fixtures (obligatorio):** los E2E que aplican filtros o navegan fichas deben trabajar con datos **reales de PokeAPI** (`https://graphql.pokeapi.co/v1beta2`) servidos a través del dev server. NO usar `page.route('**/graphql.pokeapi.co/**', ...)` para mockear respuestas — el objetivo del test es validar la integración real con PokeAPI (URL correcta, query correcta, parsing de la respuesta real). Estrategia:
-
-- Specs marcados con `@live-api` en `playwright.config.ts` (config aparte o `testMatch` específico) habilitan la red hacia `graphql.pokeapi.co`.
-- Los specs usan siempre **pokemons reales y estables** como datos de prueba: `pikachu` (#25, tiene modelo 3D, varias evoluciones en una cadena lineal — `pichu→pikachu→raichu`), `eevee` (#133, para filtros que devuelven 1 pokemon + para cadenas de evolución ramificadas), `magikarp` (#129, habitat `waters-edge`), `bulbasaur` (#1, doble tipo `grass`+`poison`, habitat `grassland`).
-- Si en CI la red a PokeAPI no está disponible, el spec se **skippea** (no se mockea): `@live-api` → `test.skip(!process.env.CI || !process.env.POKEAPI_REACHABLE)`.
-
-Está prohibido `page.route()` con respuesta inventada para `graphql.pokeapi.co` en estos E2E.
+**Fixtures:** este spec NO usa fixtures de PokeAPI real por defecto. Los datos de la lista se mockean a través de `useFilteredPokemonList` con fixtures JSON capturados (`__tests__/fixtures/pokeapi/pikachu.json`, etc.). Si en una iteración futura se necesita un e2e con datos reales, se marca `@live-api` y se skippea cuando `POKEAPI_REACHABLE` no esté definido.
 
 **Tests a ejecutar (después):**
 - `npm run test:run`
-- `npm run test:e2e`
+- `npm run test:e2e` (solo el spec consolidado de filtros)
 - `npm run lint`
 
 **Criterios de aceptación:**

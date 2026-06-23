@@ -120,7 +120,7 @@ Lee plan/06_Lista_y_Carrusel.md y ejecuta las fases 06.3, 06.4, 06.5 y 06.6, sig
 ### Sesión 14 — Loading pikachu
 
 ```
-Lee plan/06_Lista_y_Carrusel.md y ejecuta la fase 06.7, siguiendo sus tareas, skills recomendadas, tests (TDD), criterios de aceptación y notas de documentación.
+Lee plan/06_Lista_y_Carrusel.md y ejecuta la fase 06.7, siguiendo sus tareas, skills recomendadas, tests (TDD), criterios de aceptación y notas de documentación. El loadin tiene que funcionar para la obtención de cualquier tipo de dato desde la pokeapi. la imágen debe ser pequeña y discreta, solo es una sutileza mientras se cargan datos.
 ```
 
 ---
@@ -130,13 +130,13 @@ Lee plan/06_Lista_y_Carrusel.md y ejecuta la fase 06.7, siguiendo sus tareas, sk
 ### Sesión 15 — Consola de terminal
 
 ```
-Lee plan/07_Sistema_de_Filtros.md y ejecuta la fase 07.1, siguiendo sus tareas, skills recomendadas, tests (TDD), criterios de aceptación y notas de documentación.
+Lee plan/07_Sistema_de_Filtros.md y ejecuta la fase 07.1, siguiendo sus tareas, skills recomendadas, tests (TDD), criterios de aceptación y notas de documentación. Tener en cuenta la bidireccionalidad con el sistema de filtros búsqueda y reset. Si se ponen comandos o opciones que no existen hay que saltar un error e indicar que puede hacer help o comando help. Al iniciar la terminal hay que dar una especie de bienvenida de parte del profesor Oak con tono alegre y entusiasta que parezca un diseño de terminal, y una indicación sobre que puede comenzar usando help. El buscador también debería buscar palabras por separado, por ejemplo, si ponemos "Charman Pika" mostrar los pokemon Charmander y Pikachu en la lista.
 ```
 
 ### Sesión 16 — Dropdowns, buscador e integración
 
 ```
-Lee plan/07_Sistema_de_Filtros.md y ejecuta las fases 07.2, 07.3, 07.4 y 07.5, siguiendo para cada una sus tareas, skills recomendadas, tests (TDD), criterios de aceptación y notas de documentación.
+Lee plan/07_Sistema_de_Filtros.md y ejecuta las fases 07.2, 07.3, 07.4 y 07.5, siguiendo para cada una sus tareas, skills recomendadas, tests (TDD), criterios de aceptación y notas de documentación.Tener en cuenta la bidireccionalidad con el simulador de consola de terminal. El buscador también debería buscar palabras por separado, por ejemplo, si ponemos "Charman Pika" mostrar los pokemon Charmander y Pikachu en la lista.
 ```
 
 ---

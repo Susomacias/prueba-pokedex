@@ -12,10 +12,10 @@ describe("filtersToSearchParams", () => {
     expect([...params.keys()]).toEqual([]);
   });
 
-  it("serializa type1 y type2", () => {
+  it("serializa type1 y type2 con la etiqueta en español (format devuelve label)", () => {
     const params = filtersToSearchParams({ type1: "fire", type2: "flying" });
-    expect(params.get("type1")).toBe("fire");
-    expect(params.get("type2")).toBe("flying");
+    expect(params.get("type1")).toBe("Fuego");
+    expect(params.get("type2")).toBe("Volador");
   });
 
   it("serializa filtros de rango con el formato min-max", () => {
@@ -36,8 +36,8 @@ describe("filtersToSearchParams", () => {
       height: { value: "0-1", label: "0-1m", min: 0, max: 1 },
       weight: { value: "0-10", label: "0-10kg", min: 0, max: 10 },
     });
-    expect(params.get("type1")).toBe("fire");
-    expect(params.get("type2")).toBe("flying");
+    expect(params.get("type1")).toBe("Fuego");
+    expect(params.get("type2")).toBe("Volador");
     expect(params.get("generation")).toBe("generation-i");
     expect(params.get("color")).toBe("red");
     expect(params.get("habitat")).toBe("pradera");

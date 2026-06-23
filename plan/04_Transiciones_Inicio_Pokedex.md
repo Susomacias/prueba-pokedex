@@ -78,7 +78,7 @@ Igual pero al revés. Hay que **cargar** los elementos del inicio y asegurarse d
   - Slider: translateX → 100vw, opacity → 0, 600ms.
   - Botones + pokedex cerrada: translateY → 100vh, opacity → 0, 600ms.
 - Música: fade out volumen lineal durante toda la transición (~1.2s). No parar el audio del todo (sigue en contexto para posible reentrada), o pausarlo al final.
-- Al terminar: router.push('/pokedex').
+- Al terminar: la app es **SPA** (no se llama a `router.push`): la URL se queda en `/` y `useAppShell().goToPokedex()` cambia `view` vía `data-view`. Si la URL externa era `/pokedex`, `PokedexPageTransition` fija `view="home"` en el primer paint y dispara la transición de entrada tras el mount.
 - Comprobar tamaño de pantalla para elegir carcasa horizontal o vertical.
 
 **Skills recomendadas:**
@@ -87,13 +87,14 @@ Igual pero al revés. Hay que **cargar** los elementos del inicio y asegurarse d
 - `accessibility` (respetar `prefers-reduced-motion`: si está activo, hacer la transición instantánea o muy corta).
 
 **Tests a diseñar (antes):**
-- E2E: en `/`, pulsar Enter, la URL termina en `/pokedex` tras ~1.5s.
-- E2E: con `prefers-reduced-motion`, la transición es instantánea.
-- Test unitario: el hook de música recibe orden de fade out.
+- Unit test: el `PokedexPageTransition` fija `view="home"` en el primer paint cuando la URL es `/pokedex` o `/pokemon/[name]`.
+- Unit test: el hook de música recibe orden de fade out.
+- Unit test: `useAppShell().goToPokedex()` cambia `view` a `"pokedex"` sin tocar la URL.
+- **NO** e2e con asserts sobre transform/opacity concretos (frágiles, `element is not stable`). La cobertura e2e de esta fase se reduce al smoke mínimo en `e2e/transition.spec.ts` (3 tests: home inicial, PRESS START → pokedex, volver al inicio).
 
 **Tests a ejecutar (después):**
 - `npm run test:run`
-- `npm run test:e2e`
+- `npm run test:e2e` (solo el smoke consolidado en `e2e/transition.spec.ts`)
 
 **Criterios de aceptación:**
 - La secuencia visual cumple el borrador.
@@ -117,19 +118,20 @@ Igual pero al revés. Hay que **cargar** los elementos del inicio y asegurarse d
   - Pokedex baja (translate(0,0) → translate(0,100%)).
   - Aparecen logo en sup-derecha, ash en izquierda, slider en derecha, botones+pokedex cerrada abajo.
   - Si la música estaba activa antes de salir del inicio, restaurar volumen (fade in).
-- Al terminar: router.push('/').
+- Al terminar: `useAppShell().goToHome()` cambia `view` a `"home"`. La URL se queda en `/` (SPA).
 
 **Skills recomendadas:**
 - `vercel-react-best-practices` (preload de imágenes).
 - `frontend-design`.
 
 **Tests a diseñar (antes):**
-- Test: el hook espera a que todos los assets estén cargados antes de animar.
-- E2E: estando en `/pokedex`, click en logo → termina en `/` tras animación.
+- Unit test: el hook espera a que todos los assets estén cargados antes de animar.
+- Unit test: `useAppShell().goToHome()` cambia `view` a `"home"`.
+- **NO** e2e propio de esta fase. El smoke consolidado en `e2e/transition.spec.ts` cubre el flujo "volver al inicio".
 
 **Tests a ejecutar (después):**
 - `npm run test:run`
-- `npm run test:e2e`
+- `npm run test:e2e` (solo el smoke consolidado en `e2e/transition.spec.ts`)
 
 **Criterios de aceptación:**
 - La transición no empieza hasta tener todo cargado.

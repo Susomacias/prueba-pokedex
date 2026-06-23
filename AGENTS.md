@@ -13,12 +13,110 @@ npm run lint
 npx tsc --noEmit
 npm run build
 npm run test:run
-npm run test:e2e   # requiere servidor dev (Playwright lo levanta vía webServer)
 ```
+
+`npm run test:e2e` **NO se ejecuta por defecto** en cada fase (ver política
+de tests e2e abajo). Solo se lanza manualmente cuando una fase introduce
+un cambio en routing/navegación, viewport responsive, flujo de filtros
+bidireccional, o cuando hay un bug persistente que requiere regresión
+e2e explícita.
 
 ## Metodología TDD
 
-Antes de empezar una fase con código, escribir sus tests. Al terminar, ejecutar `npm run test:run` y `npm run test:e2e`.
+Antes de empezar una fase con código, escribir sus tests unitarios. Al
+terminar, ejecutar `npm run lint`, `npx tsc --noEmit`, `npm run build` y
+`npm run test:run`. Los tests e2e solo se diseñan/ejecutan en los
+puntos críticos definidos más abajo.
+
+## Política de tests E2E (Playwright)
+
+Los tests e2e son **caros** (requieren `npm run dev` + navegador real
+vía Playwright) y **frágiles** (cualquier cambio de CSS o animación los
+rompe aunque la app funcione correctamente). Por tanto se usan con
+moderación:
+
+### Cuándo SÍ añadir tests e2e
+
+Solo cuando el comportamiento cruza la barrera cliente/servidor y NO
+puede cubrirse con tests unitarios razonables:
+
+1. **Routing / navegación**: deep-links a `/pokedex`, `/pokemon/[name]`,
+   `not-found`, redirects.
+2. **Viewport responsive crítico**: carcasa vertical vs horizontal,
+   no-scroll en desktop/mobile, comportamiento en breakpoints del Plan
+   05.4.
+3. **Flujo de filtros bidireccional consolidado** (Plan 07.5): UN SOLO
+   spec que cubra los 4 sentidos (consola → URL, dropdown → URL,
+   buscador → URL, back/forward del navegador → estado) con casos
+   representativos. **NO** un e2e por filtro.
+4. **Bug persistente**: cuando un bug aparece más de una vez a pesar
+   de tener unit tests, se añade un e2e de regresión mínimo. Marcarlo
+   en el comentario con `// REGRESIÓN: <link al bug>` para que no se
+   borre sin querer.
+5. **Smoke de la app**: que `/` y `/pokedex` rendericen sin errores de
+   consola tras una fase crítica de la SPA (transición home ↔ pokedex).
+
+### Cuándo NO añadir tests e2e
+
+- **Animaciones CSS concretas** (`transform`, `opacity`, `translateY`):
+  siempre rompen con `element is not stable` y duplican lo que
+  `PokedexPageTransition` ya prueba vía unit tests del Context.
+- **Estado interno de la app** (provider, hooks, refs): siempre van
+  como unit tests con `@testing-library/react` o `renderHook`.
+- **Componentes visuales concretos** (cards, dropdowns, chips): unit
+  tests con `data-testid` son suficientes y mucho más rápidos.
+- **Un test por filtro / dropdown / comando de consola**: el
+  `useFilters` está cubierto por unit tests del hook, los slots
+  individualmente por unit tests del componente. El spec consolidado
+  del Plan 07.5 ya valida el flujo completo.
+- **Carga de la PokeAPI real**: usar unit tests con mocks o fixtures
+  JSON (ver "Fixtures de tests basadas en PokeAPI real" abajo). Los
+  specs `@live-api` solo se justifican en bugs persistentes.
+
+### Lista de specs e2e actual
+
+- `e2e/not-found.spec.ts`: smoke 404.
+- `e2e/pokedex-shell.spec.ts`: shell, responsive y slot CARCASA
+  (Plan 05.4).
+- `e2e/transition.spec.ts`: smoke de la transición home ↔ pokedex
+  (3 tests). Cualquier ampliación de este spec debe seguir el patrón
+  "smoke mínimo" — no asserts sobre CSS intermedio.
+
+### Specs `@live-api` (sólo bugs persistentes)
+
+Si una fase necesita verificar comportamiento contra PokeAPI real
+(red habilitada en `playwright.config.ts`), el spec debe:
+
+- Marcarse con `@live-api` y `test.skip(!process.env.POKEAPI_REACHABLE)`.
+- Usar SIEMPRE pokemons reales y estables (`pikachu`, `eevee`,
+  `magikarp`, `bulbasaur`).
+- **NO** usar `page.route('**/graphql.pokeapi.co/**', ...)` para
+  mockear respuestas — el objetivo es validar la integración real.
+
+## Tests unitarios — qué validar y qué no
+
+- **Sí**: funciones puras (parsers, serializers, mappings), hooks con
+  su harness, componentes que renderizan UI crítica (snapshot de
+  accesibilidad via `toHaveRole` / `aria-label`), fixtures capturados
+  de PokeAPI real para validar shape de datos.
+- **NO**: regex sobre nombres de operaciones GraphQL que no aportan
+  valor real (las queries se validan con la respuesta de PokeAPI).
+  Asunciones sobre comportamiento de `React.cache` fuera de RSC
+  (`React.cache` no memoiza en jsdom — está documentado).
+- **NO**: asunciones sobre `format()` que devuelvan el value crudo
+  cuando en realidad devuelve la etiqueta traducida al español (ver
+  `POKEMON_TYPE_LABELS` y `Filters.format`). El contrato es: el value
+  interno (e.g. `"fire"`) se traduce a etiqueta (e.g. `"Fuego"`) en
+  la serialización a URL.
+
+### Contratos observables que SÍ se pueden testear
+
+- `filtersToSearchParams({type1:"fire"})` → `"type1=Fuego"` (etiqueta).
+- `searchParamsToFilters("type1=fire")` → `{type1:"fire"}` (value).
+- `useFilters().filters.type1` es el value (`"fire"`), NO la etiqueta.
+- `useFilters().summary()` muestra la etiqueta (`"Fuego"`).
+- `fetchPokemonDetail(name)` hace AL MENOS 1 fetch al endpoint
+  GraphQL (puede hacer más por fallbacks como el REST del cry).
 
 ## Fuente de verdad de constantes
 

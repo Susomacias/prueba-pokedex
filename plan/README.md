@@ -26,8 +26,8 @@ Cada plan contiene:
 - **Datos primero, diseño después**: dentro de cada plan se desarrolla primero la obtención de datos y luego la UI.
 - **Consultas GraphQL optimizadas**: traer solo los campos necesarios. Nunca `*`-style.
 - **Next.js 16.2.9**: leer SIEMPRE la guía relevante en `node_modules/next/dist/docs/` antes de tocar APIs (RSC, metadata, fetch, cache components). La versión tiene breaking changes.
-- **Testing**: TDD — diseñar tests al inicio de la fase, ejecutarlos al final. Las fases puras de configuración/transición no requieren tests.
-- **Lint + typecheck**: al final de cada fase con código, ejecutar `npm run lint` y `npx tsc --noEmit`.
+- **Testing**: TDD — escribir tests unitarios al inicio de la fase, ejecutarlos al final junto con `lint` + `typecheck` + `build`. Los tests e2e son **caros y frágiles**: se reservan a routing/navegación, viewport responsive crítico, flujo de filtros bidireccional consolidado, smoke de la app o regresiones de bugs persistentes. Ver política completa en `AGENTS.md`.
+- **Lint + typecheck + build + test:run**: al final de cada fase con código, ejecutar `npm run lint`, `npx tsc --noEmit`, `npm run build` y `npm run test:run`. `npm run test:e2e` solo se lanza manualmente en las fases descritas arriba.
 - **Revisión humana**: al terminar cualquier fase que toque diseño/UX, solicitar validación humana explícitamente.
 - **Hábitat vs. vista 3D**: al seleccionar un pokemon el hábitat aparece como fondo ambientador **detrás** de la pokedex, que permanece visible y operativa (no baja). La pokedex solo baja al activar explícitamente la vista 3D (botón 3D). El ciclo de vida del hábitat depende exclusivamente de "hay pokemon seleccionado", no del modo 3D.
 

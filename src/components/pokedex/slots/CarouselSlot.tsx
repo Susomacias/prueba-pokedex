@@ -50,7 +50,9 @@ export function CarouselSlot({ pokemonName, mode3D }: SlotStubProps) {
   // Inicialmente puede diferir de `pokemonName` durante la animación
   // de salida (queremos que el carrusel permanezca montado mientras
   // se encoge y se desvanece).
-  const [shownName, setShownName] = useState<string | null>(pokemonName);
+  const [shownName, setShownName] = useState<string | null | undefined>(
+    pokemonName,
+  );
   // Estado inicial: si hay pokemon, arrancamos en "enter" para
   // que el primer paint dispare la animación de entrada. El
   // `useEffect` siguiente avanza a "shown" tras ENTER_MS.
@@ -60,7 +62,33 @@ export function CarouselSlot({ pokemonName, mode3D }: SlotStubProps) {
   const enterTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Sincronizar estado con `pokemonName` (Plan 11).
+  // Sincronización de `shownName` y `state` durante el render
+  // (patrón "store previous value"): cuando cambia `pokemonName`,
+  // actualizamos el estado derivado en el render path en lugar de
+  // dentro de un `useEffect`. Esto evita el anti-patrón
+  // `set-state-in-effect` y mantiene la lógica existente: el
+  // estado del overlay reacciona inmediatamente al cambio de
+  // prop, sin pasar por un ciclo de render extra.
+  const [prevPokemonName, setPrevPokemonName] = useState(pokemonName);
+  if (pokemonName !== prevPokemonName) {
+    setPrevPokemonName(pokemonName);
+    if (pokemonName) {
+      // Caso A: nuevo pokemon → sincronizar y arrancar entrada.
+      setShownName(pokemonName);
+      setState("enter");
+    } else if (shownName) {
+      // Caso B: ya no hay pokemon y aún hay overlay visible →
+      // arrancar la salida inmediatamente (el timer la completa).
+      setState("exit");
+    } else {
+      setState("idle");
+    }
+  }
+
+  // El `useEffect` sólo gestiona side-effects del mundo externo:
+  // los timers que avanzan el estado de la animación tras ENTER_MS
+  // o EXIT_MS. Los `setState` que dependen directamente de props
+  // se gestionan arriba durante el render.
   useEffect(() => {
     // Limpia timers pendientes del estado anterior.
     if (enterTimerRef.current) {
@@ -73,9 +101,8 @@ export function CarouselSlot({ pokemonName, mode3D }: SlotStubProps) {
     }
 
     if (pokemonName) {
-      // Caso A: hay un pokemon que mostrar.
-      setShownName(pokemonName);
-      setState("enter");
+      // Caso A: hay un pokemon que mostrar → arrancar timer de
+      // entrada (de "enter" a "shown").
       enterTimerRef.current = setTimeout(() => {
         setState("shown");
         enterTimerRef.current = null;
@@ -83,9 +110,9 @@ export function CarouselSlot({ pokemonName, mode3D }: SlotStubProps) {
       return;
     }
 
-    // Caso B: ya no hay pokemon seleccionado.
+    // Caso B: ya no hay pokemon seleccionado → arrancar timer de
+    // salida (de "exit" a desmontar).
     if (shownName) {
-      setState("exit");
       exitTimerRef.current = setTimeout(() => {
         setShownName(null);
         setState("idle");
@@ -94,11 +121,11 @@ export function CarouselSlot({ pokemonName, mode3D }: SlotStubProps) {
       return;
     }
 
-    setState("idle");
+    // Sin pokemon y sin overlay previo: nada que temporizar.
     return;
-    // `shownName` se lee y se actualiza dentro del efecto pero
-    // NO queremos que sea una dependencia (provocaría bucles
-    // porque el efecto lo modifica).
+    // `shownName` se lee dentro del efecto (Caso B) pero NO
+    // queremos que sea una dependencia: ya se sincroniza arriba
+    // durante el render cuando cambia `pokemonName`.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pokemonName]);
 

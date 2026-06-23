@@ -53,7 +53,7 @@ describe("useFilters (bidireccional con URL)", () => {
 
     expect(replace).toHaveBeenCalledTimes(1);
     const url = replace.mock.calls[0][0] as string;
-    expect(url).toBe("/pokedex?type1=water");
+    expect(url).toBe("/pokedex?type1=Agua");
   });
 
   it("removeFilter elimina la clave de la URL", () => {
@@ -118,7 +118,7 @@ describe("useFilters (bidireccional con URL)", () => {
     });
 
     expect(replace.mock.calls[0][0]).toBe(
-      "/pokemon/charmander?type1=fire&habitat=pradera",
+      "/pokemon/charmander?type1=Fuego&habitat=pradera",
     );
   });
 
@@ -131,7 +131,7 @@ describe("useFilters (bidireccional con URL)", () => {
     expect(keys).toEqual(["habitat", "type1"]);
     expect(
       result.current.summary().find((s) => s.key === "type1")?.display,
-    ).toBe("fire");
+    ).toBe("Fuego");
   });
 
   it("activeCount cuenta los filtros activos", () => {

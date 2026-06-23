@@ -166,11 +166,12 @@ Es decir: la presencia del hábitat **no** implica bajar la pokedex. La pokedex 
 - `seo` (algunos solapamientos: lang, meta).
 
 **Tests a diseñar (antes):**
-- E2E con `@axe-core/playwright`: cargar cada ruta y verificar que no hay violaciones críticas.
-- Test de navegación por teclado: recorrer la pokedex solo con Tab/Enter/Espacio.
+- Unit tests: `toHaveRole` / `aria-label` por slot crítico. No asserts sobre CSS intermedio.
+- Audit manual con lector de pantalla (revisión humana).
+- **NO** e2e de axe por ruta individual: el coste no compensa y los hallazgos duplican los unit tests de accesibilidad. Si tras un bug persistente se necesita un e2e de regresión, se añade con `// REGRESIÓN:` y se mantiene mínimo.
 
 **Tests a ejecutar (después):**
-- `npm run test:e2e`
+- `npm run test:run`
 - `npm run lint`
 
 **Criterios de aceptación:**
@@ -207,12 +208,11 @@ Es decir: la presencia del hábitat **no** implica bajar la pokedex. La pokedex 
 - `next-cache-components` (cache strategy final).
 
 **Tests a diseñar (antes):**
-- E2E de performance (Lighthouse CI o playwright-trace) en CI/local.
+- **NO** e2e de performance automático. Lighthouse CI es caro, frágil (depende de red) y se mide mejor en revisión manual con DevTools. Si en una iteración futura hace falta un e2e de regresión, se añade con `// REGRESIÓN:` y se mantiene mínimo.
 
 **Tests a ejecutar (después):**
 - `npm run build`
-- `npm run test:e2e`
-- Lighthouse audit manual.
+- Lighthouse audit manual con DevTools.
 
 **Criterios de aceptación:**
 - Bundle principal < 200KB gzipped (excluyendo three.js lazy).
@@ -225,31 +225,28 @@ Es decir: la presencia del hábitat **no** implica bajar la pokedex. La pokedex 
 
 ---
 
-### Fase 10.6 — Test E2E end-to-end completo + revisión final de documentación
+### Fase 10.6 — Test E2E de smoke + revisión final de documentación
 
-**Objetivo:** cubrir con Playwright los flujos críticos completos y dejar `README.md` y `AGENTS.md` definitivos.
+**Objetivo:** dejar la app con un set e2e mínimo y mantenible (smoke de las rutas, transición home↔pokedex, filtros bidireccionales) y dejar `README.md` y `AGENTS.md` definitivos. **NO** un e2e por cada flujo individual (anti-patrón: caro, frágil, alarga sesiones). Ver política completa en `AGENTS.md`.
 
 **Tareas:**
-- Specs E2E en `e2e/`:
-  1. **Smoke**: cargar `/`, ver logo, pulsar Enter → termina en `/pokedex`.
-  2. **Filtros**: aplicar filtro por dropdown, verlo en consola y URL, volver atrás, verificar estado.
-  3. **Buscador**: buscar "pikachu" → clic en resultado → ficha.
-  4. **Carrusel**: seleccionar pokemon, verificar auto-avance y botones manuales.
-  5. **Evoluciones**: clic en evolución → cambia la ficha.
-  6. **3D**: pokemon con modelo → pulsar 3D → canvas visible → arrastrar rota.
-  7. **404**: ruta inválida → página 404 → volver al inicio.
-  8. **Sonido**: activar música en inicio → navegar → fade out.
-  9. **Responsive**: smoke en mobile (375px) y desktop (1280px).
+- Specs E2E **consolidados** en `e2e/`:
+  1. `e2e/not-found.spec.ts` (existente): smoke 404.
+  2. `e2e/pokedex-shell.spec.ts` (existente): shell, responsive y slot CARCASA (Plan 05.4).
+  3. `e2e/transition.spec.ts` (existente, smoke mínimo): home↔pokedex.
+  4. `e2e/filters-bidirectional.spec.ts` (Plan 07.5): un solo spec que cubra los 4 sentidos de la sincronización de filtros (consola, dropdown, buscador, URL/back-forward) con casos representativos — **NO** un e2e por filtro.
 - `README.md` final: descripción, features, setup, scripts, env vars, testing, deploy.
-- `AGENTS.md` final: comandos a ejecutar tras cada cambio, estructura de carpetas, convenciones (estado de filtros único, slots de la pokedex, etc.).
+- `AGENTS.md` final: comandos a ejecutar tras cada cambio, estructura de carpetas, convenciones (estado de filtros único, slots de la pokedex, política de tests, fixtures de PokeAPI, etc.).
 
 **Skills recomendadas:**
 - `seo` (metadata final, sitemap opcional).
 - `next-best-practices` (deploying).
 
-**Tests a diseñar (antes):** los specs E2E son el deliverable.
+**Tests a diseñar (antes):**
+- Solo si esta fase introduce un nuevo flujo crítico que cruza cliente/servidor y NO se cubre con unit tests. En la mayoría de los casos de este plan (hábitat, polido, accesibilidad) los unit tests son suficientes.
+- Para el spec `e2e/filters-bidirectional.spec.ts` (consolidado), ver detalle en Plan 07.5.
 
-**Fixtures (obligatorio):** los specs E2E de esta fase (en particular #2 filtros, #3 buscador, #4 carrusel, #5 evoluciones, #6 3D) deben trabajar con datos **reales de PokeAPI** servidos por el dev server, NO con respuestas interceptadas por `page.route()`. Todos estos specs se marcan con `@live-api` en `playwright.config.ts` (mismo patrón definido en Plan 07.5) y se **skippean** si `graphql.pokeapi.co` no es alcanzable desde CI (`test.skip(!process.env.POKEAPI_REACHABLE)`). Pokemons canónicos de los specs (todos con datos estables en PokeAPI): `pikachu` (#25, tiene `.glb`, cadena de evoluciones lineal, habitat `forest`, flavor text es), `eevee` (#133, habitat `urban`, evoluciones ramificadas — valida el spec de evoluciones), `magikarp` (#129, habitat `waters-edge`, stats bajos, muchos sprites faltantes — valida spec de carrusel con fallback), `bulbasaur` (#1, doble tipo `grass`+`poison`, habitat `grassland`). Las capturas para los unit tests de esta fase (`__tests__/fixtures/pokeapi/<name>.json`) se generan con `scripts/capture-pokeapi-fixture.ts` ejecutando `POKEMON_DETAIL_QUERY` / `POKEMON_LIST_QUERY` contra `https://graphql.pokeapi.co/v1beta2`.
+**Fixtures (obligatorio):** los specs e2e que tocan datos de PokeAPI real (si los hay) deben trabajar con datos **reales** servidos por el dev server, NO con respuestas interceptadas por `page.route()`. Se marcan con `@live-api` en `playwright.config.ts` y se **skippean** si `graphql.pokeapi.co` no es alcanzable desde CI (`test.skip(!process.env.POKEAPI_REACHABLE)`). Pokemons canónicos estables: `pikachu` (#25), `eevee` (#133), `magikarp` (#129), `bulbasaur` (#1). Para unit tests, las capturas se generan con `scripts/capture-pokeapi-fixture.ts` ejecutando las queries contra `https://graphql.pokeapi.co/v1beta2`.
 
 **Tests a ejecutar (después):**
 - `npm run test:run`
@@ -259,8 +256,8 @@ Es decir: la presencia del hábitat **no** implica bajar la pokedex. La pokedex 
 - `npm run build`
 
 **Criterios de aceptación:**
-- Todos los E2E pasan.
-- Documentación completa.
+- Los e2e consolidados pasan.
+- Documentación completa y alineada con el estado real del proyecto.
 
 **Documentación:**
 - `README.md` definitivo.

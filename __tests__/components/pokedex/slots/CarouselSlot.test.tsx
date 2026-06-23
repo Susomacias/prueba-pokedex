@@ -238,7 +238,7 @@ describe("CarouselSlot — overlay lista ↔ carrusel (Plan 11)", () => {
 
     renderSlot({ pokemonName: "pikachu" });
 
-    const slot = await screen.findByRole("region");
+    await screen.findByRole("region");
     await waitFor(() => {
       expect(screen.getByTestId("carousel-close-button")).toBeInTheDocument();
     });

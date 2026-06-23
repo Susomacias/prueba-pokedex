@@ -201,20 +201,16 @@ El hábitat **ya está visible** desde que el pokemon fue seleccionado (Plan 10.
 - `frontend-design`.
 
 **Tests a diseñar (antes):**
-- Test: activar 3D mueve la pokedex fuera de pantalla.
-- Test: desactivar la restaura.
-- Test: cambiar pokemon con 3D activo → desactiva y destruye.
-- E2E: cargar ficha de un pokemon con modelo, pulsar 3D, verificar que el canvas es visible.
+- Unit test: activar 3D mueve la pokedex fuera de pantalla.
+- Unit test: desactivar la restaura.
+- Unit test: cambiar pokemon con 3D activo → desactiva y destruye.
+- Unit test del visor 3D: mockear `three.js` y verificar que se carga el `.glb` desde la URL correcta.
+- **NO** e2e dedicado para la vista 3D: WebGL en Playwright es muy frágil (`--use-gl=swiftshader` o GPU real), la integración se valida mejor con `react-three-test-renderer` o inspección visual manual. Si tras un bug persistente se necesita un e2e de regresión, se añade con `// REGRESIÓN:` y se mantiene mínimo.
 
-**Fixtures (obligatorio):** los tests de esta fase deben usar el `id` REAL del pokemon capturado de PokeAPI (`__tests__/fixtures/pokeapi/<name>.json`). Para el E2E:
-
-- Usar **siempre `pikachu`** (`id: 25`, tiene `.glb` en el repo de `Pokemon-3D-api/assets`, está cacheado en el repo, disponible y estable).
-- El dev server (`npm run dev`) tiene que tener acceso de red a `https://graphql.pokeapi.co/v1beta2` (para la ficha) y a `https://raw.githubusercontent.com/Pokemon-3D-api/assets/...` (para el `.glb`). Marcar el spec con `@live-api` en `playwright.config.ts` (mismo patrón que en Plan 07.5) y **skippear** si la red no está disponible — **NO** usar `page.route()` para mockear estas respuestas, porque el E2E valida la integración real (URL correcta del `.glb`, parseo real del GLB, instanciación real del `WebGLRenderer`).
-- Para el test "cambiar pokemon con 3D activo" usar transiciones reales entre dos pokemons con `.glb` (`pikachu` → `eevee`) leyendo sus `id` reales de los fixtures.
+**Fixtures (obligatorio):** los unit tests de esta fase deben usar el `id` REAL del pokemon capturado de PokeAPI (`__tests__/fixtures/pokeapi/<name>.json`).
 
 **Tests a ejecutar (después):**
 - `npm run test:run`
-- `npm run test:e2e`
 - `npm run lint`
 
 **Criterios de aceptación:**
