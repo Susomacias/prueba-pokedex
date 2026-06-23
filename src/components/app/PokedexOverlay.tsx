@@ -8,6 +8,7 @@ import { PokedexHomeButton } from "@/src/components/pokedex/PokedexHomeButton";
 import { DataLoadingAggregator } from "@/src/components/loading/DataLoadingAggregator";
 import { Mode3DViewBinder } from "@/src/components/pokedex/3d/Mode3DViewBinder";
 import { Mode3DHabitatOverlay } from "@/src/components/pokedex/3d/Mode3DHabitatOverlay";
+import { Model3DPreloader } from "@/src/components/pokedex/3d/Model3DPreloader";
 
 export function PokedexOverlay() {
   return (
@@ -16,6 +17,7 @@ export function PokedexOverlay() {
         <PokedexPageProvider>
           <Mode3DViewBinder />
           <Mode3DHabitatOverlay />
+          <Model3DPreloader />
           <PokedexHomeButton />
           <PokedexShell />
           <DataLoadingAggregator />

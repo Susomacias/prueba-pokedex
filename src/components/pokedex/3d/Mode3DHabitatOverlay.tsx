@@ -11,6 +11,8 @@ import { ChevronDown } from "lucide-react";
 import { usePokedexPage } from "@/src/components/pokedex/PokedexPageProvider";
 import { fetchPokemonDetail } from "@/src/lib/pokemon/cachedPokemonApi";
 import { HABITAT_IMAGES } from "@/src/lib/constants/habitats";
+import { usePokemonModel } from "@/src/components/pokedex/3d/usePokemonModel";
+import { PokemonViewer3D } from "@/src/components/pokedex/3d/PokemonViewer3D";
 import type { Habitat, PokemonDetail } from "@/src/lib/types/pokemon";
 
 /**
@@ -44,6 +46,11 @@ export function Mode3DHabitatOverlay() {
 
   const habitat: Habitat = detail?.habitat ?? "generico";
   const habitatSrc = HABITAT_IMAGES[habitat];
+
+  // Precarga/obtiene el modelo 3D desde el cache global.
+  const { model, status: modelStatus } = usePokemonModel(
+    detail?.id ?? null,
+  );
 
   // Clave que identifica si debemos tener datos cargados.
   const activeKey = mode3D && selectedName ? selectedName : null;
@@ -167,6 +174,12 @@ export function Mode3DHabitatOverlay() {
           pointerEvents: "none",
         }}
       />
+
+      {/* Visor 3D (Plan 09.5) — se monta sobre el habitat.
+          Solo se muestra cuando el modelo está listo y el modo 3D activo. */}
+      {model && modelStatus === "ready" && (
+        <PokemonViewer3D model={model} visible={true} />
+      )}
 
       {/* Indicador de flecha hacia abajo (borde inferior centrado).
           Indica al usuario que puede deslizar hacia arriba o pulsar

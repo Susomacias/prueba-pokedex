@@ -44,14 +44,28 @@ function render3DButton(mode3D: boolean = false) {
 }
 
 describe("Button3DSlot — botón Ver en 3D (Plan 08.5)", () => {
-  it("se renderiza con icono Box y texto '3D' en azul oscuro", () => {
+  it("se renderiza con icono Box y texto '3D' en azul oscuro cuando inactivo", () => {
     render3DButton(false);
     const btn = screen.getByRole("button", { name: /ver en 3d/i });
     expect(btn).toBeInTheDocument();
-    expect(btn.textContent).toContain("3D");
     const svg = btn.querySelector("svg");
     expect(svg).not.toBeNull();
     expect(svg!.classList.toString()).toContain("lucide-box");
+  });
+
+  it("se renderiza con icono ChevronDown cuando activo", () => {
+    render3DButton(true);
+    const btn = screen.getByRole("button", { name: /cerrar 3d/i });
+    expect(btn).toBeInTheDocument();
+    const svg = btn.querySelector("svg");
+    expect(svg).not.toBeNull();
+    expect(svg!.classList.toString()).toContain("lucide-chevron-down");
+  });
+
+  it("aria-label cambia entre 'Ver en 3D' y 'Cerrar 3D'", () => {
+    render3DButton(true);
+    const btn = screen.getByRole("button", { name: /cerrar 3d/i });
+    expect(btn.getAttribute("aria-label")).toBe("Cerrar 3D");
   });
 
   it("aria-pressed es false cuando no está activo", () => {
@@ -62,13 +76,13 @@ describe("Button3DSlot — botón Ver en 3D (Plan 08.5)", () => {
 
   it("aria-pressed es true cuando está activo", () => {
     render3DButton(true);
-    const btn = screen.getByRole("button", { name: /modo 3d/i });
+    const btn = screen.getByRole("button", { name: /cerrar 3d/i });
     expect(btn.getAttribute("aria-pressed")).toBe("true");
   });
 
   it("data-active refleja el estado activo", () => {
     render3DButton(true);
-    const btn = screen.getByRole("button", { name: /modo 3d/i });
+    const btn = screen.getByRole("button", { name: /cerrar 3d/i });
     expect(btn.getAttribute("data-active")).toBe("true");
   });
 
@@ -84,7 +98,7 @@ describe("Button3DSlot — botón Ver en 3D (Plan 08.5)", () => {
     expect(() => fireEvent.click(btn)).not.toThrow();
   });
 
-  it("el texto 3D usa color azul oscuro #126CA3", () => {
+  it("el texto 3D usa color azul oscuro cuando inactivo", () => {
     render3DButton(false);
     const btn = screen.getByRole("button", { name: /ver en 3d/i });
     const span = btn.querySelector("span");
