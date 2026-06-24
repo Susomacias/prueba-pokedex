@@ -306,7 +306,7 @@ Crear un chat de ayuda con IA en /pokedex simulando que es el Profesor Oak, podr
 
 ## RECURSOS:
 Información del profesor OAK: https://es.wikipedia.org/wiki/Profesor_Oak
-API KEY MiniMax-M3: sk-api-Npxv1JU_UBbLo4XJfm6GQfiSlGq9T-dC4U7urDL_SJBdvZadNuNxB_SpPZnV-Thtixad2V1r2vJWd9mZYlseuBr7iMgW_W8KIlEJy2DRcQssFev5KwvoKpA
+API KEY MiniMax-M3: sk-api-xxx
 Miniatura avatar profesor OAK: public\profesor_oak_chat.svg
 
 ## IMPLEMENTACIÓN

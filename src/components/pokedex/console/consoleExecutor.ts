@@ -217,14 +217,14 @@ export interface HelpLine {
 /** Lista de comandos para el `help` (con la sintaxis canónica). */
 export const HELP_COMMANDS: ReadonlyArray<{ syntax: string; desc: string }> = [
   { syntax: "help", desc: "Muestra esta ayuda" },
-  { syntax: "filtro", desc: "Lista los filtros disponibles" },
-  { syntax: "options <filtro>", desc: "Opciones de un filtro" },
-  { syntax: "<filtro> <valor>", desc: "Aplica un filtro" },
-  { syntax: "resumen", desc: "Filtros aplicados actualmente" },
-  { syntax: "quitar <filtro>", desc: "Elimina un filtro" },
+  { syntax: "filtro", desc: " Lista los filtros" },
+  { syntax: "options <filtro>", desc: " Opciones de un filtro" },
+  { syntax: "<filtro> <valor>", desc: " Aplica un filtro" },
+  { syntax: "resumen", desc: "Filtros ya aplicados" },
+  { syntax: "quitar <filtro>", desc: " Elimina un filtro" },
   { syntax: "limpiar", desc: "Limpia la pantalla" },
-  { syntax: "clear", desc: "Quita TODOS los filtros" },
-  { syntax: "<texto>", desc: "Búsqueda libre (multi-palabra)" },
+  { syntax: "clear", desc: "Quita los filtros" },
+  { syntax: "<texto>", desc: "Búsqueda libre" },
 ];
 
 /**
