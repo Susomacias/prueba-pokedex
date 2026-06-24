@@ -100,7 +100,11 @@ function nextLineId(): number {
   return lineIdCounter;
 }
 
-export function FilterConsole() {
+export function FilterConsole({
+  externalCommand,
+}: {
+  externalCommand?: string;
+}) {
   const { setFilter, removeFilter, clearAll, summary } = useFiltersContext();
   const registry = useFilterOptionsRegistry();
 
@@ -239,6 +243,45 @@ export function FilterConsole() {
     },
     [appendHelp, appendLines, clearAll, registry, removeFilter, setFilter, summary],
   );
+
+  /* ------------------ typewriter para comandos externos ------------- */
+  const executeRef = useRef(execute);
+  const appendLinesRef = useRef(appendLines);
+  useEffect(() => {
+    executeRef.current = execute;
+  });
+  useEffect(() => {
+    appendLinesRef.current = appendLines;
+  });
+
+  useEffect(() => {
+    if (!externalCommand) return;
+
+    const inputEl = inputRef.current;
+    if (!inputEl) return;
+
+    const command = externalCommand;
+    inputEl.value = "";
+
+    let i = 0;
+    const TYPE_INTERVAL_MS = 80;
+
+    const timer = setInterval(() => {
+      if (i < command.length) {
+        inputEl.value = command.slice(0, i + 1);
+        inputEl.dispatchEvent(new Event("input", { bubbles: true }));
+        i++;
+      } else {
+        clearInterval(timer);
+        inputEl.value = "";
+        inputEl.dispatchEvent(new Event("input", { bubbles: true }));
+        appendLinesRef.current([line("prompt", `> ${command}`)]);
+        executeRef.current(command);
+      }
+    }, TYPE_INTERVAL_MS);
+
+    return () => clearInterval(timer);
+  }, [externalCommand]);
 
   /* ----------------------- envío del input -------------------------- */
   const onSubmit = useCallback(() => {

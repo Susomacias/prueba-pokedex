@@ -46,6 +46,7 @@ Cada plan contiene:
 | 08 | Detalle de Pokemon (Chips, Evo, Stats) | `plan/08_Detalle_Pokemon.md` | 01, 06 |
 | 09 | Vista 3D Three.js | `plan/09_Vista_3D.md` | 08 |
 | 10 | Fondo Hábitat y Pulido Final | `plan/10_Fondo_Habitat_y_Pulido.md` | 03, 06, 08, 09 |
+| 11 | Chat con Profesor Oak (IA) | `plan/11_Chat_Profesor_Oak.md` | 02, 05, 07, 08 |
 
 ## Notas sobre el orden
 
@@ -54,6 +55,7 @@ Cada plan contiene:
 - Los planes 06, 07 y 08 dependen todos del plan 01 (datos) y del 05 (carcasa como contenedor). Pueden parcialmente solaparse pero se recomienda orden estricto para reducir conflictos.
 - El plan 09 (3D) requiere el 08 porque el botón 3D solo aparece con un pokemon seleccionado.
 - El plan 10 es de integración final y pulido: cierra el ciclo visual y aplica accesibilidad + performance.
+- El **Plan 11 (Chat con Profesor Oak)** requiere los planes 02 (routing), 05 (carcasa), 07 (filtros) y 08 (detalle). Es independiente de los planes 09 (3D) y 10 (hábitat/pulido), por lo que puede ejecutarse en paralelo con ellos o después.
 
 ## Stack técnico confirmado
 
@@ -63,6 +65,7 @@ Cada plan contiene:
 - **Tailwind CSS 4** (vía `@tailwindcss/postcss`).
 - **lucide-react** para iconos.
 - **three 0.184** para 3D.
+- **MiniMax M3** para el chat de IA del Profesor Oak (Plan 11).
 - **PokeAPI GraphQL**: endpoint `https://beta.pokeapi.co/graphql/v1beta`.
 - **vitest 4** (unit) + **@playwright/test 1.61** (E2E).
 - **@testing-library/react** para tests de componentes.
@@ -74,5 +77,7 @@ Cada plan contiene:
 - Assets de inicio: `public/pagina_inicio/` (logo, ash, pokedex cerrada, pokemons, música, tile).
 - Loading: `public/loading-pikachu.gif`.
 - SVGs Pokédex: `public/pokedex_horizontal.svg`, `public/pokedex_vertical.svg`.
+- Avatar Profesor Oak: `public/profesor_oak_chat.svg` (Plan 11).
+- Información Profesor Oak: https://es.wikipedia.org/wiki/Profesor_Oak (Plan 11).
 - Favicon: `public/favicon.png`.
 - Documentación PokeAPI: `doc/pokeapi/` (referencia graphql + ejemplos en `graphql/v1beta/examples/`).

@@ -9,18 +9,23 @@ import { DataLoadingAggregator } from "@/src/components/loading/DataLoadingAggre
 import { Mode3DViewBinder } from "@/src/components/pokedex/3d/Mode3DViewBinder";
 import { Mode3DHabitatOverlay } from "@/src/components/pokedex/3d/Mode3DHabitatOverlay";
 import { Model3DPreloader } from "@/src/components/pokedex/3d/Model3DPreloader";
+import { OakChatProvider } from "@/src/components/chat/OakChatContext";
+import { OakChat } from "@/src/components/chat/OakChat";
 
 export function PokedexOverlay() {
   return (
     <Suspense fallback={null}>
       <FiltersProvider>
         <PokedexPageProvider>
-          <Mode3DViewBinder />
-          <Mode3DHabitatOverlay />
-          <Model3DPreloader />
-          <PokedexHomeButton />
-          <PokedexShell />
-          <DataLoadingAggregator />
+          <OakChatProvider>
+            <Mode3DViewBinder />
+            <Mode3DHabitatOverlay />
+            <Model3DPreloader />
+            <PokedexHomeButton />
+            <PokedexShell />
+            <DataLoadingAggregator />
+            <OakChat />
+          </OakChatProvider>
         </PokedexPageProvider>
       </FiltersProvider>
     </Suspense>

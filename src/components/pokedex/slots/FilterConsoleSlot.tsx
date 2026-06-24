@@ -1,8 +1,10 @@
 "use client";
 
+import { useContext } from "react";
 import { buildSlotAttrs } from "./types";
 import { FilterConsole } from "@/src/components/pokedex/console/FilterConsole";
 import { useActiveFiltersCount } from "@/src/components/filters/FiltersProvider";
+import { OakChatContext } from "@/src/components/chat/OakChatContext";
 
 /**
  * Plan 05.3 / 07.1 — Slot `CONSOLA_FILTROS`.
@@ -14,6 +16,11 @@ import { useActiveFiltersCount } from "@/src/components/filters/FiltersProvider"
  * mutación —consola, dropdowns o buscador— se refleja aquí. El
  * prop `active` heredado de `PokedexShell` se mantiene como fallback
  * por compatibilidad con los tests existentes del shell.
+ *
+ * Plan 11.4b — Pasa `externalCommand` desde `OakChatContext` a
+ * `FilterConsole` para el efecto typewriter cuando la IA aplica
+ * filtros. Usa acceso seguro (sin lanzar) porque el slot puede
+ * montarse sin `OakChatProvider` en tests.
  */
 export function FilterConsoleSlot({
   active,
@@ -22,9 +29,11 @@ export function FilterConsoleSlot({
 }) {
   const count = useActiveFiltersCount();
   const isActive = active ?? count > 0;
+  const chatCtx = useContext(OakChatContext);
+  const externalCommand = chatCtx?.externalCommand ?? null;
   return (
     <div {...buildSlotAttrs("filter-console", { active: isActive })}>
-      <FilterConsole />
+      <FilterConsole externalCommand={externalCommand ?? undefined} />
     </div>
   );
 }

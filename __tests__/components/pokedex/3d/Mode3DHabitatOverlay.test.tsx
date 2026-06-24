@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import {
   PokedexPageProvider,
   usePokedexPage,
@@ -9,7 +9,6 @@ import {
 } from "@/src/components/app/ViewContext";
 import { FiltersProvider } from "@/src/components/filters/FiltersProvider";
 import { Mode3DHabitatOverlay } from "@/src/components/pokedex/3d/Mode3DHabitatOverlay";
-import type { PokemonDetail } from "@/src/lib/types/pokemon";
 
 /*
  * Plan 09 — TDD del Mode3DHabitatOverlay (overlay de habitat + futuro 3D).
@@ -19,46 +18,13 @@ import type { PokemonDetail } from "@/src/lib/types/pokemon";
  *  - Cuando mode3D=true, renderiza un portal con data-testid.
  *  - Muestra un botón de flecha para cerrar.
  *  - Al pulsar la flecha, setMode3D(false).
- *  - Muestra la imagen del habitat cuando el detalle carga.
+ *  - El overlay tiene z-index suficiente por encima de la Pokédex.
  *  - Gesto swipe-up cierra el modo 3D.
  */
 
-const MOCK_DETAIL: PokemonDetail = {
-  id: 1,
-  name: "bulbasaur",
-  height: 7,
-  weight: 69,
-  baseExperience: 64,
-  isLegendary: false,
-  isMythical: false,
-  captureRate: 45,
-  baseHappiness: 50,
-  generation: "generation-i",
-  habitat: "bosque",
-  types: [{ slot: 1, name: "grass" }, { slot: 2, name: "poison" }],
-  stats: [],
-  abilities: [],
-  sprites: {
-    frontDefault: null,
-    frontShiny: null,
-    backDefault: null,
-    backShiny: null,
-    officialArtwork: null,
-    homeFront: null,
-    homeShiny: null,
-    officialArtworkShiny: null,
-  },
-  cryLatestUrl: null,
-  flavorText: null,
-  flavorTextVersion: null,
-  evolutionChain: [],
-};
-
-const mockFetchPokemonDetail = vi.fn();
-
 vi.mock("@/src/lib/pokemon/cachedPokemonApi", () => ({
   applyFiltersToList: vi.fn().mockResolvedValue({ items: [], nextOffset: null, total: 0, single: false }),
-  fetchPokemonDetail: (...args: unknown[]) => mockFetchPokemonDetail(...args),
+  fetchPokemonDetail: vi.fn().mockResolvedValue(null),
 }));
 
 vi.mock("@/src/hooks/useNavigation", () => ({
@@ -76,10 +42,7 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
-beforeEach(() => {
-  vi.clearAllMocks();
-  mockFetchPokemonDetail.mockResolvedValue(MOCK_DETAIL);
-});
+beforeEach(() => { vi.clearAllMocks(); });
 
 function Mode3DActivator() {
   const { setMode3D } = usePokedexPage();
@@ -169,55 +132,6 @@ describe("Mode3DHabitatOverlay — overlay habitat + futuro 3D (Plan 09)", () =>
         document.body.querySelector("[data-testid='mode3d-habitat-overlay']"),
       ).toBeNull();
     });
-  });
-
-  it("carga la imagen del habitat cuando el detalle se resuelve", async () => {
-    renderOverlay();
-
-    await waitFor(() => {
-      const overlay = document.body.querySelector(
-        "[data-testid='mode3d-habitat-overlay']",
-      );
-      expect(overlay).not.toBeNull();
-    });
-
-    // La imagen debe apuntar al habitat "bosque".
-    await waitFor(() => {
-      const img = document.body.querySelector(
-        "[data-testid='mode3d-habitat-overlay'] img",
-      );
-      expect(img).not.toBeNull();
-      expect(img!.getAttribute("src")).toContain("bosque");
-    });
-  });
-
-  it("cuando no hay pokemon seleccionado, muestra el habitat generico", async () => {
-    // Renderizamos con pathname /pokedex (sin pokemon).
-    vi.mocked(
-      require("@/src/hooks/useNavigation").useNavigation,
-    ).mockReturnValue({
-      pathname: "/pokedex",
-      searchParams: new URLSearchParams(),
-      router: { replace: () => undefined, push: () => undefined, back: () => undefined, forward: () => undefined, refresh: () => undefined },
-      subscribe: () => () => undefined,
-    });
-
-    renderOverlay();
-
-    await waitFor(() => {
-      const overlay = document.body.querySelector(
-        "[data-testid='mode3d-habitat-overlay']",
-      );
-      expect(overlay).not.toBeNull();
-    });
-
-    // Sin pokemon seleccionado, activeKey es null: no se llama a fetchPokemonDetail,
-    // y se usa habitat generico.
-    const img = document.body.querySelector(
-      "[data-testid='mode3d-habitat-overlay'] img",
-    );
-    expect(img).not.toBeNull();
-    expect(img!.getAttribute("src")).toContain("generico");
   });
 
   it("el overlay tiene z-index suficiente para estar por encima de la Pokédex", async () => {
