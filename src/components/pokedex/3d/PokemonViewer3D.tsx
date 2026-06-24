@@ -3,17 +3,40 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import * as THREE from "three";
 
-const TARGET_SIZE = 2;
 const AUTO_ROTATE_SPEED = 0.005;
 const DRAG_SENSITIVITY = 0.005;
 const ROTATION_RESUME_DELAY = 500;
 
+// Correcciones por modelo: algunos GLB vienen tumbados o mal orientados.
+// Cada entrada es { rotation: (x, y, z) en radianes, offset: (x, y, z) en unidades locales }.
+const MODEL_CORRECTIONS = new Map<number, {
+  rotation: THREE.Vector3;
+  offset: THREE.Vector3;
+}>([
+  // Pikachu (#25): el modelo está tumbado boca abajo. Rotamos -90° en X
+  // para ponerlo de pie, y lo bajamos para compensar el desplazamiento.
+  [25, {
+    rotation: new THREE.Vector3(-Math.PI / 2, 0, 0),
+    offset: new THREE.Vector3(0, -1.5, 0),
+  }],
+]);
+
+// Tamaño máximo deseado para la dimensión más grande del modelo
+// (en unidades de mundo). La altura visible del frustum a ~4.5u
+// con fov=45° es ~3.7u. 2.5u ocupa ~68% de la altura.
+const TARGET_SIZE = 2.5;
+// Clamps muy amplios: solo protegen contra casos patológicos
+// (modelo vacío o con geometría corrupta).
+const MIN_SCALE = 0.005;
+const MAX_SCALE = 500;
+
 export interface PokemonViewer3DProps {
   model: object;
   visible: boolean;
+  pokemonId?: number;
 }
 
-export function PokemonViewer3D({ model, visible }: PokemonViewer3DProps) {
+export function PokemonViewer3D({ model, visible, pokemonId }: PokemonViewer3DProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -46,7 +69,7 @@ export function PokemonViewer3D({ model, visible }: PokemonViewer3DProps) {
       100,
     );
     camera.position.set(0, 2, 4);
-    camera.lookAt(0, 1, 0);
+    camera.lookAt(0, 0, 0);
     cameraRef.current = camera;
 
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
@@ -70,28 +93,53 @@ export function PokemonViewer3D({ model, visible }: PokemonViewer3DProps) {
     fillLight.position.set(-2, 0, -2);
     scene.add(fillLight);
 
-    // Auto-escala y posicionamiento del modelo
+    // Auto-escala y posicionamiento del modelo.
+    // Envolvemos el modelo cacheado en un grupo propio (wrapper) para
+    // no mutar el original. El wrapper gestiona posición, escala y la
+    // auto-rotación en Y. Las correcciones por modelo (rotaciones fijas)
+    // se aplican en un grupo intermedio (corrector) dentro del wrapper,
+    // para no interferir con la rotación Y del wrapper.
     const modelGroup = model as THREE.Group;
-    modelRef.current = modelGroup;
+    const wrapper = new THREE.Group();
+    const corrector = new THREE.Group();
 
-    const box = new THREE.Box3().setFromObject(modelGroup);
+    corrector.add(modelGroup);
+
+    // Correcciones por modelo: aplicar ANTES de medir el bounding box
+    // para que la escala se calcule sobre el modelo ya orientado.
+    if (pokemonId != null && MODEL_CORRECTIONS.has(pokemonId)) {
+      const corr = MODEL_CORRECTIONS.get(pokemonId)!;
+      corrector.rotation.set(corr.rotation.x, corr.rotation.y, corr.rotation.z);
+      corrector.position.set(corr.offset.x, corr.offset.y, corr.offset.z);
+    }
+
+    wrapper.add(corrector);
+    modelRef.current = wrapper;
+
+    const box = new THREE.Box3().setFromObject(wrapper);
     const size = box.getSize(new THREE.Vector3());
-    const maxDim = Math.max(size.x, size.y, size.z);
-    const scale = maxDim > 0 ? TARGET_SIZE / maxDim : 1;
-    modelGroup.scale.setScalar(scale);
-
     const center = box.getCenter(new THREE.Vector3());
-    modelGroup.position.set(-center.x * scale, -center.y * scale + 0.5, -center.z * scale);
+    const maxDim = Math.max(size.x, size.y, size.z);
 
-    scene.add(modelGroup);
+    const rawScale = maxDim > 0 ? TARGET_SIZE / maxDim : 1;
+    const scale = Math.min(Math.max(rawScale, MIN_SCALE), MAX_SCALE);
+
+    wrapper.scale.setScalar(scale);
+    wrapper.position.set(
+      -center.x * scale,
+      -center.y * scale + 0.4,
+      -center.z * scale,
+    );
+
+    scene.add(wrapper);
 
     // Animación
     function animate() {
       rafRef.current = requestAnimationFrame(animate);
 
       // Auto-rotación (solo si no está arrastrando y no está pausada)
-      if (!isDragging.current && !autoRotatePaused.current) {
-        modelGroup.rotation.y += AUTO_ROTATE_SPEED;
+      if (!isDragging.current && !autoRotatePaused.current && modelRef.current) {
+        modelRef.current.rotation.y += AUTO_ROTATE_SPEED;
       }
 
       renderer.render(scene, camera);

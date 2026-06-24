@@ -299,54 +299,43 @@ La imágen del habitat debe tener un pequeño degradado de transición en la par
 \* Si se hace click en el botón de ver 3D con el objeto mostrandose se hace la transición a la inversa  
 \* Si se aplica un filtro o se llama a un nuevo pokemon se destruye el elemento se hace la transición a la inversa y se destruye el elemento 3D
 
----------------------
-Correcciones:
-Hay que corregir algunas cosas en la página de inicio:
-- Ash y la animación de los pokemon están muy lejos de la pokedex cerrada, deberían estar más cerca
-- El diseño debería ser responsivo pero en la vista de móvil ash y la animación de los pokemon queda fuera de la pantalla, no pasa nada si esos dos elementos se hacen más pequeños y se superponen un poco a la pokedex cerrada.
-- El logo, la pokedex cerrada y el botón de press start están muy pegados verticalmente, habría que dejar algo de espacio entrellos aunque haya que hacerlos más pequeños
-- El botón de press start está muy pegado a la parte inferior de la pantalla, debería tener algo de separación.
-- Al añadir espacios verticales recuerda que la pantalla de inicio no debe hacer scroll vertical ni los elementos deben sobresalir.
--------------
-Los cambios no han ido bien:
-En la vista de pc Ash y la anmiación de los pokemon deberían estar cerca de la pokedex cerrada pero están muy lejos
-En la vista de smartphone la pokedex se ve muy pequeña y delante de Ahs y la animación de pokemon, la pokedex debería estar grande y detrás y ser Ahs y la animación de pokemon los que estén delante y más pequeños.
------------
-Hay errores importantes:
-- El diseño de la transición entre página de inicio y la página de pokedex no está realizado según el borrador del plan, hay que revisarlo, estos son algunos problemas pero podría haber más.
-* El logo de la página de inicio debería transitar del centro a la parte izquierda de la pantalla y funcionar como un botón para volvera a la página de inicio.
-* Hay un loading no solicitado en el borrador, todos los elementos deberían estar ya cargados al inicar la página de inicio listos para transicionar a la página de pokedex
-* La pokedex aparece de repente en lugar de transicionar desde abajo de la pantalla hacia el medio
-- La pokedex abierta en la vista de pc es demasiado grande está muy pegada a la parte superior e inferio de la pantalla, debería haber un poco de espacio pero sin overflow
+# AMPLIACIÓN DEL PROYECTO CHAT CON PROFESOR OAK
 
------------------
-Hay un problema con la lista de pokemons, el sistema para mostarar más pokemons a menida que el usuario navega hacia arriba o hacia abajo y se van destruyendo y añadiendo para no sobrecargar la memoria no está funcionando, solo carga nuevos datos cuando llega al final , debería cargarlos y destruirlos cuando inicia un movimiento hacia arriba o hacia abajo el usuario no cuando llegue abajo o arriba, para entonces ya es tarde y su comportamiento es raro. Basicamente el usuario no debería ser capaz de poner la barra de navegación arriba o abajo del todo salvo que esté en el primer o último pokemon pues siempre van a ir apareciendo más.
+## OBJETIVO:
+Crear un chat de ayuda con IA en /pokedex simulando que es el Profesor Oak, podrá responder preguntas sobre pokemons, sobre sí mismo y aplicar filtros o mostrar un pokemon en la pokedex
 
-No está hacien la transición entre pantallas indicada en el borrador del plan, hay unas instrucciones específicas para ello que no está haciendo la aplicación, lo elementos no se mueven solo aparecen de repente. También debería haber una transición inversa para volver a la página de inicio que no existe o al menos no se aplica, a demás la pokedex abierta debería estar precargada con la lista en la parte inferior fuera de la pantalla para estar lista para hacer la transición, la carga se hará de forma asincrona para que el usuario no espere a que aparezca.
----------------
-La transición entre pagina de inicio y pokedex / pokedex pagina de inicio no está bien, no está hecha según las especificaciones:
-## **TRANSICIÓN DE INICIO A POKÉDEX:**
+## RECURSOS:
+Información del profesor OAK: https://es.wikipedia.org/wiki/Profesor_Oak
+API KEY MiniMax-M3: sk-api-Npxv1JU_UBbLo4XJfm6GQfiSlGq9T-dC4U7urDL_SJBdvZadNuNxB_SpPZnV-Thtixad2V1r2vJWd9mZYlseuBr7iMgW_W8KIlEJy2DRcQssFev5KwvoKpA
+Miniatura avatar profesor OAK: public\profesor_oak_chat.svg
 
-\- Creamos una pokedex (Horizontal o vertical dependiendo del tamaño de la pantalla) en la parte inferior fuera de la pantalla  
-\- Si la música se estuviera ejecutando bajamos el volúmen lentamente  
-\- Logo: Transiciona a la parte superior izquierda pero más pequeño, al pulsarlo vuelve a la página de inicio  
-\- Ash: va hacia la izquierda de la pantalla para desparecer y se destruye  
-\- Animación de pokemons, va hacia la derecha de la pantalla y se destruye  
-\- Botones y pokedex cerrada va hacia abajo de la pantalla y se destruye  
-\- Transicionamos la pokedex horizontal o vertical al medio de la pantalla para comenzar su manejo.
+## IMPLEMENTACIÓN
+- A los tres segundos de haber cargado la IA, el avatar del profesor OAK aparecerá con una animación llamativa.
+- Cuando la animación termine saldrá encima del avatar un globo de chat como si Oak estuviera hablando. El globo de chat hará una presentación en una frase, te indicará si necesitas ayuda y tendrá un input de texto para escribir.
+- Si se hace focus en el input del chat, la ventana de chat se hace mucho más alta y algo más ancha para que se vea bien.
+- El chat debe tener estilo agradable acorde al diseño de dibujo animado pero con toque moderno pues Oak es un cientifico, hay que trabajar muy bien el diseño.
+- Usar una fuente normal (sanserif, arial, helvetica...), no la que se usa en la pokedex 
+- El input de chat tiene que estar obtimizado para un chat de IA que puedas ver 5 lineas de texto, tenga escroll pero que al principo se vea solo una linea y valla crecióndo hasta 5, el botón de enviar debe estar integrado en el input y debe tener un icono
+- Hay que usar loadings dentro del chat, comunicación con sockets
+- No debe parecer que el chat se quedó colgado, hay que ir mostrando globos especiales de razonamiento, loadings, informacion sobre herramientas hasta que no se muestre la respuesta final.
+- Podemos guardar la conversación de la sesión en un JSON temporal, que reseteamos al recargar la página o algo así, no se necesiario registros históricos.
 
-## **TRANSICIÓN DE POKÉDEX A INICIO:**
+## REQUISITOS IA:
+- La IA debe trabajar en modo agente y razonando, debe poder usar todas las herramientas disponibles que tenga tantas veces como sea necesario en la misma consulta.
+- La comunicación con la pokedex será a través de funciones que reciban un JSON para configurarse.
+- Si la IA no ha generado bien el JSON hay que devolverle un error a la IA para que lo genere lo vuelva a intentar correctamente, el error tiene que ser muy específico e incluir ejemplo de un json correcto
+- El chat no puede quedar estático, hay que ir recogiendo la información que la IA vaya generando y mostrarla como hacen otros chats de IA que muestran el proceso de razonamiento y el uso de herramientas.
 
-Será igual que la transición de inicio a pokédex pero al revés. Hay que cargar los elementos y asegurarse de que estén cargados antes de empezar la animación.
+## HERRAMIENTAS - FUNCIONALIDADES DE IA:
+- Contestar preguntas sobre pokemons, si la IA conoce la respuesta, responder directamente, si no puede consultar la pokeapi.
+- Consultas rápidas y busquedas de pokemons en la pokeapi
+- Insertar un filtro en la pokedex (quedaría muy bien que lo escribiera en la terminal de la pokedex letra por letra y diera a enter o algo así)
+- Mostrar pokemon en la pokedex, lo mismo que con los filtros
+- Consultar un archivo de texto con la información de OAK en la wikipedia
 
-En lugar de esto, los elementos aparecen de golpe, lo único que funciona parcialmente es la transición de pokedex a inicio que hace la animación menos la de ocultar la pokedex abierta
-
-Creo que existe sobreingeniería en este proceso y que el problema está en que directamente carga una página y eso impide la transición.
--------------------------
-En el carrusel del pokemon hay que hacer algunos cambios:
-- Falta el botón de sonido del pokemon que reproduce el archivo de audio que se obtine de la pokeapi para ese pokemon
-- Que la lista no desaparezca, simplemento ponemos el carrusel por encima y hacemos que aparezcan los botones con una animación
-- Habría que añadir un botón de X (cerrar) a la derecha donde está el pokemon, al pulsar se destruyelle el carrusel y los botones con animaciones de encogimiento.
-- Las imágenes son muy pequeñas, hay que ajustarlas a un tamaño mínimo que ocupe una buena parte del espacio.
-- La navegación está fallando, si accedemos desde la lista a un pokemon, no hay que navegar a la página, solamente hay que cargar el pokemoon y los botones. Si accedemos desde url entonces si que hay que hacer la navegación con animaciones.
-- La politica de navegacion desde url o desde interfaz hay que anotarla en agents.md para futuros desarrollos
+## IMPLEMENTACION
+- Comenzar por un script que sea capaz de conectarse a la IA, obtener la información de razonamiento a medida que se genera, testearlo contra la IA real y documentarlo.
+- Generar las herramientas de IA necesarias y testearlas contra la IA real
+- Diseño e integración del chat con los sokets y la IA
+- Testear en fronted el chat, los globos de razonamiento y uso de herramientas y el uso de la pokedex.
+- Revisión humana

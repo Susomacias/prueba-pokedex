@@ -136,7 +136,7 @@ Lee plan/07_Sistema_de_Filtros.md y ejecuta la fase 07.1, siguiendo sus tareas, 
 ### Sesión 16 — Dropdowns, buscador e integración
 
 ```
-Lee plan/07_Sistema_de_Filtros.md y ejecuta las fases 07.2, 07.3, 07.4 y 07.5, siguiendo para cada una sus tareas, skills recomendadas, tests (TDD), criterios de aceptación y notas de documentación.Tener en cuenta la bidireccionalidad con el simulador de consola de terminal No hay que duplicar los sitemas. El buscador también debería buscar palabras por separado, por ejemplo, si ponemos "Charman Pika" mostrar los pokemon Charmander y Pikachu en la lista. Los filtros deben seguir la misma politica de muestra de lista con scroll infinito que en la lista inicial sin filtros.
+Lee plan/07_Sistema_de_Filtros.md y ejecuta las fases 07.2, 07.3, 07.4 y 07.5, siguiendo para cada una sus tareas, skills recomendadas, tests (TDD), criterios de aceptación y notas de documentación.Tener en cuenta la bidireccionalidad con el simulador de consola de terminal No hay que duplicar los sitemas. El buscador también debería buscar palabras por separado, por ejemplo, si ponemos "Charman Pika" mostrar los pokemon Charmander y Pikachu en la lista. Los filtros deben seguir la misma politica de muestra de lista con scroll infinito que en la lista inicial sin filtros.Se supone que todo esto ya lo está haciendo desde el elementos de simulación de terminal, solo hay que usar las mismas funciones para hacerlo, no es necesario que existan funciones que hagan lo mismo.
 ```
 
 ---
@@ -146,7 +146,7 @@ Lee plan/07_Sistema_de_Filtros.md y ejecuta las fases 07.2, 07.3, 07.4 y 07.5, s
 ### Sesión 17 — Chips y evoluciones
 
 ```
-Lee plan/08_Detalle_Pokemon.md y ejecuta las fases 08.1 y 08.2, siguiendo para cada una sus tareas, skills recomendadas, tests (TDD), criterios de aceptación y notas de documentación.
+Lee plan/08_Detalle_Pokemon.md y ejecuta las fases 08.1, 08.2, 08.3, 08.4 y 08.5, siguiendo para cada una sus tareas, skills recomendadas, tests (TDD), criterios de aceptación y notas de documentación.
 ```
 
 ### Sesión 18 — Stats, toggle y botón 3D

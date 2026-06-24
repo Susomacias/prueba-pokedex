@@ -176,10 +176,62 @@ export function Mode3DHabitatOverlay() {
       />
 
       {/* Visor 3D (Plan 09.5) — se monta sobre el habitat.
-          Solo se muestra cuando el modelo está listo y el modo 3D activo. */}
-      {model && modelStatus === "ready" && (
-        <PokemonViewer3D model={model} visible={true} />
-      )}
+          Muestra estados de carga, modelo listo, o error. */}
+      {(() => {
+        if (model && modelStatus === "ready") {
+          return <PokemonViewer3D model={model} visible={true} pokemonId={detail?.id} />;
+        }
+        if (modelStatus === "loading" || (detail && modelStatus !== "error")) {
+          return (
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                pointerEvents: "none",
+              }}
+            >
+              <span
+                style={{
+                  color: "rgba(255,255,255,0.6)",
+                  fontFamily: "monospace",
+                  fontSize: "14px",
+                }}
+              >
+                Cargando modelo 3D…
+              </span>
+            </div>
+          );
+        }
+        if (modelStatus === "error") {
+          return (
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                pointerEvents: "none",
+              }}
+            >
+              <span
+                style={{
+                  color: "rgba(255,100,100,0.7)",
+                  fontFamily: "monospace",
+                  fontSize: "12px",
+                  textAlign: "center",
+                }}
+              >
+                Modelo 3D no disponible
+              </span>
+            </div>
+          );
+        }
+        return null;
+      })()}
 
       {/* Indicador de flecha hacia abajo (borde inferior centrado).
           Indica al usuario que puede deslizar hacia arriba o pulsar
@@ -234,7 +286,7 @@ export function Mode3DHabitatOverlay() {
           whiteSpace: "nowrap",
         }}
       >
-        Desliza hacia arriba para cerrar
+        
       </div>
     </div>,
     document.body,

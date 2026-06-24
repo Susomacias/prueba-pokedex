@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // PokeAPI reference snapshot (not project code):
     "doc/**",
+    // Third-party static assets (Draco decoder, etc.):
+    "public/draco/**",
   ]),
 ]);
 

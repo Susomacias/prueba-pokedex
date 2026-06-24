@@ -44,8 +44,14 @@ export function Model3DPreloader() {
         if (!cancelled && !cancelledRef.current) {
           setDetail(d);
         }
-      } catch {
-        // Silencioso
+      } catch (err) {
+        if (process.env.NODE_ENV === "development") {
+          console.warn(
+            "[Model3DPreloader] Error obteniendo detalle de %s:",
+            selectedName,
+            err,
+          );
+        }
       }
     })();
 

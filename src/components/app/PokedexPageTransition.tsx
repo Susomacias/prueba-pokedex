@@ -48,12 +48,22 @@ import { AnimatedBackground } from "@/src/components/home/AnimatedBackground";
  */
 export interface PokedexPageTransitionProps {
   children: ReactNode;
+  initialPathname?: string;
+  initialSearch?: string;
 }
 
-export function PokedexPageTransition({ children }: PokedexPageTransitionProps) {
+export function PokedexPageTransition({
+  children,
+  initialPathname,
+  initialSearch,
+}: PokedexPageTransitionProps) {
   return (
     <SoundMusicProvider>
-      <AppShellProvider initialView="home">
+      <AppShellProvider
+        initialView="home"
+        initialPathname={initialPathname}
+        initialSearch={initialSearch}
+      >
         <MusicViewBinder />
         <PokedexPageTransitionInner>{children}</PokedexPageTransitionInner>
       </AppShellProvider>
@@ -90,7 +100,6 @@ function PokedexPageTransitionInner({
       ref={rootRef}
       data-view={view}
       data-testid="pokedex-route-shell"
-      data-pokedex-route-name={selectedName ?? undefined}
       className="relative h-dvh w-screen overflow-hidden"
     >
       {/* Fondo animado (mosaico diagonal de tiles) presente SIEMPRE,

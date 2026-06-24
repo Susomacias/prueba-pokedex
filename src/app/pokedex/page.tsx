@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { PokedexPageTransition } from "@/src/components/app/PokedexPageTransition";
 import { HomeViewContent } from "@/src/components/home/HomeViewContent";
+import { buildSearchString } from "@/src/lib/utils/search-params";
+
+type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
 /**
  * Página `/pokedex` (Plan 02.1).
@@ -31,9 +34,14 @@ export const metadata: Metadata = {
   alternates: { canonical: "/pokedex" },
 };
 
-export default function PokedexPage() {
+export default async function PokedexPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const initialSearch = await buildSearchString(searchParams);
   return (
-    <PokedexPageTransition>
+    <PokedexPageTransition initialPathname="/pokedex" initialSearch={initialSearch}>
       <HomeViewContent />
     </PokedexPageTransition>
   );

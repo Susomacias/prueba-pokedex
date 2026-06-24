@@ -36,6 +36,7 @@ vi.mock("three/examples/jsm/loaders/GLTFLoader.js", () => ({
       _onProgress: unknown,
       onError: (err: unknown) => void,
     ) => void;
+    setDRACOLoader: () => void;
     constructor() {
       this.load = (
         url: string,
@@ -51,6 +52,16 @@ vi.mock("three/examples/jsm/loaders/GLTFLoader.js", () => ({
           onLoad({ scene: { type: "Group", name: "mock-scene" } });
         }
       };
+      this.setDRACOLoader = vi.fn();
+    }
+  },
+}));
+
+vi.mock("three/examples/jsm/loaders/DRACOLoader.js", () => ({
+  DRACOLoader: class {
+    setDecoderPath = vi.fn();
+    constructor() {
+      this.setDecoderPath = vi.fn();
     }
   },
 }));

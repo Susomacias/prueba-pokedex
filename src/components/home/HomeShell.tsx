@@ -21,9 +21,15 @@ import { HomeViewNavListeners } from "@/src/components/home/HomeViewNavListeners
  */
 export interface HomeShellProps {
   children: ReactNode;
+  initialPathname?: string;
+  initialSearch?: string;
 }
 
-export function HomeShell({ children }: HomeShellProps) {
+export function HomeShell({
+  children,
+  initialPathname,
+  initialSearch,
+}: HomeShellProps) {
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   // Sentinel para tests E2E: marca `data-home-nav-ready="true"`
@@ -40,7 +46,7 @@ export function HomeShell({ children }: HomeShellProps) {
   }, []);
 
   return (
-    <AppShell>
+    <AppShell initialPathname={initialPathname} initialSearch={initialSearch}>
       <HomeViewNavListeners />
       <div
         ref={sentinelRef}

@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { NavigationSSRContext } from "@/src/hooks/NavigationSSRContext";
 
 /**
  * Estado global de la SPA con routing "ligero" basado en
@@ -81,6 +82,22 @@ export interface AppShellProviderProps {
    *   - `/pokemon/[name]`    → "home"   (idem).
    */
   initialView?: View;
+  /**
+   * Pathname inicial conocido por el servidor (Server Component).
+   * Evita el hydration mismatch causado por `readPathname()`, que
+   * en SSR siempre devuelve `"/"` al no existir `window`.
+   *
+   * Si no se proporciona, se usa `readPathname()` como fallback
+   * (comportamiento legacy).
+   */
+  initialPathname?: string;
+  /**
+   * Search params iniciales conocidos por el servidor (Server Component).
+   * Evita el hydration mismatch de `useNavigation` / `useFilters` causado
+   * por `getSearch()`, que en SSR siempre devuelve `""` al no existir
+   * `window`.
+   */
+  initialSearch?: string;
 }
 
 /**
@@ -124,18 +141,22 @@ function pushPath(url: string): void {
 export function AppShellProvider({
   children,
   initialView = "home",
+  initialPathname,
+  initialSearch,
 }: AppShellProviderProps) {
-// `pathname` se inicializa leyendo la URL actual. En SSR
-  // `window` no existe, así que el inicializador devuelve "/";
-  // la primera ejecución en cliente leerá la URL real
-  // (`window.location.pathname`) sin necesidad de un setState
-  // adicional en un effect.
+  // `pathname` se inicializa con `initialPathname` (conocido por el
+  // Server Component) o, si no se proporciona, con `readPathname()`.
+  // En SSR `window` no existe y `readPathname()` devuelve "/", lo que
+  // provocaría un hydration mismatch en rutas como `/pokemon/<name>`.
+  // Pasar `initialPathname` desde la página elimina ese desfase.
   //
   // `view` se inicializa con `initialView` (pasado por el caller
   // según la ruta) — NO se deriva del pathname — para que el
   // primer paint del cliente pueda diferir del pathname y forzar
   // la transición de entrada en `/pokedex` y `/pokemon/[name]`.
-  const [pathname, setPathname] = useState<string>(() => readPathname());
+  const [pathname, setPathname] = useState<string>(
+    () => initialPathname ?? readPathname(),
+  );
   const [view, setView] = useState<View>(initialView);
 
   // Suscribirse a `popstate` para que el botón "atrás/adelante"
@@ -214,9 +235,13 @@ export function AppShellProvider({
   );
 
   return (
-    <AppShellContext.Provider value={value}>
-      {children}
-    </AppShellContext.Provider>
+    <NavigationSSRContext.Provider
+      value={{ pathname: initialPathname, search: initialSearch }}
+    >
+      <AppShellContext.Provider value={value}>
+        {children}
+      </AppShellContext.Provider>
+    </NavigationSSRContext.Provider>
   );
 }
 

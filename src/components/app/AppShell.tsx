@@ -38,12 +38,22 @@ import { AnimatedBackground } from "@/src/components/home/AnimatedBackground";
  */
 export interface AppShellProps {
   children: ReactNode;
+  initialPathname?: string;
+  initialSearch?: string;
 }
 
-export function AppShell({ children }: AppShellProps) {
+export function AppShell({
+  children,
+  initialPathname,
+  initialSearch,
+}: AppShellProps) {
   return (
     <SoundMusicProvider>
-      <AppShellProvider initialView="home">
+      <AppShellProvider
+        initialView="home"
+        initialPathname={initialPathname}
+        initialSearch={initialSearch}
+      >
         <MusicViewBinder />
         <AppShellInner>{children}</AppShellInner>
       </AppShellProvider>

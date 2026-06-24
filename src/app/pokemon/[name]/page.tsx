@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import { capitalize } from "@/src/lib/utils/capitalize";
 import { PokedexPageTransition } from "@/src/components/app/PokedexPageTransition";
 import { HomeViewContent } from "@/src/components/home/HomeViewContent";
+import { buildSearchString } from "@/src/lib/utils/search-params";
 
 type RouteParams = { name: string };
+type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
 /**
  * Página de detalle de un pokemon (Plan 02.1 + Plan 08).
@@ -50,13 +52,19 @@ export function generateStaticParams(): Array<RouteParams> {
 
 export default async function PokemonDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<RouteParams>;
+  searchParams: SearchParams;
 }) {
-  await params;
+  const { name } = await params;
+  const initialSearch = await buildSearchString(searchParams);
 
   return (
-    <PokedexPageTransition>
+    <PokedexPageTransition
+      initialPathname={`/pokemon/${name}`}
+      initialSearch={initialSearch}
+    >
       <HomeViewContent />
     </PokedexPageTransition>
   );

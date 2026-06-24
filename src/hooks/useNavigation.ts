@@ -1,6 +1,18 @@
 "use client";
 
-import { useEffect, useReducer } from "react";
+import { useContext, useEffect, useReducer, useState } from "react";
+import {
+  type NavigationSSRState,
+  NavigationSSRContext,
+} from "./NavigationSSRContext";
+
+function useSafeSSRState(): NavigationSSRState {
+  try {
+    return useContext(NavigationSSRContext);
+  } catch {
+    return {};
+  }
+}
 
 /**
  * Adaptador sobre `next/navigation` (Plan 02.2).
@@ -65,6 +77,17 @@ export interface NavigationSnapshot {
 
 export function useNavigation(): NavigationSnapshot {
   const [, forceUpdate] = useReducer((n: number) => n + 1, 0);
+  const ssr = useSafeSSRState();
+
+  // `mounted` nos permite usar los valores SSR durante la hidratación
+  // (primer render del cliente) y cambiar a `window.location` tras el
+  // mount. `useState(false)` es la forma canónica — el setState en el
+  // effect es legítimo porque es una suscripción a "componente montado".
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- montaje único
+    setMounted(true);
+  }, []);
 
   // Suscribirse a `popstate` para que el botón atrás/adelante del
   // navegador mantenga `pathname` y `searchParams` sincronizados
@@ -75,8 +98,9 @@ export function useNavigation(): NavigationSnapshot {
     return () => window.removeEventListener("popstate", onPop);
   }, [forceUpdate]);
 
-  const pathname = getPathname();
-  const searchParams = new URLSearchParams(getSearch());
+  const pathname = mounted ? getPathname() : (ssr.pathname ?? getPathname());
+  const rawSearch = mounted ? getSearch() : (ssr.search ?? getSearch());
+  const searchParams = new URLSearchParams(rawSearch);
 
   return {
     pathname,

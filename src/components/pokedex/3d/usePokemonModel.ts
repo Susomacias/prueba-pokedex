@@ -50,20 +50,34 @@ export function usePokemonModel(
 
   useEffect(() => {
     if (pokemonId == null) return;
-    if (modelCache.has(pokemonId)) return;
+
+    const cached = modelCache.get(pokemonId);
+    if (cached) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setModel(cached);
+      setLoading(false);
+      return;
+    }
 
     let cancelled = false;
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
 
     (async () => {
+      const url = `${MODEL_BASE_URL}/${pokemonId}.glb`;
       try {
         const { GLTFLoader } = await import(
           "three/examples/jsm/loaders/GLTFLoader.js"
         );
+        const { DRACOLoader } = await import(
+          "three/examples/jsm/loaders/DRACOLoader.js"
+        );
+
+        const dracoLoader = new DRACOLoader();
+        dracoLoader.setDecoderPath("/draco/");
+
         const loader = new GLTFLoader();
-        const url = `${MODEL_BASE_URL}/${pokemonId}.glb`;
+        loader.setDRACOLoader(dracoLoader);
 
         const gltf = await new Promise<{ scene: object }>(
           (resolve, reject) => {
@@ -87,6 +101,13 @@ export function usePokemonModel(
       } catch (err) {
         if (!cancelled) {
           const e = err instanceof Error ? err : new Error(String(err));
+          if (process.env.NODE_ENV === "development") {
+            console.warn(
+              "[usePokemonModel] Error cargando modelo %s: %s",
+              url,
+              e.message,
+            );
+          }
           setError(e);
           setLoading(false);
         }
