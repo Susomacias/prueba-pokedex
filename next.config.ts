@@ -16,6 +16,8 @@ import type { NextConfig } from "next";
  * `/pokemon/[name]` y se sincronizan bidireccionalmente vía
  * `useFilters()` (Plan 02.2).
  */
-const nextConfig: NextConfig = {};
+const nextConfig: NextConfig = {
+  output: "standalone",
+};
 
 export default nextConfig;

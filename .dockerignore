@@ -1,0 +1,12 @@
+node_modules
+.git
+.next
+__tests__
+e2e
+plan
+scripts
+.vscode
+.env
+.env.*
+*.md
+!AGENTS.md
