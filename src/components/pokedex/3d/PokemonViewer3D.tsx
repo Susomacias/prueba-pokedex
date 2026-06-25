@@ -2,10 +2,43 @@
 
 import { useEffect, useRef, useCallback, useState } from "react";
 import * as THREE from "three";
+import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
+import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
+import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 
 const AUTO_ROTATE_SPEED = 0.005;
 const DRAG_SENSITIVITY = 0.005;
 const ROTATION_RESUME_DELAY = 500;
+
+// Shader de saturación — misma fórmula que CSS filter: saturate()
+// saturación > 1.0 = más intenso, 1.0 = original, 0.0 = escala de grises
+const SATURATION_FACTOR = 1.5;
+
+const SaturationShader = {
+  uniforms: {
+    tDiffuse: { value: null as THREE.Texture | null },
+    saturation: { value: SATURATION_FACTOR },
+  },
+  vertexShader: /* glsl */ `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: /* glsl */ `
+    uniform sampler2D tDiffuse;
+    uniform float saturation;
+    varying vec2 vUv;
+    void main() {
+      vec4 texel = texture2D(tDiffuse, vUv);
+      float gray = dot(texel.rgb, vec3(0.2125, 0.7154, 0.0721));
+      texel.rgb = mix(vec3(gray), texel.rgb, saturation);
+      gl_FragColor = texel;
+    }
+  `,
+};
 
 // Correcciones por modelo: algunos GLB vienen tumbados o mal orientados.
 // Cada entrada es { rotation: (x, y, z) en radianes, offset: (x, y, z) en unidades locales }.
@@ -81,6 +114,19 @@ export function PokemonViewer3D({ model, visible, pokemonId }: PokemonViewer3DPr
 
     container.appendChild(renderer.domElement);
 
+    // Post-procesado: EffectComposer con pase de saturación
+    const composer = new EffectComposer(renderer);
+    const renderPass = new RenderPass(scene, camera);
+    composer.addPass(renderPass);
+
+    const saturationPass = new ShaderPass(SaturationShader);
+    composer.addPass(saturationPass);
+
+    const outputPass = new OutputPass();
+    composer.addPass(outputPass);
+
+    composer.setSize(container.clientWidth, container.clientHeight);
+
     // Iluminación
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     scene.add(ambientLight);
@@ -142,7 +188,7 @@ export function PokemonViewer3D({ model, visible, pokemonId }: PokemonViewer3DPr
         modelRef.current.rotation.y += AUTO_ROTATE_SPEED;
       }
 
-      renderer.render(scene, camera);
+      composer.render();
     }
 
     rafRef.current = requestAnimationFrame(animate);
@@ -156,6 +202,7 @@ export function PokemonViewer3D({ model, visible, pokemonId }: PokemonViewer3DPr
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
+      composer.setSize(w, h);
     });
     resizeObserver.observe(container);
     resizeObserverRef.current = resizeObserver;
@@ -163,6 +210,7 @@ export function PokemonViewer3D({ model, visible, pokemonId }: PokemonViewer3DPr
     return () => {
       cancelAnimationFrame(rafRef.current);
       resizeObserver.disconnect();
+      composer.dispose();
       renderer.dispose();
       if (container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
