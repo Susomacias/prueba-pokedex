@@ -249,6 +249,8 @@ export async function POST(request: Request): Promise<Response> {
   const target = upstream && upstream.length > 0 ? upstream : DEFAULT_POKEAPI_GRAPHQL_URL;
 
   let upstreamResponse: Response;
+  const controller = new AbortController();
+  const fetchTimeout = setTimeout(() => controller.abort(), 30_000);
   try {
     upstreamResponse = await fetch(target, {
       method: "POST",
@@ -261,6 +263,7 @@ export async function POST(request: Request): Promise<Response> {
         variables: body.variables ?? {},
         operationName: body.operationName,
       }),
+      signal: controller.signal,
     });
   } catch {
     return errorResponse(504, {
@@ -277,6 +280,8 @@ export async function POST(request: Request): Promise<Response> {
         },
       ],
     });
+  } finally {
+    clearTimeout(fetchTimeout);
   }
 
   // Leemos el body como JSON (PokeAPI siempre devuelve JSON válido).

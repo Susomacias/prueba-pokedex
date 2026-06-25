@@ -15,6 +15,9 @@ import {
   type FilterOptionKey,
 } from "@/src/components/filters/useFilterOptions";
 import {
+  useFilterAvailability,
+} from "@/src/components/filters/useFilterAvailability";
+import {
   FILTERS,
   type FilterKey,
   type FilterValue,
@@ -34,6 +37,8 @@ const DROPDOWN_FILTER_KEYS: FilterKey[] = [
   "height",
   "weight",
 ];
+
+const FILTER_ALL_VALUE = "__all__";
 
 function activeValueLabel(filters: Filters, key: FilterKey): string | null {
   const def = FILTERS.find((f) => f.key === key);
@@ -56,11 +61,15 @@ function FilterDropdownPanel({
   anchorRect,
   onSelect,
   onClose,
+  isAvailable,
+  isBucketAvailableForRange,
 }: {
   filterKey: FilterKey;
   anchorRect: DOMRect;
   onSelect: (value: string) => void;
   onClose: () => void;
+  isAvailable: (value: string) => boolean;
+  isBucketAvailableForRange: (bucket: FilterBucket) => boolean;
 }) {
   const optionKey = filterKeyToOptionKey(filterKey) as FilterOptionKey | undefined;
   const { status, options } = useFilterOptions(optionKey ?? "type");
@@ -69,16 +78,25 @@ function FilterDropdownPanel({
   const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   const filteredOptions = useMemo(() => {
-    if (search.trim() === "") return options;
-    const q = search.toLowerCase().trim();
-    return options.filter((o) => {
+    let list = options;
+    if (search.trim() !== "") {
+      const q = search.toLowerCase().trim();
+      list = list.filter((o) => {
+        const v = o as FilterOption | FilterBucket;
+        return (
+          v.label.toLowerCase().includes(q) ||
+          v.value.toLowerCase().includes(q)
+        );
+      });
+    }
+    return list.filter((o) => {
       const v = o as FilterOption | FilterBucket;
-      return (
-        v.label.toLowerCase().includes(q) ||
-        v.value.toLowerCase().includes(q)
-      );
+      if ("min" in v && "max" in v) {
+        return isBucketAvailableForRange(v as FilterBucket);
+      }
+      return isAvailable(v.value);
     });
-  }, [options, search]);
+  }, [options, search, isAvailable, isBucketAvailableForRange]);
 
   useEffect(() => {
     const input = searchInputRef.current;
@@ -103,8 +121,9 @@ function FilterDropdownPanel({
     filteredOptions.length === 0;
 
   const panelW = Math.max(anchorRect.width * 2, 200);
+  const totalOptions = filteredOptions.length + 1;
   const panelH = Math.min(
-    Math.max(filteredOptions.length * 28 + 36, 100),
+    Math.max(totalOptions * 28 + 36, 100),
     280,
   );
 
@@ -157,6 +176,16 @@ function FilterDropdownPanel({
             Error al cargar
           </div>
         )}
+        <button
+          type="button"
+          role="option"
+          aria-selected={false}
+          tabIndex={0}
+          className="filter-dropdown-panel__option filter-dropdown-panel__option--all"
+          onClick={() => onSelect(FILTER_ALL_VALUE)}
+        >
+          Todos
+        </button>
         {isEmpty && (
           <div className="filter-dropdown-panel__status">
             sin resultados
@@ -195,6 +224,7 @@ export function FilterDropdowns() {
   const [openKey, setOpenKey] = useState<FilterKey | null>(null);
   const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
   const buttonRefs = useRef<Map<FilterKey, HTMLButtonElement>>(new Map());
+  const availability = useFilterAvailability(filters);
 
   const onClose = useCallback(() => {
     setOpenKey(null);
@@ -216,7 +246,11 @@ export function FilterDropdowns() {
 
   const onSelect = useCallback(
     (key: FilterKey, value: string) => {
-      setFilter(key, value as FilterValue<typeof key>);
+      if (value === FILTER_ALL_VALUE) {
+        setFilter(key, undefined!);
+      } else {
+        setFilter(key, value as FilterValue<typeof key>);
+      }
       onClose();
     },
     [setFilter, onClose],
@@ -271,6 +305,13 @@ export function FilterDropdowns() {
                 anchorRect={anchorRect}
                 onSelect={(v) => onSelect(key, v)}
                 onClose={onClose}
+                isAvailable={(v) => availability.isAvailable(key, v)}
+                isBucketAvailableForRange={(b) =>
+                  availability.isBucketAvailableForRange(
+                    b,
+                    key === "height" ? "height" : "weight",
+                  )
+                }
               />
             )}
           </div>

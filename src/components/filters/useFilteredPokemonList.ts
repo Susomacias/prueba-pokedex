@@ -281,7 +281,6 @@ export function useFilteredPokemonList(
       setError(wrapped);
       setStatus("error");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Memo del retry para que la referencia sea estable mientras el

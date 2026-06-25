@@ -78,7 +78,7 @@ function PokeballMagnifier() {
  */
 export function SearchInput() {
   const { goToPokemon } = useAppShell();
-  const { setFilter } = useFiltersContext();
+  const { filters, setFilter } = useFiltersContext();
 
   const [value, setValue] = useState("");
   const [suggestions, setSuggestions] = useState<ReadonlyArray<PokemonListItem>>([]);
@@ -139,7 +139,7 @@ export function SearchInput() {
 
   const onSelect = useCallback(
     (name: string) => {
-      setValue("");
+      setValue(name);
       setSuggestions([]);
       setIsOpen(false);
       goToPokemon(name);
@@ -171,16 +171,17 @@ export function SearchInput() {
 
   useEffect(() => {
     if (!isOpen) return;
-    const onClick = (e: MouseEvent) => {
-      if (
-        fieldRef.current &&
-        !fieldRef.current.contains(e.target as Node)
-      ) {
-        setIsOpen(false);
+    const onPointerDown = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (fieldRef.current && !fieldRef.current.contains(target)) {
+        const portal = document.getElementById("search-suggestions-list");
+        if (!portal || !portal.contains(target)) {
+          setIsOpen(false);
+        }
       }
     };
-    document.addEventListener("mousedown", onClick, true);
-    return () => document.removeEventListener("mousedown", onClick, true);
+    document.addEventListener("mousedown", onPointerDown, true);
+    return () => document.removeEventListener("mousedown", onPointerDown, true);
   }, [isOpen]);
 
   useEffect(() => {
@@ -188,6 +189,16 @@ export function SearchInput() {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, []);
+
+  // Sincroniza el input con el filtro search de la URL:
+  // si se borra externamente (botón Reset, consola), limpia el campo.
+  useEffect(() => {
+    if (!filters.search) {
+      setValue("");
+      setSuggestions([]);
+      setIsOpen(false);
+    }
+  }, [filters.search]);
 
   const portalStyle: React.CSSProperties | undefined =
     isOpen && anchorRect

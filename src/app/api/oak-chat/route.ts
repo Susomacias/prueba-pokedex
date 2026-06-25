@@ -12,6 +12,7 @@ import {
 const MINIMAX_ENDPOINT = "https://api.minimax.io/v1/text/chatcompletion_v2";
 const MAX_TURNS = 10;
 const MAX_TIMEOUT_MS = 120_000;
+const MAX_BODY_SIZE = 100_000;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = 10;
 
@@ -139,7 +140,7 @@ async function callMiniMax(
 ): Promise<Response> {
   const apiKey = process.env.MINIMAX_API_KEY;
   if (!apiKey) {
-    throw new Error("MINIMAX_API_KEY no configurada");
+    throw new Error("API key no configurada");
   }
 
   const res = await fetch(MINIMAX_ENDPOINT, {
@@ -462,6 +463,14 @@ export async function POST(request: NextRequest): Promise<Response> {
     );
   }
 
+  const contentLength = Number(request.headers.get("content-length") ?? "0");
+  if (contentLength > MAX_BODY_SIZE) {
+    return new Response(
+      JSON.stringify({ error: "Cuerpo de petición demasiado grande" }),
+      { status: 413, headers: { "Content-Type": "application/json" } },
+    );
+  }
+
   let body: { messages?: ChatMessage[] };
   try {
     body = (await request.json()) as { messages?: ChatMessage[] };
@@ -483,7 +492,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     return new Response(
       JSON.stringify({
         error:
-          "El Profesor Oak está descansando en su laboratorio. (MINIMAX_API_KEY no configurada)",
+          "El Profesor Oak está descansando en su laboratorio. (API key no configurada)",
       }),
       { status: 503, headers: { "Content-Type": "application/json" } },
     );

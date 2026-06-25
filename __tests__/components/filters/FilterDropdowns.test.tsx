@@ -7,6 +7,7 @@ import {
   FiltersProvider,
 } from "@/src/components/filters/FiltersProvider";
 import { __resetFilterOptionsCache } from "@/src/components/filters/useFilterOptions";
+import { __resetFilterAvailabilityCache } from "@/src/components/filters/useFilterAvailability";
 import { FilterDropdowns } from "@/src/components/filters/FilterDropdowns";
 
 const harnessRef = globalThis as unknown as { __harness?: NavigationHarness };
@@ -59,6 +60,7 @@ vi.mock("@/src/lib/pokemon/cachedPokemonApi", () => ({
     { value: "0-10", label: "0-10 hg", min: 0, max: 10 },
     { value: "10-50", label: "10-50 hg", min: 10, max: 50 },
   ]),
+  fetchAllPokemonFilterFields: vi.fn().mockResolvedValue([]),
 }));
 
 function wrapper({ children }: { children: ReactNode }) {
@@ -69,6 +71,7 @@ describe("FilterDropdowns (Plan 07.2)", () => {
   beforeEach(() => {
     harnessRef.__harness = createNavigationHarness({ pathname: "/pokedex" });
     __resetFilterOptionsCache();
+    __resetFilterAvailabilityCache();
   });
 
   it("renderiza 8 botones en un grid", () => {

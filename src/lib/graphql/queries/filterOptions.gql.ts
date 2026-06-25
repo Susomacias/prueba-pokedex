@@ -119,3 +119,27 @@ export const HEIGHT_WEIGHT_AGGREGATE_QUERY = /* GraphQL */ `
     }
   }
 `;
+
+export const ALL_POKEMON_FILTER_FIELDS_QUERY = /* GraphQL */ `
+  query AllPokemonFilterFields {
+    pokemon_v2_pokemon(
+      where: { is_default: { _eq: true } }
+      order_by: { id: asc }
+    ) {
+      height
+      weight
+      pokemon_v2_pokemontypes {
+        pokemon_v2_type { name }
+        slot
+      }
+      pokemon_v2_pokemonspecy {
+        pokemon_v2_generation { name }
+        pokemon_v2_pokemoncolor { name }
+        pokemon_v2_pokemonhabitat { name }
+      }
+      pokemon_v2_pokemonabilities {
+        pokemon_v2_ability { name }
+      }
+    }
+  }
+`;

@@ -34,6 +34,9 @@ import {
   fetchWeightBuckets as rawFetchWeightBuckets,
 } from "@/src/lib/pokemon/fetchFilterOptions";
 import {
+  fetchAllPokemonFilterFields as rawFetchAllPokemonFilterFields,
+} from "@/src/lib/pokemon/fetchFilterAvailability";
+import {
   fetchPokemonDetail as rawFetchPokemonDetail,
 } from "@/src/lib/pokemon/fetchDetail";
 import {
@@ -176,6 +179,26 @@ export function fetchAbilityOptions(): Promise<ReadonlyArray<FilterOption>> {
 
 export const fetchHeightBuckets = rawFetchHeightBuckets;
 export const fetchWeightBuckets = rawFetchWeightBuckets;
+
+/* -------------------------------------------------------------------------- *
+ * Disponibilidad de filtros (Plan cross-filter)
+ * -------------------------------------------------------------------------- */
+
+const cachedFetchAllPokemonFilterFields = cache(
+  async (): Promise<
+    ReadonlyArray<
+      import("@/src/lib/pokemon/fetchFilterAvailability").PokemonFilterFields
+    >
+  > => rawFetchAllPokemonFilterFields(),
+);
+
+export function fetchAllPokemonFilterFields(): Promise<
+  ReadonlyArray<
+    import("@/src/lib/pokemon/fetchFilterAvailability").PokemonFilterFields
+  >
+> {
+  return cachedFetchAllPokemonFilterFields();
+}
 
 /* -------------------------------------------------------------------------- *
  * Precarga de detalles (Plan 01.6)

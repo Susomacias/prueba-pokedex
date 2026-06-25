@@ -24,7 +24,7 @@ Copia `.env.example` a `.env.local` y ajusta los valores si lo necesitas.
 
 | Variable | Descripción | Por defecto |
 | -------- | ----------- | ----------- |
-| `NEXT_PUBLIC_POKEAPI_GRAPHQL_URL` | Endpoint GraphQL de PokeAPI. Si está definida, servidor y navegador pegan directamente contra ella. Si está vacía, el servidor usa `https://graphql.pokeapi.co/v1beta2` y el navegador pasa por el proxy same-origin `/api/pokeapi` para evitar el bloqueo CORS. | (vacía) |
+| `NEXT_PUBLIC_POKEAPI_GRAPHQL_URL` | Endpoint GraphQL de PokeAPI. Si está definida, servidor y navegador pegan directamente contra ella. Si está vacía, el servidor usa `https://beta.pokeapi.co/graphql/v1beta` y el navegador pasa por el proxy same-origin `/api/pokeapi` para evitar el bloqueo CORS. | (vacía) |
 | `NEXT_PUBLIC_POKEAPI_USE_PROXY` | Solo relevante en navegador real. Si vale `"false"`, el navegador pega directo contra la URL anterior en vez de pasar por el proxy. Útil si el endpoint ya tiene CORS abierto. | `"true"` |
 
 > `.env.local` está ignorado por git, así que cada desarrollador puede
@@ -32,7 +32,7 @@ Copia `.env.example` a `.env.local` y ajusta los valores si lo necesitas.
 
 ### Por qué hay un proxy `/api/pokeapi`
 
-La PokeAPI GraphQL (`graphql.pokeapi.co`) **no devuelve
+La PokeAPI GraphQL (`beta.pokeapi.co`) **no devuelve
 `Access-Control-Allow-Origin`** para orígenes arbitrarios, así que el
 navegador bloquea con CORS cualquier `POST` desde `localhost:3000` o
 desde el deploy en producción. Para resolver esto sin renunciar a la
@@ -52,6 +52,8 @@ propio proxy, así que no perdemos nada.
 | `npm run start`       | Sirve la build de producción                                 |
 | `npm run lint`        | Ejecuta ESLint                                               |
 | `npx tsc --noEmit`    | Comprueba los tipos con TypeScript                           |
+| `npm run capture-fixtures` | Genera fixtures de test desde PokeAPI real               |
+| `npm run explore:minimax`  | Prueba la API MiniMax M3 para el chat del Prof. Oak      |
 
 ## Consola de filtros (Plan 07.1)
 
@@ -140,12 +142,12 @@ npm run test:e2e:ui    # inspector interactivo
 │   ├── lib/          # Lógica, constantes y tipos
 │   │   ├── constants/
 │   │   └── types/
-│   └── styles/       # Estilos adicionales
 ├── public/           # Assets estáticos (favicon, fuentes, hábitats, imágenes)
 ├── __tests__/        # Tests unitarios (Vitest)
 ├── e2e/              # Tests end-to-end (Playwright)
 ├── doc/              # Documentación de referencia (PokeAPI). No se commitea.
-└── plan/             # Planes de desarrollo por fases
+├── plan/             # Planes de desarrollo por fases
+└── skills-lock.json  # Versiones pineadas de los agent skills
 ```
 
 > `src/lib/constants/` es la **única fuente de verdad** para colores por tipo/generación y constantes compartidas.

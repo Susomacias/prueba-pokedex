@@ -137,18 +137,6 @@ export function PokemonList({ selectedName = null }: PokemonListProps) {
    * Render
    * ---------------------------------------------------------------- */
 
-  if (single) {
-    return (
-      <div
-        ref={scrollRef}
-        data-testid="pokemon-list"
-        data-single="true"
-        aria-hidden="true"
-        style={containerStyle}
-      />
-    );
-  }
-
   const isLoadingMore = status === "loadingMore";
   const isLoading = status === "loading";
 

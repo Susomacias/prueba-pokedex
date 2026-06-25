@@ -26,7 +26,7 @@ import { FILTER_CACHE } from "@/src/lib/pokemon/cacheStrategy";
  * Tipos excluidos del filtro "Tipo" según el plan: no aportan
  * información útil al usuario final.
  */
-const EXCLUDED_TYPES: ReadonlySet<string> = new Set([
+export const EXCLUDED_TYPES: ReadonlySet<string> = new Set([
   "unknown",
   "shadow",
 ]);
@@ -153,11 +153,23 @@ function mapGenerations(
   return out;
 }
 
+const COLOR_LABELS: Record<string, string> = {
+  black: "Negro",
+  blue: "Azul",
+  brown: "Marrón",
+  gray: "Gris",
+  green: "Verde",
+  pink: "Rosa",
+  purple: "Púrpura",
+  red: "Rojo",
+  white: "Blanco",
+  yellow: "Amarillo",
+};
+
 function mapColors(raw: ReadonlyArray<RawType>): ReadonlyArray<FilterOption> {
   return raw.map((c) => ({
     value: c.name,
-    label: labelFor(c.name),
-    // `POKEMON_TYPE_COLORS.default` se reutiliza como swatch neutro.
+    label: COLOR_LABELS[c.name] ?? labelFor(c.name),
     image: undefined,
   }));
 }
