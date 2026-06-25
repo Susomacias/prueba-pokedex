@@ -145,6 +145,8 @@ Fase del plan → Diseño de tests → Revisión humana → Implementación → 
 | **DeepSeek V4 Pro** | Planificación de arquitectura, detección de bugs persistentes, resolución de issues específicas de Next.js |
 | **MiniMax M3** | Ejecución de planes, generación de código, function calling del agente IA |
 
+**Coste total en tokens:** ~4,75 € en DeepSeek (sin superar el límite de uso continuado del plan de tokens de OpenCode GO) + ~3,50 € en MiniMax (sin superar el límite del plan de tokens diarios de MiniMax).
+
 ### Herramientas
 
 - **[OpenCode Desktop](https://opencode.ai)** — Spec-driven development con agents autónomos
