@@ -1,189 +1,214 @@
-# Pokédex
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="public/pagina_inicio/logo.svg">
+    <img alt="Pokédex Logo" src="public/pagina_inicio/logo.svg" width="320">
+  </picture>
+</p>
 
-Aplicación web construida con **Next.js 16**, **React 19**, **Tailwind CSS 4** y **TypeScript** para explorar el mundo de los Pokémon: tipos, generaciones, hábitats y más.
+<h1 align="center">Pokédex Virtual</h1>
 
-## Requisitos previos
+<p align="center">
+  Simulador interactivo de Pokédex con explorador 3D, filtros dinámicos,<br>
+  terminal de comandos y agente de IA del Profesor Oak.
+</p>
 
-- [Node.js](https://nodejs.org/) >= 18.18
-- npm (incluido con Node.js)
+---
 
-## Primeros pasos
+## ▶ Ver online — Render.com
 
-Instala las dependencias y arranca el servidor de desarrollo:
+<h3 align="center">
+  <a href="https://prueba-pokedex.onrender.com">https://prueba-pokedex.onrender.com</a>
+</h3>
+
+> **Aviso:** Render.com en su plan gratuito **duerme el servicio tras 15 minutos de inactividad**. El primer arranque puede tardar **~50 segundos** en despertar. Una vez activo, la navegación es instantánea.
+
+---
+
+## Funcionalidades
+
+| | |
+|---|---|
+| **Pantalla de inicio** | Animación arcade con botón PRESS START y control de música |
+| **Pokédex virtual** | Simulador interactivo con diseño inspirado en la Pokédex clásica |
+| **Ficha de Pokémon** | Datos completos: tipos, stats, habilidades, evoluciones, sonido |
+| **Visor 3D** | Modelo tridimensional rotable con fondo del hábitat del Pokémon |
+| **Lista infinita** | Scroll infinito con carga progresiva de cientos de Pokémon |
+| **Filtros dinámicos** | Por tipo, generación, color, hábitat, habilidad, altura y peso |
+| **Buscador** | Búsqueda libre multi-palabra, insensible a acentos |
+| **Terminal de comandos** | Simulador de consola integrado — escribe `help` para ver comandos |
+| **Profesor Oak (IA)** | Agente conversacional que maneja la Pokédex por voz/texto |
+| **Diseño responsive** | Carcasa vertical en móvil, horizontal en escritorio |
+
+---
+
+## Arranque rápido
+
+### Docker
+
+```bash
+docker build -t pokedex .
+docker run -p 3000:3000 pokedex
+```
+
+Abre [http://localhost:3000](http://localhost:3000).
+
+### Desarrollo local
 
 ```bash
 npm install
 npm run dev
 ```
 
-Abre [http://localhost:3000](http://localhost:3000) en el navegador para ver la aplicación.
+Abre [http://localhost:3000](http://localhost:3000).
+
+### Producción local
+
+```bash
+npm install
+npm run build
+npm start
+```
+
+---
 
 ## Variables de entorno
 
-Copia `.env.example` a `.env.local` y ajusta los valores si lo necesitas.
+Copia `.env.example` a `.env.local`:
 
-| Variable | Descripción | Por defecto |
-| -------- | ----------- | ----------- |
-| `NEXT_PUBLIC_POKEAPI_GRAPHQL_URL` | Endpoint GraphQL de PokeAPI. Si está definida, servidor y navegador pegan directamente contra ella. Si está vacía, el servidor usa `https://beta.pokeapi.co/graphql/v1beta` y el navegador pasa por el proxy same-origin `/api/pokeapi` para evitar el bloqueo CORS. | (vacía) |
-| `NEXT_PUBLIC_POKEAPI_USE_PROXY` | Solo relevante en navegador real. Si vale `"false"`, el navegador pega directo contra la URL anterior en vez de pasar por el proxy. Útil si el endpoint ya tiene CORS abierto. | `"true"` |
+| Variable | Descripción | Default |
+|---|---|---|
+| `NEXT_PUBLIC_POKEAPI_GRAPHQL_URL` | Endpoint GraphQL de PokeAPI | `https://beta.pokeapi.co/graphql/v1beta` |
+| `NEXT_PUBLIC_POKEAPI_USE_PROXY` | Usar proxy same-origin para CORS | `true` |
+| `MINIMAX_API_KEY` | API key de MiniMax M3 para el chat del Profesor Oak | *(no incluida)* |
 
-> `.env.local` está ignorado por git, así que cada desarrollador puede
-> apuntar a su propio mirror o entorno de pruebas.
+> **El chat de IA requiere `MINIMAX_API_KEY`.** Por seguridad no está incluida en el repo. Solicítamela si necesitas lanzar el proyecto completo en local.
 
-### Por qué hay un proxy `/api/pokeapi`
+---
 
-La PokeAPI GraphQL (`beta.pokeapi.co`) **no devuelve
-`Access-Control-Allow-Origin`** para orígenes arbitrarios, así que el
-navegador bloquea con CORS cualquier `POST` desde `localhost:3000` o
-desde el deploy en producción. Para resolver esto sin renunciar a la
-caché de servidor de Next.js ni a la deduplicación de `React.cache`,
-las llamadas del navegador pasan por `/api/pokeapi` (un Route Handler
-en `src/app/api/pokeapi/route.ts`) que reenvía la query
-server-to-server — donde no hay CORS. La caché de servidor (`next:
-{ revalidate, tags }`) sigue aplicándose en el cliente a través del
-propio proxy, así que no perdemos nada.
+## Decisiones de diseño
 
-## Scripts disponibles
+- **Estilo videojuego / cartoon** sobre ergonomía empresarial. Se sacrificó parte de la usabilidad convencional en favor de una experiencia visual a medio camino entre un juego portátil y la serie animada.
+- **Pokédex reconocible pero no idéntica.** Se adaptó el diseño original de la serie por motivos de usabilidad, manteniendo el espíritu del dispositivo.
+- **Features extra más allá del enunciado.** El requisito era «Lúcete porque la prueba es demasiado básica». Se añadieron:
+  - Filtros dinámicos con sincronización URL
+  - Terminal de comandos integrada en la consola
+  - Visor 3D con rotación y fondo contextual
+  - Agente de IA capaz de mostrar resultados en la Pokédex
+- Diseño 100% responsive con carcasa adaptativa (vertical/horizontal).
 
-| Script                | Descripción                                                  |
-| --------------------- | ------------------------------------------------------------ |
-| `npm run dev`         | Inicia el servidor de desarrollo                             |
-| `npm run build`       | Genera la build de producción                                |
-| `npm run start`       | Sirve la build de producción                                 |
-| `npm run lint`        | Ejecuta ESLint                                               |
-| `npx tsc --noEmit`    | Comprueba los tipos con TypeScript                           |
-| `npm run capture-fixtures` | Genera fixtures de test desde PokeAPI real               |
-| `npm run explore:minimax`  | Prueba la API MiniMax M3 para el chat del Prof. Oak      |
+---
 
-## Consola de filtros (Plan 07.1)
+## Decisiones técnicas
 
-La consola de la Pokédex (slot `CONSOLA_FILTROS`) acepta comandos para
-filtrar y buscar pokemons. Comparte estado con los dropdowns, el
-buscador y la URL vía `useFilters()`, así que aplicar un filtro desde
-la consola es indistinto de aplicarlo desde cualquier otra vista.
+- **GraphQL de PokeAPI** (`beta.pokeapi.co/graphql/v1beta`) para filtrado eficiente server-side en lugar de la API REST tradicional.
+- **Stack por defecto de Next.js** con los añadidos clave:
 
-### Comandos disponibles
+| Dependencia | Uso |
+|---|---|
+| `next` 16 + `react` 19 | App Router, RSC, streaming, Server Actions |
+| `tailwindcss` 4 | Utility-first CSS |
+| `three` 0.184 | Visor 3D de Pokémon |
+| `lucide-react` | Iconografía |
+| `react-markdown` + `remark-gfm` | Renderizado de respuestas del chat IA |
+| `vitest` + `@testing-library/react` + `jsdom` | Tests unitarios |
+| `@playwright/test` | Tests end-to-end |
 
-| Comando                          | Descripción                                                       |
-| -------------------------------- | ----------------------------------------------------------------- |
-| `help` · `ayuda` · `?`           | Muestra la lista de comandos y filtros.                           |
-| `filtro` · `filtros` · `filters` | Lista los filtros disponibles y el nº de opciones de cada uno.   |
-| `options <filtro>` · `opciones`  | Lista las opciones del filtro (carga asíncrona).                  |
-| `<filtro> <valor>`               | Aplica un filtro (alias español o inglés según el filtro).        |
-| `resumen` · `summary` · `estado` | Muestra los filtros aplicados actualmente.                        |
-| `quitar <filtro>` · `remove`     | Elimina el filtro indicado.                                       |
-| `clear` · `reset-filtros`        | Quita TODOS los filtros.                                          |
-| `limpiar` · `cls`                | Limpia la pantalla (no afecta a los filtros).                     |
-| `<texto>` · `buscar <texto>`     | Búsqueda libre (multi-palabra, insensible a mayúsculas/acentos). |
+- **IA:** MiniMax M3 por su capacidad agéntica (function calling) y buena relación capacidad/precio para orquestar acciones sobre la Pokédex.
+- **Testing:** Unit tests con Vitest + Testing Library sobre fixtures reales de PokeAPI. Tests E2E con Playwright para navegación, filtros bidireccionales y viewport responsive.
 
-### Filtros
+---
 
-| Alias (ES)        | Alias (EN)  | Notas                                             |
-| ----------------- | ----------- | ------------------------------------------------- |
-| `tipo1`, `t1`     | `type1`     | Tipo principal (Fuego, Agua, …)                   |
-| `tipo2`, `t2`     | `type2`     | Tipo secundario                                   |
-| `generación`,`gen`| `generation`| `generation-i` … `generation-ix`                  |
-| `color`           | `color`     | rojo, azul, …                                     |
-| `hábitat`         | `habitat`   | acepta `bosque` o `forest`                        |
-| `habilidad`       | `ability`   | nombre en inglés (`overgrow`, `blaze`, …)         |
-| `altura`          | `height`    | buckets `xs`/`s`/… o rango libre `min-max`        |
-| `peso`            | `weight`    | idem altura                                       |
-| `búsqueda`        | `search`    | texto libre multi-palabra                         |
+## Uso de IA y stack de desarrollo
 
-### Ejemplos
+### Planificación
 
-```text
-> help
-> tipo1 fuego
-> habitat forest
-> altura 0-1
-> Charman Pika            (búsqueda multi-palabra)
-> options generation
-> quitar tipo1
-> resumen
-> clear
+1. **Borrador inicial** lanzado a la IA con la instrucción de generar planes y fases.
+2. **Revisión y pulido manual** de los planes resultantes.
+3. Cada fase se ejecutó con el **loop de ingeniería**:
+
+```
+Fase del plan → Diseño de tests → Revisión humana → Implementación → Ejecutar tests
+                                                                          ↓
+                                                              ¿Pasan? ──→ Revisión humana + test en navegador → Cierre
+                                                                  │
+                                                              ¿No pasan? → Corrección de código → Loop
 ```
 
-Si un comando o valor no encaja, la consola sugiere `help` o
-`options <filtro>` automáticamente. El historial de comandos se
-recorre con las flechas arriba/abajo.
+### Modelos utilizados
 
-## Testing
+| Modelo | Rol |
+|---|---|
+| **DeepSeek V4 Pro** | Planificación de arquitectura, detección de bugs persistentes, resolución de issues específicas de Next.js |
+| **MiniMax M3** | Ejecución de planes, generación de código, function calling del agente IA |
 
-El proyecto usa **Vitest** para tests unitarios y **Playwright** para tests end-to-end.
+### Herramientas
+
+- **[OpenCode Desktop](https://opencode.ai)** — Spec-driven development con agents autónomos
+- **Agent Skills** — Buenas prácticas para Next.js, React y TypeScript inyectadas como reglas de comportamiento
+- **Visual Studio Code** — Supervisión y revisión humana del código generado
+
+---
+
+## Comandos disponibles
 
 ```bash
-# Tests unitarios (jsdom + Testing Library)
-npm run test           # modo watch
-npm run test:run       # una sola ejecución
-
-# Tests end-to-end (Playwright levanta el servidor dev automáticamente)
-npm run test:e2e
-npm run test:e2e:ui    # inspector interactivo
+npm run dev          # Servidor de desarrollo
+npm run build        # Build de producción
+npm start            # Servir build de producción
+npm run lint         # ESLint
+npm run test:run     # Tests unitarios (Vitest)
+npm run test:e2e     # Tests end-to-end (Playwright)
+npx tsc --noEmit     # Comprobación de tipos
 ```
 
-- Tests unitarios en `__tests__/`.
-- Tests e2e en `e2e/`.
+---
+
+## Terminal de comandos
+
+La consola integrada en la Pokédex acepta comandos para filtrar y buscar. Escribe `help` para ver todos los comandos disponibles.
+
+| Comando | Descripción |
+|---|---|
+| `help` / `ayuda` / `?` | Lista de comandos |
+| `tipo1 fuego` / `t1 fuego` | Filtrar por tipo principal |
+| `tipo2 veneno` | Filtrar por tipo secundario |
+| `generación i` / `gen i` | Filtrar por generación |
+| `color azul` | Filtrar por color |
+| `hábitat bosque` | Filtrar por hábitat |
+| `habilidad overgrow` | Filtrar por habilidad |
+| `altura 0-1` | Filtrar por rango de altura |
+| `peso 0-10` | Filtrar por rango de peso |
+| `Pika Char` | Búsqueda libre multi-palabra |
+| `resumen` / `estado` | Ver filtros aplicados |
+| `quitar tipo1` | Eliminar filtro |
+| `clear` / `reset-filtros` | Quitar todos los filtros |
+| `limpiar` / `cls` | Limpiar pantalla |
+
+El historial de comandos se recorre con flechas **arriba/abajo**.
+
+---
 
 ## Estructura del proyecto
 
 ```text
-.
-├── src/
-│   ├── app/              # App Router de Next.js
-│   │   ├── layout.tsx
-│   │   ├── page.tsx
-│   │   ├── globals.css
-│   │   ├── not-found.tsx
-│   │   ├── pokedex/page.tsx
-│   │   └── pokemon/[name]/page.tsx
-│   ├── components/   # Componentes React reutilizables
-│   ├── hooks/        # Hooks personalizados
-│   ├── lib/          # Lógica, constantes y tipos
-│   │   ├── constants/
-│   │   └── types/
-├── public/           # Assets estáticos (favicon, fuentes, hábitats, imágenes)
-├── __tests__/        # Tests unitarios (Vitest)
-├── e2e/              # Tests end-to-end (Playwright)
-├── doc/              # Documentación de referencia (PokeAPI). No se commitea.
-├── plan/             # Planes de desarrollo por fases
-└── skills-lock.json  # Versiones pineadas de los agent skills
+src/
+├── app/                  # App Router (Next.js)
+│   ├── api/pokeapi/      # Proxy GraphQL
+│   ├── pokedex/          # Ruta /pokedex
+│   └── pokemon/[name]/   # Ruta /pokemon/<name>
+├── components/
+│   ├── filters/          # Consola, dropdowns, buscador
+│   ├── home/             # Pantalla de inicio, música
+│   ├── pokedex/          # Carcasa, slots, overlay, lista
+│   └── ui/               # Componentes compartidos
+├── hooks/                # useFilters, useAppShell, useViewportLayout
+├── lib/
+│   ├── constants/        # Colores, tipos, generaciones
+│   ├── filters/          # Serialización URL, comandos de consola
+│   ├── graphql/          # Cliente GraphQL, queries
+│   └── pokemon/          # API cacheada, estrategia de caché
+public/                   # SVGs, hábitats, fuentes, assets
+__tests__/                # Tests unitarios (Vitest)
+e2e/                      # Tests end-to-end (Playwright)
+plan/                     # Planes de desarrollo por fases
 ```
-
-> `src/lib/constants/` es la **única fuente de verdad** para colores por tipo/generación y constantes compartidas.
-
-## Rutas
-
-| Ruta | Descripción |
-| ---- | ----------- |
-| `/` | Página de inicio. |
-| `/pokedex` | Pokédex con lista y filtros (filtros vía `searchParams`). |
-| `/pokemon/[name]` | Ficha de un pokemon (nombre amigable, no id). |
-| `*` | Página 404 personalizada. |
-
-## Pantalla de inicio — controles
-
-La pantalla de inicio (`/`) navega a `/pokedex` desde varios puntos
-de entrada, todos centralizados en
-`src/components/home/HomeNavigationContext.tsx` para evitar dobles
-navegaciones y mostrar el overlay de carga si la transición tarda.
-
-| Acción | Resultado |
-| ------ | --------- |
-| **Enter** o **Space** | Navega a `/pokedex`. |
-| Cualquier **letra A–Z** | Navega a `/pokedex` (estilo arcade del borrador). |
-| **Click** en una zona neutra del fondo (logo, ash, slider, pokedex cerrada) | Navega a `/pokedex`. |
-| **Click** en el botón **PRESS START** | Navega a `/pokedex` (es un `<Link>` de Next.js con prefetch). |
-| **Click** en el botón de sonido | Solo activa/desactiva la música; **no** navega. |
-| Teclas `Tab`, `Shift`, `Ctrl`, `F1`, números… | **No** navegan. |
-
-Notas:
-
-- El estado "música activa" lo expone `SoundMusicProvider`
-  (`src/components/home/SoundMusicContext.tsx`) para que el Plan 04
-  (transiciones a `/pokedex`) pueda hacer fade-out antes de cambiar
-  de página.
-- Mientras la navegación no haya completado y tarde más de lo
-  habitual, se muestra el gif `public/loading-pikachu.gif` con el
-  texto "CARGANDO…" en `Press Start 2P` (gestionado por
-  `src/components/home/HomeLoadingOverlay.tsx`).
