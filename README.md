@@ -36,7 +36,7 @@
 | **Filtros dinámicos** | Por tipo, generación, color, hábitat, habilidad, altura y peso |
 | **Buscador** | Búsqueda libre multi-palabra, insensible a acentos |
 | **Terminal de comandos** | Simulador de consola integrado — escribe `help` para ver comandos |
-| **Profesor Oak (IA)** | Agente conversacional que maneja la Pokédex por voz/texto |
+| **Profesor Oak (IA)** | Agente conversacional que maneja la Pokédex por chat |
 | **Diseño responsive** | Carcasa vertical en móvil, horizontal en escritorio |
 
 ---
@@ -95,6 +95,10 @@ Copia `.env.example` a `.env.local`:
   - Visor 3D con rotación y fondo contextual
   - Agente de IA capaz de mostrar resultados en la Pokédex
 - Diseño 100% responsive con carcasa adaptativa (vertical/horizontal).
+- **Gráficos en SVG.** Todos los elementos visuales (logo, carcasas de la Pokédex, Ash, Profesor Oak) se diseñaron con Adobe Illustrator o se obtuvieron de sitios de fanart y se convirtieron a SVG. Usar SVG en lugar de imágenes rasterizadas permite:
+  - Escalado sin pérdida de resolución a cualquier tamaño de pantalla.
+  - Menor peso de archivo y carga más rápida.
+  - Inyección de HTML dentro del SVG mediante `<foreignObject>`, que es el sistema sobre el que se montan todos los slots interactivos de la Pokédex (lista, carrusel, consola, stats, etc.).
 
 ---
 
@@ -210,5 +214,5 @@ src/
 public/                   # SVGs, hábitats, fuentes, assets
 __tests__/                # Tests unitarios (Vitest)
 e2e/                      # Tests end-to-end (Playwright)
-plan/                     # Planes de desarrollo por fases
+plan/                     # Planes de desarrollo por fases (incluidos a propósito como documentación del proceso)
 ```
