@@ -2,11 +2,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { SoundToggle } from "@/src/components/home/SoundToggle";
-import { SoundMusicProvider } from "@/src/components/home/SoundMusicContext";
 
-function renderWithProvider(ui: React.ReactNode) {
-  return render(<SoundMusicProvider>{ui}</SoundMusicProvider>);
-}
+vi.mock("@/src/components/app/ViewContext", () => ({
+  useAppShell: vi.fn(() => ({ view: "home" })),
+}));
 
 /**
  * Plan 03.4 — TDD del botón de sonido de la pantalla de inicio.
@@ -78,7 +77,7 @@ describe("SoundToggle (Plan 03.4)", () => {
   });
 
   it("renderiza un botón accesible con aria-label descriptivo y es focusable", () => {
-    renderWithProvider(<SoundToggle />);
+    render(<SoundToggle />);
     const button = screen.getByRole("button", { name: /sonido/i });
     expect(button).toBeInTheDocument();
     expect(button.tagName).toBe("BUTTON");
@@ -88,7 +87,7 @@ describe("SoundToggle (Plan 03.4)", () => {
   });
 
   it("empieza con sonido desactivado (icono VolumeX) y NO reproduce audio", async () => {
-    renderWithProvider(<SoundToggle />);
+    render(<SoundToggle />);
     // Estado inicial: aria-label menciona "Activar"
     const button = screen.getByRole("button", { name: /activar sonido/i });
     expect(button).toBeInTheDocument();
@@ -100,7 +99,7 @@ describe("SoundToggle (Plan 03.4)", () => {
 
   it("al pulsar activa el audio (play), cambia el icono y persiste en localStorage", async () => {
     const user = userEvent.setup();
-    renderWithProvider(<SoundToggle />);
+    render(<SoundToggle />);
 
     const button = screen.getByRole("button", { name: /activar sonido/i });
     await user.click(button);
@@ -122,7 +121,7 @@ describe("SoundToggle (Plan 03.4)", () => {
 
   it("al volver a pulsar pausa el audio, cambia el icono y persiste el nuevo estado", async () => {
     const user = userEvent.setup();
-    renderWithProvider(<SoundToggle />);
+    render(<SoundToggle />);
 
     const activate = screen.getByRole("button", { name: /activar sonido/i });
     await user.click(activate);
@@ -141,7 +140,7 @@ describe("SoundToggle (Plan 03.4)", () => {
 
   it("lee la preferencia persistida en localStorage al montar y refleja el estado en el icono", () => {
     window.localStorage.setItem(STORAGE_KEY, "true");
-    renderWithProvider(<SoundToggle />);
+    render(<SoundToggle />);
 
     // Debe empezar con el botón "silenciar" (icono Volume2)
     expect(
@@ -156,7 +155,7 @@ describe("SoundToggle (Plan 03.4)", () => {
 
   it("lee la preferencia persistida y arranca en silencio si era false", () => {
     window.localStorage.setItem(STORAGE_KEY, "false");
-    renderWithProvider(<SoundToggle />);
+    render(<SoundToggle />);
 
     expect(
       screen.getByRole("button", { name: /activar sonido/i }),
@@ -167,7 +166,7 @@ describe("SoundToggle (Plan 03.4)", () => {
 
   it("el HTMLAudioElement creado usa loop=true y el src de musica.mp3", async () => {
     const user = userEvent.setup();
-    renderWithProvider(<SoundToggle />);
+    render(<SoundToggle />);
 
     await user.click(screen.getByRole("button", { name: /activar sonido/i }));
 
@@ -200,7 +199,7 @@ describe("SoundToggle (Plan 03.4)", () => {
     (globalThis as unknown as { Audio: unknown }).Audio = FakeAudioFailing;
 
     try {
-      renderWithProvider(<SoundToggle />);
+      render(<SoundToggle />);
       await user.click(screen.getByRole("button", { name: /activar sonido/i }));
 
       // La promesa rechazada se procesa en el siguiente microtask.
@@ -222,7 +221,7 @@ describe("SoundToggle (Plan 03.4)", () => {
 
   it("pausa el audio al desmontar si estaba reproduciendo", async () => {
     const user = userEvent.setup();
-    const { unmount } = renderWithProvider(<SoundToggle />);
+    const { unmount } = render(<SoundToggle />);
 
     await user.click(screen.getByRole("button", { name: /activar sonido/i }));
     const audio = audioMock.instances[0]!;

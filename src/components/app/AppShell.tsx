@@ -5,8 +5,6 @@ import {
   AppShellProvider,
   useAppShell,
 } from "@/src/components/app/ViewContext";
-import { SoundMusicProvider } from "@/src/components/home/SoundMusicContext";
-import { MusicViewBinder } from "@/src/components/app/musicViewBinder";
 import { PokedexOverlay } from "@/src/components/app/PokedexOverlay";
 import { AnimatedBackground } from "@/src/components/home/AnimatedBackground";
 
@@ -14,15 +12,13 @@ import { AnimatedBackground } from "@/src/components/home/AnimatedBackground";
  * Shell raíz de la SPA (montado en la ruta `/`).
  *
  * Responsabilidades:
- *   1. Montar los providers globales (música + estado de shell).
+ *   1. Montar el provider global de shell.
  *   2. Renderizar SIEMPRE la Pokédex pre-renderizada (offscreen
  *      cuando `view="home"`, al centro cuando `view="pokedex"`).
  *      El cambio de vista es una transición puramente CSS, sin
  *      remontaje del árbol.
  *   3. Aplicar `data-view="home" | "pokedex"` al contenedor raíz
  *      para que `globals.css` ejecute la coreografía correcta.
- *   4. Sincronizar el volumen de la música con la vista activa
- *      (`MusicViewBinder`).
  *
  * La Pokédex la monta `AppShell` directamente (no la aporta el
  * caller) porque debe estar en el árbol desde el primer render
@@ -48,16 +44,13 @@ export function AppShell({
   initialSearch,
 }: AppShellProps) {
   return (
-    <SoundMusicProvider>
-      <AppShellProvider
-        initialView="home"
-        initialPathname={initialPathname}
-        initialSearch={initialSearch}
-      >
-        <MusicViewBinder />
-        <AppShellInner>{children}</AppShellInner>
-      </AppShellProvider>
-    </SoundMusicProvider>
+    <AppShellProvider
+      initialView="home"
+      initialPathname={initialPathname}
+      initialSearch={initialSearch}
+    >
+      <AppShellInner>{children}</AppShellInner>
+    </AppShellProvider>
   );
 }
 

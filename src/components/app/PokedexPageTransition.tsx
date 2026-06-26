@@ -1,12 +1,10 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
-import { SoundMusicProvider } from "@/src/components/home/SoundMusicContext";
 import {
   AppShellProvider,
   useAppShell,
 } from "@/src/components/app/ViewContext";
-import { MusicViewBinder } from "@/src/components/app/musicViewBinder";
 import { PokedexOverlay } from "@/src/components/app/PokedexOverlay";
 import { HomeViewNavListeners } from "@/src/components/home/HomeViewNavListeners";
 import { AnimatedBackground } from "@/src/components/home/AnimatedBackground";
@@ -58,16 +56,13 @@ export function PokedexPageTransition({
   initialSearch,
 }: PokedexPageTransitionProps) {
   return (
-    <SoundMusicProvider>
-      <AppShellProvider
-        initialView="home"
-        initialPathname={initialPathname}
-        initialSearch={initialSearch}
-      >
-        <MusicViewBinder />
-        <PokedexPageTransitionInner>{children}</PokedexPageTransitionInner>
-      </AppShellProvider>
-    </SoundMusicProvider>
+    <AppShellProvider
+      initialView="home"
+      initialPathname={initialPathname}
+      initialSearch={initialSearch}
+    >
+      <PokedexPageTransitionInner>{children}</PokedexPageTransitionInner>
+    </AppShellProvider>
   );
 }
 

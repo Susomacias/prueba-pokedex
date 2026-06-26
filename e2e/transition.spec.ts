@@ -34,7 +34,7 @@
  *   - Tests del flujo de pokemon seleccionado (cubierto por unit tests
  *     del slot CARRUSEL_IMAGENES_DESCRIPCION y de `useAppShell`).
  *   - Animaciones CSS concretas (intencionalmente evitadas).
- *   - Música y volumen (cubierto por `musicViewBinder`).
+ *   - Música y volumen (cubierto por unit tests de SoundToggle).
  */
 
 test.describe("Transición Inicio ↔ Pokédex (smoke)", () => {

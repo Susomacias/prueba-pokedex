@@ -2,36 +2,23 @@
 
 import { Volume2, VolumeX } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useSoundMusic } from "@/src/components/home/SoundMusicContext";
-import { registerFadeableAudio } from "@/src/components/app/musicViewBinder";
+import { useAppShell } from "@/src/components/app/ViewContext";
 
 /**
- * Plan 03.4 — Botón de toggle para la música de la pantalla de inicio.
+ * Botón de toggle para la música de la pantalla de inicio.
  *
  * Responsabilidades:
  *   - Renderiza un botón accesible (icono `Volume2` / `VolumeX`) que
  *     reproduce/pausa `public/pagina_inicio/musica.mp3` en loop.
- *   - Persiste la preferencia del usuario en `localStorage` con clave
- *     versionada (`pokedex:sound-enabled:v1`) para no romper el
- *     contrato si en el futuro cambia el formato.
- *   - Lee `localStorage` en el primer render del cliente para
- *     recordar la preferencia (no auto-reproduce sin gesto del usuario
- *     para cumplir las políticas de autoplay de los navegadores).
- *   - Expone el estado al `SoundMusicProvider` para que el Plan 04
- *     pueda hacer `fadeOut` antes de la transición a `/pokedex`.
- *   - Limpia el `HTMLAudioElement` y pausa al desmontar para no dejar
- *     música sonando si el usuario navega a otra página.
- *
- * Notas de accesibilidad:
- *   - `aria-label` cambia según el estado para que los lectores de
- *     pantalla anuncien la acción que ocurrirá al pulsar.
- *   - Iconos marcados con `aria-hidden` (el texto accesible vive en
- *     el `aria-label`).
- *   - Tamaño mínimo del target: 40×40 px en mobile y 48×48 px en `sm+`.
+ *   - Persiste la preferencia en `localStorage` con clave versionada.
+ *   - Crossfade del volumen al cambiar de vista: view="pokedex" → 0,
+ *     view="home" → 0.6, en 600ms con requestAnimationFrame.
  */
 
 const STORAGE_KEY = "pokedex:sound-enabled:v1";
 const AUDIO_SRC = "/pagina_inicio/musica.mp3";
+const TARGET_VOLUME = 0.6;
+const FADE_MS = 600;
 
 function readStoredPreference(): boolean {
   if (typeof window === "undefined") return false;
@@ -42,33 +29,48 @@ function readStoredPreference(): boolean {
   }
 }
 
+function fadeTo(
+  audio: HTMLAudioElement | null,
+  target: number,
+  durationMs: number,
+): void {
+  if (!audio) return;
+  const startVol = audio.volume;
+  const startTime = performance.now();
+
+  function step() {
+    const elapsed = performance.now() - startTime;
+    const t = Math.min(1, Math.max(0, elapsed / durationMs));
+    audio!.volume = startVol + (target - startVol) * t;
+    if (t < 1) {
+      requestAnimationFrame(step);
+    }
+  }
+  requestAnimationFrame(step);
+}
+
 export function SoundToggle() {
-  const { setIsPlaying } = useSoundMusic();
-  // Inicialización perezosa: evitamos leer `localStorage` en cada
-  // render y obtenemos el valor correcto en el primer render del
-  // cliente.
-  const [enabled, setEnabled] = useState<boolean>(readStoredPreference);
+  const { view } = useAppShell();
+  const [enabled, setEnabled] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const firstRenderRef = useRef(true);
 
-  // Sincroniza el flag del provider con el estado local del botón.
-  useEffect(() => {
-    setIsPlaying(enabled);
-  }, [enabled, setIsPlaying]);
-
-  // Garantiza que existe un `HTMLAudioElement` solo cuando hace falta
-  // (no creamos uno en SSR ni en el render inicial con sonido off).
   const ensureAudio = useCallback((): HTMLAudioElement => {
     if (audioRef.current) return audioRef.current;
     const audio = new Audio(AUDIO_SRC);
     audio.loop = true;
     audio.preload = "auto";
-    audio.volume = 0.6;
+    audio.volume = TARGET_VOLUME;
     audioRef.current = audio;
-    registerFadeableAudio(audio);
     return audio;
   }, []);
 
-  // Limpia y pausa al desmontar.
+  useEffect(() => {
+    setEnabled(readStoredPreference());
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     return () => {
       const audio = audioRef.current;
@@ -76,10 +78,23 @@ export function SoundToggle() {
         audio.pause();
         audio.src = "";
         audioRef.current = null;
-        registerFadeableAudio(null);
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (firstRenderRef.current) {
+      firstRenderRef.current = false;
+      return;
+    }
+    const audio = audioRef.current;
+    if (!audio || !enabled) return;
+    if (view === "pokedex") {
+      fadeTo(audio, 0, FADE_MS);
+    } else if (view === "home") {
+      fadeTo(audio, TARGET_VOLUME, FADE_MS);
+    }
+  }, [view, enabled]);
 
   const toggle = useCallback(() => {
     const next = !enabled;
@@ -87,16 +102,13 @@ export function SoundToggle() {
     try {
       window.localStorage.setItem(STORAGE_KEY, String(next));
     } catch {
-      // Almacenamiento deshabilitado (modo privado, sin cuota, …):
-      // la preferencia solo vivirá en memoria de la pestaña actual.
+      /* noop */
     }
     if (next) {
       const audio = ensureAudio();
       const result = audio.play();
       if (result && typeof result.catch === "function") {
         result.catch(() => {
-          // El navegador ha bloqueado el autoplay. Revertimos la
-          // preferencia persistida para no mentir al usuario.
           setEnabled(false);
           try {
             window.localStorage.setItem(STORAGE_KEY, "false");
@@ -109,6 +121,16 @@ export function SoundToggle() {
       audioRef.current?.pause();
     }
   }, [enabled, ensureAudio]);
+
+  if (!mounted) {
+    return (
+      <div
+        data-testid="home-sound-toggle"
+        className="h-10 w-10 sm:h-12 sm:w-12 shrink-0"
+        aria-hidden="true"
+      />
+    );
+  }
 
   return (
     <button
