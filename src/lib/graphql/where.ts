@@ -17,28 +17,12 @@
 import type {
   FilterBucket,
   Generation,
-  Habitat,
   PokemonFilters,
   PokemonType,
 } from "@/src/lib/types/pokemon";
+import { HABITAT_REVERSE_ALIAS } from "@/src/lib/constants/habitats";
 
-/**
- * Mapeo explícito de claves internas en español → identificadores en
- * inglés que usa la PokeAPI. Construido manualmente para garantizar
- * que cada `Habitat` del catálogo tiene exactamente una entrada.
- */
-export const HABITAT_REVERSE_ALIAS: Record<Habitat, string> = {
-  caverna: "cave",
-  bosque: "forest",
-  pradera: "grassland",
-  campo: "field",
-  montana: "mountain",
-  agua_dulce: "freshwater",
-  agua_salada: "sea",
-  ciudad: "urban",
-  raro: "rare",
-  generico: "rare",
-};
+export { HABITAT_REVERSE_ALIAS };
 
 /** Operador por campo para `where` de la PokeAPI. */
 export type WhereOperator = string | number | boolean | null;

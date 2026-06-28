@@ -11,7 +11,11 @@ import {
   POKEMON_TYPE_COLORS,
   POKEMON_TYPE_LABELS,
 } from "@/src/lib/constants/pokemonTypes";
-import { POKEMON_GENERATION_COLORS } from "@/src/lib/constants/pokemonGenerations";
+import {
+  POKEMON_GENERATION_COLORS,
+  GENERATION_LABELS_SHORT,
+} from "@/src/lib/constants/pokemonGenerations";
+import { HABITAT_LABELS_LOWERCASE } from "@/src/lib/constants/habitats";
 import { BASE_COLORS } from "@/src/lib/constants/colors";
 
 /**
@@ -39,31 +43,6 @@ import { BASE_COLORS } from "@/src/lib/constants/colors";
  *
  * Sin emojis: el proyecto los prohíbe en todo el código (AGENTS.md).
  */
-
-const HABITAT_LABELS: Record<Habitat, string> = {
-  caverna: "caverna",
-  bosque: "bosque",
-  pradera: "pradera",
-  campo: "campo",
-  montana: "montaña",
-  agua_dulce: "agua dulce",
-  agua_salada: "agua salada",
-  ciudad: "ciudad",
-  raro: "raro",
-  generico: "genérico",
-};
-
-const GENERATION_LABELS: Record<Generation, string> = {
-  "generation-i": "gen I",
-  "generation-ii": "gen II",
-  "generation-iii": "gen III",
-  "generation-iv": "gen IV",
-  "generation-v": "gen V",
-  "generation-vi": "gen VI",
-  "generation-vii": "gen VII",
-  "generation-viii": "gen VIII",
-  "generation-ix": "gen IX",
-};
 
 export interface PokemonListCardProps {
   item: PokemonListItem;
@@ -158,7 +137,7 @@ function HabitatChip({ habitat }: HabitatChipProps) {
   return (
     <Chip
       testIdSuffix="habitat"
-      label={HABITAT_LABELS[habitat]}
+      label={HABITAT_LABELS_LOWERCASE[habitat]}
       bg={BASE_COLORS.cyanButton.dark}
       border={BASE_COLORS.cyanButton.light}
       text="#FFFFFF"
@@ -176,7 +155,7 @@ function GenerationChip({ generation }: GenerationChipProps) {
   return (
     <Chip
       testIdSuffix="generation"
-      label={GENERATION_LABELS[generation]}
+      label={GENERATION_LABELS_SHORT[generation]}
       bg={palette.bg}
       border={palette.border}
       text={palette.text}

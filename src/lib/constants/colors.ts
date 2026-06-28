@@ -2,13 +2,6 @@
  * Paleta base del proyecto.
  *
  * Cualquier nuevo color compartido debe añadirse aquí, no en componentes.
- *
- * Referencia visual (borrador del plan 00):
- * - Granate: `#910D03` / `#FF6363`
- * - Amarillo-anaranjado: `#FF9203` / `#FFE590`
- * - Verde: `#008C15` / `#75D984`
- * - Cyan oscuro (botones): `#126CA3` / `#46A2DA`
- * - Degradado body: `#234476 → #0c1c3e`
  */
 export const BASE_COLORS = {
   garnet: {
@@ -34,3 +27,17 @@ export const BASE_COLORS = {
 } as const;
 
 export type BaseColors = typeof BASE_COLORS;
+
+/** Etiquetas en español para los colores de Pokémon (filtro "color"). */
+export const POKEMON_COLOR_LABELS: Record<string, string> = {
+  black: "Negro",
+  blue: "Azul",
+  brown: "Marrón",
+  gray: "Gris",
+  green: "Verde",
+  pink: "Rosa",
+  purple: "Púrpura",
+  red: "Rojo",
+  white: "Blanco",
+  yellow: "Amarillo",
+};

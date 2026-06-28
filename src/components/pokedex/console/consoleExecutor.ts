@@ -1,4 +1,4 @@
-import { POKEMON_TYPE_LABELS } from "@/src/lib/constants/pokemonTypes";
+import { POKEMON_TYPE_LABELS, TYPE_LABEL_TO_VALUE, normalizeFilterString } from "@/src/lib/constants/pokemonTypes";
 import { HABITAT_REVERSE_ALIAS } from "@/src/lib/graphql/where";
 import type { FilterBucket, FilterOption } from "@/src/lib/types/pokemon";
 import {
@@ -31,27 +31,7 @@ export type ResolveResult =
   | { ok: false; error: string };
 
 /** Normaliza un alias para comparar (minúsculas, sin acentos). */
-function norm(raw: string): string {
-  return raw
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
-}
-
-/* ------------------------------------------------------------------------- *
- * Mapas de resolución síncrona (no necesitan opciones remotas)
- * ------------------------------------------------------------------------- */
-
-/** Reverse map de `POKEMON_TYPE_LABELS`: "Fuego" → "fire", "fire" → "fire". */
-const TYPE_VALUE_BY_LABEL: ReadonlyMap<string, string> = (() => {
-  const map = new Map<string, string>();
-  for (const [value, label] of Object.entries(POKEMON_TYPE_LABELS)) {
-    map.set(norm(value), value);
-    map.set(norm(label), value);
-  }
-  return map;
-})();
+const norm = normalizeFilterString;
 
 /**
  * Alias en español → habitat interno. El usuario puede escribir
@@ -59,11 +39,9 @@ const TYPE_VALUE_BY_LABEL: ReadonlyMap<string, string> = (() => {
  */
 const HABITAT_ALIAS_TO_INTERNAL: ReadonlyMap<string, string> = (() => {
   const map = new Map<string, string>();
-  // Claves internas (ya en español) → sí mismas.
   for (const internal of Object.keys(HABITAT_REVERSE_ALIAS)) {
     map.set(norm(internal), internal);
   }
-  // Alias en inglés (valores de PokeAPI) → clave interna.
   for (const [internal, english] of Object.entries(HABITAT_REVERSE_ALIAS)) {
     map.set(norm(english), internal);
   }
@@ -107,12 +85,12 @@ export function resolveFilterValue(
   }
 
   if (key === "type1" || key === "type2") {
-    const resolved = TYPE_VALUE_BY_LABEL.get(norm(raw));
+    const resolved = TYPE_LABEL_TO_VALUE.get(norm(raw));
     if (resolved) {
       return {
         ok: true,
         value: resolved,
-        label: POKEMON_TYPE_LABELS[resolved as keyof typeof POKEMON_TYPE_LABELS] ?? resolved,
+        label: POKEMON_TYPE_LABELS[resolved] ?? resolved,
       };
     }
     return {

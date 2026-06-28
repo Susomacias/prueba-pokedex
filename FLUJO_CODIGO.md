@@ -163,7 +163,7 @@ El usuario escribe `tipo1 fuego` en la consola retro y pulsa Enter.
 | 1 | `src/components/pokedex/console/FilterConsole.tsx` (3) | `onSubmit()` — muestra `> tipo1 fuego` en la consola. `execute("tipo1 fuego")`. |
 | 2 | `src/components/pokedex/console/consoleParser.ts` (2) | `parseCommand("tipo1 fuego")` — tokeniza: `head="tipo1"`, `tail="fuego"`. `resolveFilterKey("tipo1")` → `"type1"` (vía tabla de alias). Retorna `{ kind: "apply", filterKey: "type1", rawValue: "fuego" }`. |
 | 3 | `src/components/pokedex/console/FilterConsole.tsx` (3) | `execute()` — `filterKeyToOptionKey("type1")` → `"type"`. Obtiene `options = registry["type"]` (opciones reales de PokeAPI cacheadas). `resolveFilterValue("type1", "fuego", options)`. |
-| 4 | `src/components/pokedex/console/consoleExecutor.ts` (2) | `resolveFilterValue("type1", "fuego", types)` — normaliza "fuego". Busca en `TYPE_VALUE_BY_LABEL` → `"fire"`. Retorna `{ ok: true, value: "fire", label: "Fuego" }`. |
+| 4 | `src/components/pokedex/console/consoleExecutor.ts` (2) | `resolveFilterValue("type1", "fuego", types)` — normaliza "fuego". Busca en `TYPE_LABEL_TO_VALUE` (importado de `pokemonTypes.ts`) → `"fire"`. Retorna `{ ok: true, value: "fire", label: "Fuego" }`. |
 | 5 | `src/components/pokedex/console/FilterConsole.tsx` (3) | `execute()` — `setFilter("type1", "fire")`. Muestra `✓ Tipo 1 = Fuego` en consola. |
 | 6 | `src/hooks/useFilters.ts` (8) | `setFilter("type1", "fire")` → `writeFilters(applyFilterChange(filters, "type1", "fire"))`. |
 | 7 | `src/lib/filters/serialization.ts` (5) | `applyFilterChange({}, "type1", "fire")` → `{ type1: "fire" }`. `filtersToSearchParams({ type1: "fire" })` → `"type1=Fuego"` (usa `format()` de la definición del filtro: `POKEMON_TYPE_LABELS["fire"]`). |
@@ -656,10 +656,10 @@ Cada archivo del proyecto con los puntos donde interviene en los flujos descrito
 
 | Archivo | Puntos |
 |---------|--------|
-| `src/lib/constants/pokemonTypes.ts` | [6](#6-comando-en-la-consola-tipo1-fuego), [14](#14-recargar-la-página-en-pokedeftipo1fuego) |
-| `src/lib/constants/pokemonGenerations.ts` | [3](#3-abrir-deep-link-pokemonpikachu) |
-| `src/lib/constants/habitats.ts` | [10](#10-activar-modo-3d) |
-| `src/lib/constants/colors.ts` | (paleta base — referenciada por tipos y generaciones) |
+| `src/lib/constants/pokemonTypes.ts` | [6](#6-comando-en-la-consola-tipo1-fuego) (reverse lookup de tipos vía `TYPE_LABEL_TO_VALUE`), [14](#14-recargar-la-página-en-pokedeftipo1fuego) (parseo de etiquetas desde URL) |
+| `src/lib/constants/pokemonGenerations.ts` | [3](#3-abrir-deep-link-pokemonpikachu) (colores de chips), [4](#4-click-en-una-card-de-la-lista) (labels cortas en cards), [6](#6-comando-en-la-consola-tipo1-fuego) (labels largas en dropdowns) |
+| `src/lib/constants/habitats.ts` | [1](#1-cargar-la-página-de-inicio-) (mapeo de datos EN↔ES), [6](#6-comando-en-la-consola-tipo1-fuego) (where clause), [10](#10-activar-modo-3d) (imágenes de hábitat) |
+| `src/lib/constants/colors.ts` | (paleta base + `POKEMON_COLOR_LABELS` para dropdowns — referenciada por tipos, generaciones y filtros) |
 
 ### `src/lib/chat/tools/`
 
@@ -728,7 +728,7 @@ Cada archivo del proyecto con los puntos donde interviene en los flujos descrito
 | `src/components/pokedex/carcases/slots.ts` | Tipos: `SlotName`, `SlotMap`, `SLOT_NAMES` | — |
 | `src/components/pokedex/slots/types.ts` | `SlotStubProps`, `buildSlotAttrs()`, `SlotDataAttrs` | — |
 | `src/components/pokedex/slots/Button3DSlot.tsx` | Toggle modo 3D | `PokedexPageProvider` |
-| `src/components/pokedex/slots/ChipsSlot.tsx` | Chips de tipo1, tipo2, generación | `CarouselController` |
+| `src/components/pokedex/slots/ChipsSlot.tsx` | Chips de tipo1, tipo2, generación | `CarouselController`, `pokemonTypes.ts`, `pokemonGenerations.ts` |
 | `src/components/pokedex/slots/CarouselDotsSlot.tsx` | Puntos de navegación del carrusel | `CarouselController` |
 | `src/components/pokedex/slots/CarouselSlot.tsx` | Overlay lista sobre carrusel | `useAppShell`, `PokemonList`, `PokemonCarousel` |
 | `src/components/pokedex/slots/CarouselButtonsSlot.tsx` | Botones prev/next del carrusel | `CarouselController` |
@@ -755,7 +755,7 @@ Cada archivo del proyecto con los puntos donde interviene en los flujos descrito
 | Archivo | Responsabilidad | Dependencias clave |
 |---------|----------------|-------------------|
 | `src/components/pokedex/list/PokemonList.tsx` | Scroll infinito con evento `scroll` nativo | `useFilteredPokemonList` |
-| `src/components/pokedex/list/PokemonListCard.tsx` | Tarjeta individual (nombre, chips, sprite) | `POKEMON_TYPE_COLORS`, `POKEMON_GENERATION_COLORS` |
+| `src/components/pokedex/list/PokemonListCard.tsx` | Tarjeta individual (nombre, chips, sprite) | `pokemonTypes.ts`, `pokemonGenerations.ts`, `habitats.ts` |
 
 ### 6.6 Consola de Filtros
 
@@ -763,7 +763,7 @@ Cada archivo del proyecto con los puntos donde interviene en los flujos descrito
 |---------|----------------|-------------------|
 | `src/components/pokedex/console/FilterConsole.tsx` | Terminal REPL con historial y typewriter | `useFilters` |
 | `src/components/pokedex/console/consoleParser.ts` | `parseCommand()` — texto a comando tipado | — |
-| `src/components/pokedex/console/consoleExecutor.ts` | `resolveFilterValue()` — resuelve alias | `fetchFilterOptions` |
+| `src/components/pokedex/console/consoleExecutor.ts` | `resolveFilterValue()` — resuelve alias | `fetchFilterOptions`, `pokemonTypes.ts` (`TYPE_LABEL_TO_VALUE`, `normalizeFilterString`) |
 | `src/components/pokedex/console/welcome.ts` | Mensaje ASCII de bienvenida del Prof. Oak | — |
 
 ### 6.7 Sistema de Filtros
@@ -778,7 +778,7 @@ Cada archivo del proyecto con los puntos donde interviene en los flujos descrito
 | `src/components/filters/useFilteredPokemonList.ts` | Hook: paginación + auto-retry + filtros | `applyFiltersToList` |
 | `src/components/filters/useFilterOptions.ts` | Carga asíncrona de opciones con caché | `fetchFilterOptions` |
 | `src/components/filters/useFilterAvailability.ts` | Disponibilidad cruzada de filtros | `fetchAllPokemonFilterFields` |
-| `src/lib/filters/types.ts` | Definiciones de filtros (`FILTERS` array) | `POKEMON_TYPE_LABELS` |
+| `src/lib/filters/types.ts` | Definiciones de filtros (`FILTERS` array) | `pokemonTypes.ts` (`POKEMON_TYPE_LABELS`, `TYPE_LABEL_TO_VALUE`, `normalizeFilterString`) |
 | `src/lib/filters/serialization.ts` | `filtersToSearchParams` / `searchParamsToFilters` | `FILTERS` |
 
 ### 6.8 Visor 3D
@@ -828,7 +828,7 @@ Cada archivo del proyecto con los puntos donde interviene en los flujos descrito
 |---------|----------------|-------------------|
 | `src/lib/graphql/client.ts` | `request<T>()` — cliente HTTP GraphQL unificado | `getPokeApiEndpoint` |
 | `src/lib/graphql/types.ts` | Tipos: `GraphQLResponse`, `GraphQLRequestError` | — |
-| `src/lib/graphql/where.ts` | `buildPokemonWhere()` — filtros a Hasura bool_exp | — |
+| `src/lib/graphql/where.ts` | `buildPokemonWhere()` — filtros a Hasura bool_exp | `habitats.ts` (re-exporta `HABITAT_REVERSE_ALIAS`) |
 | `src/lib/graphql/queries/pokemonList.gql.ts` | Query de lista sin filtros | — |
 | `src/lib/graphql/queries/pokemonListFiltered.gql.ts` | Query de lista con filtros + aggregate | — |
 | `src/lib/graphql/queries/pokemonDetail.gql.ts` | Query de detalle completo (88 líneas) | — |
@@ -837,10 +837,10 @@ Cada archivo del proyecto con los puntos donde interviene en los flujos descrito
 | `src/lib/pokemon/cacheStrategy.ts` | Política de caché: revalidate + tags | — |
 | `src/lib/pokemon/fetchList.ts` | Fetch de lista paginada sin filtros | `POKEMON_LIST_QUERY` |
 | `src/lib/pokemon/fetchListFiltered.ts` | Fetch de lista con filtros + búsqueda expandida | `POKEMON_LIST_FILTERED_QUERY`, `where.ts` |
-| `src/lib/pokemon/fetchDetail.ts` | Fetch de detalle + REST fallback para cry | `POKEMON_DETAIL_QUERY` |
-| `src/lib/pokemon/fetchFilterOptions.ts` | Fetch de opciones para dropdowns | `FILTER_OPTIONS_QUERY` |
-| `src/lib/pokemon/fetchFilterAvailability.ts` | Fetch de todos los Pokémon (solo campos de filtro) | `ALL_POKEMON_FILTER_FIELDS_QUERY` |
-| `src/lib/pokemon/mapRawList.ts` | Normalización: raw JSON a `PokemonListItem` | — |
+| `src/lib/pokemon/fetchDetail.ts` | Fetch de detalle + REST fallback para cry | `POKEMON_DETAIL_QUERY`, `habitats.ts` (`asHabitat`) |
+| `src/lib/pokemon/fetchFilterOptions.ts` | Fetch de opciones para dropdowns | `FILTER_OPTIONS_QUERY`, `habitats.ts`, `pokemonGenerations.ts`, `colors.ts` |
+| `src/lib/pokemon/fetchFilterAvailability.ts` | Fetch de todos los Pokémon (solo campos de filtro) | `ALL_POKEMON_FILTER_FIELDS_QUERY`, `habitats.ts` (`HABITAT_REVERSE_ALIAS`) |
+| `src/lib/pokemon/mapRawList.ts` | Normalización: raw JSON a `PokemonListItem` + re-exporta `asHabitat`, `HABITAT_ALIAS` desde constants | `habitats.ts`, `src/lib/types/pokemon` |
 | `src/lib/pokemon/listRaw.ts` | Interfaces TypeScript para raw JSON | — |
 
 ### 6.12 Constantes y Tipos
@@ -848,10 +848,10 @@ Cada archivo del proyecto con los puntos donde interviene en los flujos descrito
 | Archivo | Responsabilidad |
 |---------|----------------|
 | `src/lib/types/pokemon.ts` | Tipos centrales: `PokemonDetail`, `PokemonListItem`, `FilterOption`, `POKEMON_TYPES`, `GENERATIONS`, `HABITATS` |
-| `src/lib/constants/colors.ts` | Paleta base: garnet, yellowOrange, green, cyanButton, bodyGradient |
-| `src/lib/constants/pokemonTypes.ts` | `POKEMON_TYPE_LABELS` (18 tipos en español) + `POKEMON_TYPE_COLORS` |
-| `src/lib/constants/pokemonGenerations.ts` | `POKEMON_GENERATION_COLORS` (I-IX) |
-| `src/lib/constants/habitats.ts` | `HABITAT_IMAGES` (10 hábitats a .webp) |
+| `src/lib/constants/colors.ts` | Paleta base: garnet, yellowOrange, green, cyanButton, bodyGradient + `POKEMON_COLOR_LABELS` (10 colores en español) |
+| `src/lib/constants/pokemonTypes.ts` | `POKEMON_TYPE_LABELS` (18 tipos en español), `POKEMON_TYPE_COLORS`, `TYPE_LABEL_TO_VALUE` (reverse lookup unificado), `normalizeFilterString()` |
+| `src/lib/constants/pokemonGenerations.ts` | `POKEMON_GENERATION_COLORS` (I-IX), `GENERATION_LABELS` (dropdowns), `GEN_ROMAN` (chips), `GENERATION_LABELS_SHORT` (cards) |
+| `src/lib/constants/habitats.ts` | `HABITAT_IMAGES`, `HABITAT_ALIAS` (EN→ES), `HABITAT_REVERSE_ALIAS` (ES→EN), `HABITAT_LABELS` (dropdowns), `HABITAT_LABELS_LOWERCASE` (cards), `asHabitat()` |
 | `src/lib/utils/capitalize.ts` | Utilidad: capitalizar primera letra |
 | `src/lib/utils/search-params.ts` | Utilidad: `searchParams` Promise a query string |
 

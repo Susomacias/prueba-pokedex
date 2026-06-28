@@ -1,9 +1,10 @@
 import { request } from "@/src/lib/graphql/client";
 import { POKEMON_DETAIL_QUERY } from "@/src/lib/graphql/queries/pokemonDetail.gql";
 import {
+  GENERATIONS,
+  POKEMON_TYPES,
   type EvolutionNode,
   type Generation,
-  type Habitat,
   type PokemonAbility,
   type PokemonDetail,
   type PokemonSprites,
@@ -13,41 +14,7 @@ import {
   type PokemonTypeRef,
 } from "@/src/lib/types/pokemon";
 import { detailCache } from "@/src/lib/pokemon/cacheStrategy";
-
-/**
- * Mapeo de habitats inglés→español. Replicado del módulo de lista para
- * mantener este archivo autocontenido.
- */
-const HABITAT_ALIAS: Record<string, Habitat> = {
-  cave: "caverna",
-  forest: "bosque",
-  grassland: "pradera",
-  mountain: "montana",
-  "rough-terrain": "montana",
-  field: "campo",
-  freshwater: "agua_dulce",
-  "waters-edge": "agua_dulce",
-  sea: "agua_salada",
-  urban: "ciudad",
-  rare: "raro",
-};
-
-function asHabitat(name: string | null | undefined): Habitat | null {
-  if (!name) return null;
-  return HABITAT_ALIAS[name] ?? "generico";
-}
-
-const GENERATIONS: ReadonlyArray<Generation> = [
-  "generation-i",
-  "generation-ii",
-  "generation-iii",
-  "generation-iv",
-  "generation-v",
-  "generation-vi",
-  "generation-vii",
-  "generation-viii",
-  "generation-ix",
-];
+import { asHabitat } from "@/src/lib/constants/habitats";
 
 function asGeneration(name: string | null | undefined): Generation | null {
   if (!name) return null;
@@ -56,29 +23,8 @@ function asGeneration(name: string | null | undefined): Generation | null {
     : null;
 }
 
-const TYPES: ReadonlyArray<PokemonType> = [
-  "normal",
-  "fighting",
-  "flying",
-  "poison",
-  "ground",
-  "rock",
-  "bug",
-  "ghost",
-  "steel",
-  "fire",
-  "water",
-  "grass",
-  "electric",
-  "psychic",
-  "ice",
-  "dragon",
-  "dark",
-  "fairy",
-];
-
 function asType(name: string): PokemonType | null {
-  return (TYPES as ReadonlyArray<string>).includes(name)
+  return (POKEMON_TYPES as ReadonlyArray<string>).includes(name)
     ? (name as PokemonType)
     : null;
 }

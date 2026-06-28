@@ -2,12 +2,19 @@ import { BASE_COLORS } from "./colors";
 import type { ColorSet, PokemonType } from "@/src/lib/types/pokemon";
 
 /**
+ * Normaliza una cadena para búsqueda/comparación insensible a
+ * mayúsculas, acentos y espacios sobrantes.
+ */
+export function normalizeFilterString(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+/**
  * Etiquetas en español para los 18 tipos canónicos.
- *
- * La PokeAPI no expone nombres de tipo traducidos, por lo que esta
- * es la única fuente de verdad para mostrarlos al usuario en español.
- * Se usa en chips de cards, dropdowns de filtros y resumen de la
- * consola de filtros.
  */
 export const POKEMON_TYPE_LABELS: Record<PokemonType, string> = {
   normal: "Normal",
@@ -29,6 +36,20 @@ export const POKEMON_TYPE_LABELS: Record<PokemonType, string> = {
   dark: "Siniestro",
   fairy: "Hada",
 };
+
+/**
+ * Mapa inverso: etiqueta normalizada → valor interno del tipo.
+ * Resuelve tanto `"Fuego"` como `"fire"` a `"fire"`.
+ * Fuente canónica usada por serialización de filtros y consola.
+ */
+export const TYPE_LABEL_TO_VALUE: ReadonlyMap<string, PokemonType> = (() => {
+  const map = new Map<string, PokemonType>();
+  for (const [value, label] of Object.entries(POKEMON_TYPE_LABELS)) {
+    map.set(normalizeFilterString(label), value as PokemonType);
+    map.set(normalizeFilterString(value), value as PokemonType);
+  }
+  return map;
+})();
 
 /**
  * Colores por tipo de Pokémon.

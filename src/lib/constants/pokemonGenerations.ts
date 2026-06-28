@@ -3,8 +3,6 @@ import type { ColorSet, Generation } from "@/src/lib/types/pokemon";
 
 /**
  * Colores por generación de Pokémon (I–IX).
- *
- * Se usan tonos distinguibles para facilitar la identificación visual.
  */
 export const POKEMON_GENERATION_COLORS: Record<Generation, ColorSet> & {
   default: ColorSet;
@@ -23,4 +21,43 @@ export const POKEMON_GENERATION_COLORS: Record<Generation, ColorSet> & {
     border: BASE_COLORS.cyanButton.light,
     text: "#FFFFFF",
   },
+};
+
+/** Etiquetas largas en español para dropdowns de filtros. */
+export const GENERATION_LABELS: Record<Generation, string> = {
+  "generation-i": "Generación I",
+  "generation-ii": "Generación II",
+  "generation-iii": "Generación III",
+  "generation-iv": "Generación IV",
+  "generation-v": "Generación V",
+  "generation-vi": "Generación VI",
+  "generation-vii": "Generación VII",
+  "generation-viii": "Generación VIII",
+  "generation-ix": "Generación IX",
+};
+
+/** Números romanos compactos para el slot de chips. */
+export const GEN_ROMAN: Record<Generation, string> = {
+  "generation-i": "I",
+  "generation-ii": "II",
+  "generation-iii": "III",
+  "generation-iv": "IV",
+  "generation-v": "V",
+  "generation-vi": "VI",
+  "generation-vii": "VII",
+  "generation-viii": "VIII",
+  "generation-ix": "IX",
+};
+
+/** Etiquetas compactas en minúsculas para chips de lista. */
+export const GENERATION_LABELS_SHORT: Record<Generation, string> = {
+  "generation-i": "gen I",
+  "generation-ii": "gen II",
+  "generation-iii": "gen III",
+  "generation-iv": "gen IV",
+  "generation-v": "gen V",
+  "generation-vi": "gen VI",
+  "generation-vii": "gen VII",
+  "generation-viii": "gen VIII",
+  "generation-ix": "gen IX",
 };

@@ -1,50 +1,16 @@
 import {
+  GENERATIONS,
+  POKEMON_TYPES,
   type Generation,
-  type Habitat,
   type PokemonListItem,
   type PokemonSpritesJson,
   type PokemonType,
   type PokemonTypeRef,
 } from "@/src/lib/types/pokemon";
+import { HABITAT_ALIAS, asHabitat } from "@/src/lib/constants/habitats";
 import type { RawListPokemon } from "@/src/lib/pokemon/listRaw";
 
-/**
- * Mapeo de habitats inglés → clave interna en español. Se centraliza
- * aquí (y se reexporta desde `where.ts`) para que toda la capa de
- * datos comparta el mismo diccionario.
- *
- * @see doc/pokeapi/data/v2/csv/pokemon_habitats.csv
- */
-export const HABITAT_ALIAS: Record<string, Habitat> = {
-  cave: "caverna",
-  forest: "bosque",
-  grassland: "pradera",
-  mountain: "montana",
-  "rough-terrain": "montana",
-  field: "campo",
-  freshwater: "agua_dulce",
-  "waters-edge": "agua_dulce",
-  sea: "agua_salada",
-  urban: "ciudad",
-  rare: "raro",
-};
-
-export function asHabitat(name: string | null | undefined): Habitat | null {
-  if (!name) return null;
-  return HABITAT_ALIAS[name] ?? "generico";
-}
-
-const GENERATIONS: ReadonlyArray<Generation> = [
-  "generation-i",
-  "generation-ii",
-  "generation-iii",
-  "generation-iv",
-  "generation-v",
-  "generation-vi",
-  "generation-vii",
-  "generation-viii",
-  "generation-ix",
-];
+export { HABITAT_ALIAS, asHabitat };
 
 export function asGeneration(
   name: string | null | undefined,
@@ -54,27 +20,6 @@ export function asGeneration(
     ? (name as Generation)
     : null;
 }
-
-const POKEMON_TYPES: ReadonlyArray<PokemonType> = [
-  "normal",
-  "fighting",
-  "flying",
-  "poison",
-  "ground",
-  "rock",
-  "bug",
-  "ghost",
-  "steel",
-  "fire",
-  "water",
-  "grass",
-  "electric",
-  "psychic",
-  "ice",
-  "dragon",
-  "dark",
-  "fairy",
-];
 
 export function asType(name: string): PokemonType | null {
   return (POKEMON_TYPES as ReadonlyArray<string>).includes(name)

@@ -9,8 +9,10 @@ import {
   type Habitat,
   type PokemonType,
 } from "@/src/lib/types/pokemon";
-import { HABITAT_IMAGES } from "@/src/lib/constants/habitats";
+import { HABITAT_IMAGES, HABITAT_ALIAS, HABITAT_LABELS } from "@/src/lib/constants/habitats";
 import { POKEMON_TYPE_LABELS } from "@/src/lib/constants/pokemonTypes";
+import { GENERATION_LABELS } from "@/src/lib/constants/pokemonGenerations";
+import { POKEMON_COLOR_LABELS } from "@/src/lib/constants/colors";
 import { request } from "@/src/lib/graphql/client";
 import {
   ABILITIES_QUERY,
@@ -30,46 +32,6 @@ export const EXCLUDED_TYPES: ReadonlySet<string> = new Set([
   "unknown",
   "shadow",
 ]);
-
-/** Mapa inglés → clave en español usado para los hábitats. */
-const HABITAT_ALIAS: Record<string, Habitat> = {
-  cave: "caverna",
-  forest: "bosque",
-  grassland: "pradera",
-  mountain: "montana",
-  "rough-terrain": "montana",
-  field: "campo",
-  freshwater: "agua_dulce",
-  "waters-edge": "agua_dulce",
-  sea: "agua_salada",
-  urban: "ciudad",
-  rare: "raro",
-};
-
-const HABITAT_LABEL: Record<Habitat, string> = {
-  caverna: "Caverna",
-  bosque: "Bosque",
-  pradera: "Pradera",
-  campo: "Campo",
-  montana: "Montaña",
-  agua_dulce: "Agua dulce",
-  agua_salada: "Agua salada",
-  ciudad: "Ciudad",
-  raro: "Raro",
-  generico: "Genérico",
-};
-
-const GENERATION_LABEL: Record<Generation, string> = {
-  "generation-i": "Generación I",
-  "generation-ii": "Generación II",
-  "generation-iii": "Generación III",
-  "generation-iv": "Generación IV",
-  "generation-v": "Generación V",
-  "generation-vi": "Generación VI",
-  "generation-vii": "Generación VII",
-  "generation-viii": "Generación VIII",
-  "generation-ix": "Generación IX",
-};
 
 /**
  * Capitaliza un nombre slug (`electric` → `Electric`) y luego aplica
@@ -148,28 +110,15 @@ function mapGenerations(
   for (const g of raw) {
     if (!(GENERATIONS as ReadonlyArray<string>).includes(g.name)) continue;
     const gen = g.name as Generation;
-    out.push({ value: gen, label: GENERATION_LABEL[gen] });
+    out.push({ value: gen, label: GENERATION_LABELS[gen] });
   }
   return out;
 }
 
-const COLOR_LABELS: Record<string, string> = {
-  black: "Negro",
-  blue: "Azul",
-  brown: "Marrón",
-  gray: "Gris",
-  green: "Verde",
-  pink: "Rosa",
-  purple: "Púrpura",
-  red: "Rojo",
-  white: "Blanco",
-  yellow: "Amarillo",
-};
-
 function mapColors(raw: ReadonlyArray<RawType>): ReadonlyArray<FilterOption> {
   return raw.map((c) => ({
     value: c.name,
-    label: COLOR_LABELS[c.name] ?? labelFor(c.name),
+    label: POKEMON_COLOR_LABELS[c.name] ?? labelFor(c.name),
     image: undefined,
   }));
 }
@@ -187,7 +136,7 @@ function mapHabitats(
     seen.add(key);
     out.push({
       value: key,
-      label: HABITAT_LABEL[key],
+      label: HABITAT_LABELS[key],
       image: HABITAT_IMAGES[key],
     });
   }

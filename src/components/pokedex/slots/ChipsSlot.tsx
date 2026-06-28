@@ -6,13 +6,9 @@ import { useCarousel } from "../carousel/CarouselController";
 import { useViewportLayout } from "@/src/hooks/useViewportLayout";
 import { BASE_COLORS } from "@/src/lib/constants/colors";
 import { POKEMON_TYPE_COLORS, POKEMON_TYPE_LABELS } from "@/src/lib/constants/pokemonTypes";
-import { POKEMON_GENERATION_COLORS } from "@/src/lib/constants/pokemonGenerations";
+import { POKEMON_GENERATION_COLORS, GEN_ROMAN } from "@/src/lib/constants/pokemonGenerations";
 import type { Generation, PokemonType, ColorSet, PokemonTypeRef } from "@/src/lib/types/pokemon";
 
-const GEN_ROMAN: Record<Generation, string> = {
-  "generation-i":"I","generation-ii":"II","generation-iii":"III","generation-iv":"IV",
-  "generation-v":"V","generation-vi":"VI","generation-vii":"VII","generation-viii":"VIII","generation-ix":"IX",
-};
 function genLabel(g: Generation|null) { return g ? `Gen-${GEN_ROMAN[g]??"?"}` : "Gen-?"; }
 function genColors(g: Generation|null) {
   if (!g || !(g in POKEMON_GENERATION_COLORS)) return POKEMON_GENERATION_COLORS.default;
