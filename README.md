@@ -117,7 +117,10 @@ Copia `.env.example` a `.env.local`:
 | `vitest` + `@testing-library/react` + `jsdom` | Tests unitarios |
 | `@playwright/test` | Tests end-to-end |
 
-- **IA:** MiniMax M3 por su capacidad agéntica (function calling) y buena relación capacidad/precio para orquestar acciones sobre la Pokédex.
+- **Caché de datos:** La capa `lib/pokemon` centraliza las consultas a PokeAPI con una estrategia de caché por tags: lista de Pokémon 1 h, detalle 24 h, opciones de filtros 7 días. Se añade deduplicación intra-render con `React.cache` y precarga limitada a 3 peticiones concurrentes para no saturar el upstream.
+- **Sistema de alias:** Los filtros unificados se manejan desde una única fuente de verdad (`useFilters` + array `FILTERS` en `lib/filters/types.ts`). La terminal, los dropdowns, el buscador y las herramientas de IA convergen en el mismo hook, que sincroniza la URL bidireccionalmente y usa etiquetas legibles (`"Fuego"`) en la URL mientras mantiene valores internos (`"fire"`).
+- **Enrutado sin ruptura SPA:** La navegación entre vistas (home / pokédex / ficha) usa `history.pushState` y `popstate` para cambiar la URL sin desmontar el árbol React ni recargar la página. Solo los filtros usan `router.replace`. La vista `home` se pinta primero en deep-links para que la transición de entrada a la Pokédex se ejecute siempre.
+- **IA agéntica (Profesor Oak):** El chat con MiniMax M3 usa function calling con un bucle agéntico de hasta 10 turnos. El modelo decide autónomamente cuándo buscar un Pokémon, aplicar filtros o mostrar una ficha. La API emite eventos SSE `pokedex_command` que el cliente traduce en mutaciones reales de la Pokédex: `setFilter()`, `goToPokemon()`, `goToPokedex()`.
 - **Testing:** Unit tests con Vitest + Testing Library sobre fixtures reales de PokeAPI. Tests E2E con Playwright para navegación, filtros bidireccionales y viewport responsive.
 
 ---
