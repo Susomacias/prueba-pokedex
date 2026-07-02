@@ -9,6 +9,7 @@ import {
 } from "@/src/lib/filters/serialization";
 import {
   FILTERS,
+  type FilterBucket,
   type FilterKey,
   type FilterSummaryEntry,
   type FilterValue,
@@ -94,10 +95,14 @@ export function useFilters(): UseFiltersApi {
     for (const def of FILTERS) {
       const value = filters[def.key];
       if (value === undefined) continue;
+      const display =
+        def.kind === "range"
+          ? (value as FilterBucket).label
+          : def.format(value as never);
       entries.push({
         key: def.key,
         label: def.label,
-        display: def.format(value as never),
+        display,
       });
     }
     return entries;

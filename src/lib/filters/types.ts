@@ -4,6 +4,7 @@ import type {
   PokemonType,
   Generation,
 } from "@/src/lib/types/pokemon";
+export type { FilterBucket };
 import { POKEMON_TYPE_LABELS } from "@/src/lib/constants/pokemonTypes";
 import { TYPE_LABEL_TO_VALUE, normalizeFilterString } from "@/src/lib/constants/pokemonTypes";
 
@@ -97,18 +98,12 @@ export const FILTERS = [
     label: "Altura",
     parse: (raw: string): FilterBucket | undefined => {
       if (raw === "") return undefined;
-      const [min, max] = raw.split("-").map((n) => Number(n));
-      if (
-        Number.isNaN(min) ||
-        Number.isNaN(max) ||
-        min === undefined ||
-        max === undefined
-      ) {
-        return undefined;
-      }
-      return { value: raw, label: raw, min, max };
+      const bucket = parseRangeBucket(raw);
+      if (bucket) return bucket;
+      return parseLegacyRange(raw);
     },
-    format: (value: FilterBucket): string => value.value,
+    format: (value: FilterBucket): string =>
+      `${value.min}_${value.max}`,
   },
   {
     key: "weight",
@@ -116,18 +111,12 @@ export const FILTERS = [
     label: "Peso",
     parse: (raw: string): FilterBucket | undefined => {
       if (raw === "") return undefined;
-      const [min, max] = raw.split("-").map((n) => Number(n));
-      if (
-        Number.isNaN(min) ||
-        Number.isNaN(max) ||
-        min === undefined ||
-        max === undefined
-      ) {
-        return undefined;
-      }
-      return { value: raw, label: raw, min, max };
+      const bucket = parseRangeBucket(raw);
+      if (bucket) return bucket;
+      return parseLegacyRange(raw);
     },
-    format: (value: FilterBucket): string => value.value,
+    format: (value: FilterBucket): string =>
+      `${value.min}_${value.max}`,
   },
   {
     key: "search",
@@ -181,4 +170,26 @@ export interface FilterSummaryEntry<K extends FilterKey = FilterKey> {
   label: string;
   /** Representación cruda del valor para mostrar al usuario. */
   display: string;
+}
+
+function parseRangeBucket(raw: string): FilterBucket | undefined {
+  const parts = raw.split("_");
+  if (parts.length !== 2) return undefined;
+  const min = Number(parts[0]);
+  const max = Number(parts[1]);
+  if (Number.isNaN(min) || Number.isNaN(max)) return undefined;
+  return { value: raw, label: raw, min, max };
+}
+
+function parseLegacyRange(raw: string): FilterBucket | undefined {
+  const [min, max] = raw.split("-").map((n) => Number(n));
+  if (
+    Number.isNaN(min) ||
+    Number.isNaN(max) ||
+    min === undefined ||
+    max === undefined
+  ) {
+    return undefined;
+  }
+  return { value: raw, label: raw, min, max };
 }

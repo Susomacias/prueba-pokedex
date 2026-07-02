@@ -172,14 +172,14 @@ function resolveBucket(
 }
 
 function parseBucket(rawValue: string): FilterBucket | undefined {
-  const m = /^(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)$/.exec(rawValue.trim());
+  const m = /^(\d+(?:\.\d+)?)\s*[-_]\s*(\d+(?:\.\d+)?)$/.exec(rawValue.trim());
   if (!m) return undefined;
   const min = Number(m[1]);
   const max = Number(m[2]);
   if (!Number.isFinite(min) || !Number.isFinite(max) || min > max) {
     return undefined;
   }
-  const value = `${min}-${max}`;
+  const value = `${min}_${max}`;
   return { value, label: value, min, max };
 }
 

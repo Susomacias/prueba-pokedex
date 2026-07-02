@@ -201,4 +201,46 @@ describe("FilterDropdowns (Plan 07.2)", () => {
 
     expect(screen.getByTestId("filter-dropdown-loading")).toBeInTheDocument();
   });
+
+  it("al seleccionar una opción de altura se serializa con formato min_max en la URL", async () => {
+    const user = userEvent.setup();
+    const replace = vi.fn();
+    harnessRef.__harness!.setRouter({ replace });
+
+    render(<FilterDropdowns />, { wrapper });
+    const btn = screen.getByRole("button", { name: /altura/i });
+    await user.click(btn);
+
+    await waitFor(() => {
+      expect(screen.getByText(/0-5 dm/)).toBeInTheDocument();
+    });
+
+    const option = screen.getByText(/0-5 dm/);
+    await user.click(option);
+
+    expect(replace).toHaveBeenCalledTimes(1);
+    const url = replace.mock.calls[0][0] as string;
+    expect(url).toContain("height=0_5");
+  });
+
+  it("al seleccionar una opción de peso se serializa con formato min_max en la URL", async () => {
+    const user = userEvent.setup();
+    const replace = vi.fn();
+    harnessRef.__harness!.setRouter({ replace });
+
+    render(<FilterDropdowns />, { wrapper });
+    const btn = screen.getByRole("button", { name: /peso/i });
+    await user.click(btn);
+
+    await waitFor(() => {
+      expect(screen.getByText(/0-10 hg/)).toBeInTheDocument();
+    });
+
+    const option = screen.getByText(/0-10 hg/);
+    await user.click(option);
+
+    expect(replace).toHaveBeenCalledTimes(1);
+    const url = replace.mock.calls[0][0] as string;
+    expect(url).toContain("weight=0_10");
+  });
 });

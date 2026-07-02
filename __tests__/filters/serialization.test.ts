@@ -18,11 +18,11 @@ describe("filtersToSearchParams", () => {
     expect(params.get("type2")).toBe("Volador");
   });
 
-  it("serializa filtros de rango con el formato min-max", () => {
+  it("serializa filtros de rango con el formato min_max", () => {
     const params = filtersToSearchParams({
-      height: { value: "0-1", label: "0-1m", min: 0, max: 1 },
+      height: { value: "s", label: "S (3-10 dm)", min: 3, max: 10 },
     });
-    expect(params.get("height")).toBe("0-1");
+    expect(params.get("height")).toBe("3_10");
   });
 
   it("incluye todos los filtros definidos cuando están presentes", () => {
@@ -33,8 +33,8 @@ describe("filtersToSearchParams", () => {
       color: "red",
       habitat: "pradera",
       ability: "blaze",
-      height: { value: "0-1", label: "0-1m", min: 0, max: 1 },
-      weight: { value: "0-10", label: "0-10kg", min: 0, max: 10 },
+      height: { value: "s", label: "S (3-10 dm)", min: 3, max: 10 },
+      weight: { value: "heavy", label: "Pesado (500-1000 hg)", min: 500, max: 1000 },
     });
     expect(params.get("type1")).toBe("Fuego");
     expect(params.get("type2")).toBe("Volador");
@@ -42,8 +42,8 @@ describe("filtersToSearchParams", () => {
     expect(params.get("color")).toBe("red");
     expect(params.get("habitat")).toBe("pradera");
     expect(params.get("ability")).toBe("blaze");
-    expect(params.get("height")).toBe("0-1");
-    expect(params.get("weight")).toBe("0-10");
+    expect(params.get("height")).toBe("3_10");
+    expect(params.get("weight")).toBe("500_1000");
   });
 });
 
@@ -57,13 +57,13 @@ describe("searchParamsToFilters", () => {
   });
 
   it("parsea filtros de rango a FilterBucket", () => {
-    const params = new URLSearchParams("height=0-1");
+    const params = new URLSearchParams("height=3_10");
     const filters = searchParamsToFilters(params);
     expect(filters.height).toEqual({
-      value: "0-1",
-      label: "0-1",
-      min: 0,
-      max: 1,
+      value: "3_10",
+      label: "3_10",
+      min: 3,
+      max: 10,
     });
   });
 
@@ -116,6 +116,54 @@ describe("round-trip filters ↔ URLSearchParams", () => {
       expect(back[def.key]).toEqual(original[def.key]);
     });
   }
+
+  it("mantiene buckets predefinidos de altura tras serializar y parsear", () => {
+    const original = { height: { value: "s", label: "S (3-10 dm)", min: 3, max: 10 } };
+    const params = filtersToSearchParams(original as never);
+    const back = searchParamsToFilters(params);
+
+    expect(back.height).toBeDefined();
+    expect(back.height!.min).toBe(3);
+    expect(back.height!.max).toBe(10);
+  });
+
+  it("mantiene buckets predefinidos de peso tras serializar y parsear", () => {
+    const original = { weight: { value: "heavy", label: "Pesado (500-1000 hg)", min: 500, max: 1000 } };
+    const params = filtersToSearchParams(original as never);
+    const back = searchParamsToFilters(params);
+
+    expect(back.weight).toBeDefined();
+    expect(back.weight!.min).toBe(500);
+    expect(back.weight!.max).toBe(1000);
+  });
+
+  it("mantiene bucket con Infinity tras serializar y parsear", () => {
+    const original = { height: { value: "xl", label: "XL", min: 50, max: Infinity } };
+    const params = filtersToSearchParams(original as never);
+    const back = searchParamsToFilters(params);
+
+    expect(back.height).toBeDefined();
+    expect(back.height!.min).toBe(50);
+    expect(back.height!.max).toBe(Infinity);
+  });
+
+  it("mantiene bucket con -Infinity tras serializar y parsear", () => {
+    const original = { height: { value: "xs", label: "XS", min: -Infinity, max: 3 } };
+    const params = filtersToSearchParams(original as never);
+    const back = searchParamsToFilters(params);
+
+    expect(back.height).toBeDefined();
+    expect(back.height!.min).toBe(-Infinity);
+    expect(back.height!.max).toBe(3);
+  });
+
+  it("parsea formato legacy con guion por compatibilidad", () => {
+    const params = new URLSearchParams("height=5-10");
+    const filters = searchParamsToFilters(params);
+    expect(filters.height).toBeDefined();
+    expect(filters.height!.min).toBe(5);
+    expect(filters.height!.max).toBe(10);
+  });
 });
 
 describe("applyFilterChange", () => {

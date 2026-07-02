@@ -249,7 +249,7 @@ describe("FilterConsole — aplicar filtros via consola", () => {
     renderConsole();
     typeAndSubmit("altura 0-1");
     const url = replace.mock.calls[0]?.[0] as string;
-    expect(url).toMatch(/height=0-1/);
+    expect(url).toMatch(/height=0_1/);
   });
 
   it("'generation generation-i' aplica usando el value real de PokeAPI", () => {

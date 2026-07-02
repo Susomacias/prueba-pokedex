@@ -38,13 +38,14 @@ const DROPDOWN_FILTER_KEYS: FilterKey[] = [
   "weight",
 ];
 
-const FILTER_ALL_VALUE = "__all__";
-
 function activeValueLabel(filters: Filters, key: FilterKey): string | null {
   const def = FILTERS.find((f) => f.key === key);
   if (!def) return null;
   const value = filters[key];
   if (value === undefined) return null;
+  if (def.kind === "range" && typeof value === "object" && "label" in value) {
+    return (value as FilterBucket).label;
+  }
   try {
     return def.format(value as never);
   } catch {
@@ -60,13 +61,15 @@ function FilterDropdownPanel({
   filterKey,
   anchorRect,
   onSelect,
+  onClear,
   onClose,
   isAvailable,
   isBucketAvailableForRange,
 }: {
   filterKey: FilterKey;
   anchorRect: DOMRect;
-  onSelect: (value: string) => void;
+  onSelect: (option: FilterOption | FilterBucket) => void;
+  onClear: () => void;
   onClose: () => void;
   isAvailable: (value: string) => boolean;
   isBucketAvailableForRange: (bucket: FilterBucket) => boolean;
@@ -182,7 +185,7 @@ function FilterDropdownPanel({
           aria-selected={false}
           tabIndex={0}
           className="filter-dropdown-panel__option filter-dropdown-panel__option--all"
-          onClick={() => onSelect(FILTER_ALL_VALUE)}
+          onClick={onClear}
         >
           Todos
         </button>
@@ -201,7 +204,7 @@ function FilterDropdownPanel({
               aria-selected={false}
               tabIndex={0}
               className="filter-dropdown-panel__option"
-              onClick={() => onSelect(opt.value)}
+              onClick={() => onSelect(opt)}
             >
               &#9673; {opt.label}
             </button>
@@ -242,18 +245,6 @@ export function FilterDropdowns() {
       }
     },
     [openKey, onClose],
-  );
-
-  const onSelect = useCallback(
-    (key: FilterKey, value: string) => {
-      if (value === FILTER_ALL_VALUE) {
-        setFilter(key, undefined!);
-      } else {
-        setFilter(key, value as FilterValue<typeof key>);
-      }
-      onClose();
-    },
-    [setFilter, onClose],
   );
 
   useEffect(() => {
@@ -303,7 +294,20 @@ export function FilterDropdowns() {
               <FilterDropdownPanel
                 filterKey={key}
                 anchorRect={anchorRect}
-                onSelect={(v) => onSelect(key, v)}
+                onSelect={(opt) => {
+                  const def = FILTERS.find((f) => f.key === key);
+                  if (def && def.kind === "range" && "min" in opt && "max" in opt) {
+                    setFilter(key, opt as unknown as FilterValue<typeof key>);
+                  } else {
+                    const value = (opt as FilterOption).value;
+                    setFilter(key, value as FilterValue<typeof key>);
+                  }
+                  onClose();
+                }}
+                onClear={() => {
+                  setFilter(key, undefined);
+                  onClose();
+                }}
                 onClose={onClose}
                 isAvailable={(v) => availability.isAvailable(key, v)}
                 isBucketAvailableForRange={(b) =>
